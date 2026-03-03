@@ -1,0 +1,134 @@
+/* ── PRICING — Warm Academic ── */
+.pricing-section {
+    background: var(--bg-secondary);
+}
+
+.pricing-header {
+    text-align: center;
+    margin-bottom: 72px;
+}
+
+.pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.pricing-card {
+    padding: 44px 36px;
+    position: relative;
+}
+
+.pricing-card--featured {
+    border-color: var(--amber);
+}
+
+.pricing-card--featured:hover {
+    border-color: var(--amber);
+    box-shadow: var(--shadow-xl);
+}
+
+.pricing-badge {
+    position: absolute;
+    top: -12px;
+    right: 24px;
+    padding: 5px 16px;
+    background: var(--navy);
+    color: var(--amber-light);
+    font-family: var(--font-sans);
+    font-size: 0.72rem;
+    font-weight: 700;
+    border-radius: 100px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 12px rgba(30, 41, 59, 0.2);
+}
+
+.pricing-tier {
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 12px;
+}
+
+.pricing-card:not(.pricing-card--featured) .pricing-tier {
+    color: var(--sage);
+}
+
+.pricing-card--featured .pricing-tier {
+    color: var(--amber);
+}
+
+.pricing-amount {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-bottom: 6px;
+}
+
+.pricing-amount .price {
+    font-family: var(--font-serif);
+    font-size: 3.2rem;
+    font-weight: 400;
+    color: var(--text-primary);
+}
+
+.pricing-amount .period {
+    font-size: 0.95rem;
+    color: var(--text-dim);
+}
+
+.pricing-note {
+    font-size: 0.88rem;
+    color: var(--text-dim);
+    margin-bottom: 28px;
+}
+
+.pricing-features {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-bottom: 32px;
+}
+
+.pricing-features li {
+    font-size: 0.92rem;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.pricing-card:not(.pricing-card--featured) .check {
+    color: var(--sage);
+}
+
+.pricing-card--featured .check {
+    color: var(--amber);
+}
+
+.pricing-card .btn-primary,
+.pricing-card .btn-secondary {
+    width: 100%;
+    text-align: center;
+}
+
+@media (max-width: 768px) {
+    .pricing-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ==========================
+   DARK MODE OVERRIDES
+   ========================== */
+@media (prefers-color-scheme: dark) {
+    .pricing-badge {
+        background: var(--amber);
+        color: var(--bg-primary);
+    }
+}

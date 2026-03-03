@@ -1,0 +1,105 @@
+/* ── HOW IT WORKS — Warm Academic ── */
+.how-section {
+    background: var(--bg-secondary);
+}
+
+.how-header {
+    text-align: center;
+    margin-bottom: 72px;
+}
+
+.how-grid {
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    gap: 20px;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.how-step {
+    flex: 1;
+    text-align: center;
+    padding: 40px 28px;
+    background: var(--bg-card);
+}
+
+.step-num {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 20px;
+    border-radius: 50%;
+    background: var(--navy);
+    color: var(--amber-light);
+    font-family: var(--font-serif);
+    font-size: 1.3rem;
+    font-style: italic;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 16px rgba(30, 41, 59, 0.15);
+}
+
+.how-step h3 {
+    font-family: var(--font-serif);
+    font-size: 1.15rem;
+    font-weight: 400;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+}
+
+.how-step p {
+    font-size: 0.9rem;
+    line-height: 1.7;
+    color: var(--text-secondary);
+}
+
+.how-connector {
+    display: flex;
+    align-items: center;
+    color: var(--text-light);
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+.how-connector .connector-line {
+    width: 24px;
+    height: 1px;
+    background: var(--border-warm);
+    position: relative;
+}
+
+.how-connector .connector-line::after {
+    content: '';
+    position: absolute;
+    right: -3px;
+    top: -3px;
+    width: 7px;
+    height: 7px;
+    border-top: 1.5px solid var(--border-warm);
+    border-right: 1.5px solid var(--border-warm);
+    transform: rotate(45deg);
+}
+
+@media (max-width: 768px) {
+    .how-grid {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .how-connector {
+        justify-content: center;
+        transform: rotate(90deg);
+    }
+}
+
+/* ==========================
+   DARK MODE OVERRIDES
+   ========================== */
+@media (prefers-color-scheme: dark) {
+    .step-num {
+        background: var(--amber);
+        color: var(--bg-primary);
+        box-shadow: 0 4px 16px rgba(245, 158, 11, 0.15);
+    }
+}

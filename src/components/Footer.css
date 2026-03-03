@@ -1,0 +1,40 @@
+/* ── FOOTER — Warm Academic ── */
+.footer {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    padding: 36px 24px 28px;
+    border-top: 1px solid var(--border-warm);
+    background: var(--bg-primary);
+}
+
+.footer-links {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+}
+
+.footer-links a {
+    font-size: 0.88rem;
+    font-weight: 500;
+    color: var(--text-dim);
+    transition: color var(--transition-fast);
+    text-decoration: none;
+}
+
+.footer-links a:hover {
+    color: var(--amber);
+}
+
+.footer-copy {
+    font-size: 0.82rem;
+    color: var(--text-light);
+}
+
+@media (max-width: 768px) {
+    .footer-links {
+        gap: 20px;
+    }
+}

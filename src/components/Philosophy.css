@@ -1,0 +1,83 @@
+/* ── PHILOSOPHY — Warm Academic ── */
+.philosophy {
+    position: relative;
+    background: var(--bg-secondary);
+    overflow: hidden;
+}
+
+/* Full-width background */
+.philosophy::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--bg-secondary);
+    z-index: -1;
+}
+
+.philosophy-header {
+    text-align: center;
+    margin-bottom: 72px;
+}
+
+.philosophy-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+}
+
+.philosophy-card {
+    padding: 44px 32px;
+    text-align: center;
+    background: var(--bg-card);
+}
+
+.philosophy-card .card-icon {
+    width: 60px;
+    height: 60px;
+    margin: 0 auto 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    border: 1.5px dashed var(--border-warm);
+    transition: all var(--transition-base);
+}
+
+.philosophy-card:hover .card-icon {
+    border-color: var(--amber);
+    border-style: solid;
+    background: var(--amber-glow);
+    transform: rotate(8deg);
+}
+
+.philosophy-card h3 {
+    font-family: var(--font-serif);
+    font-size: 1.3rem;
+    font-weight: 400;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+}
+
+.philosophy-card p {
+    font-size: 0.92rem;
+    line-height: 1.75;
+    color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+    .philosophy-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .philosophy {
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    .philosophy>* {
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+}
