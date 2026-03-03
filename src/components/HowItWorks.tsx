@@ -1,3 +1,4 @@
+import React from 'react';
 import './HowItWorks.css';
 
 const steps = [
@@ -32,18 +33,18 @@ export default function HowItWorks() {
 
             <div className="how-grid">
                 {steps.map((s, i) => (
-                    <>
-                        <div className="paper-card how-step" key={s.num}>
+                    <React.Fragment key={s.num}>
+                        <div className="paper-card how-step">
                             <div className="step-num">{s.num}</div>
                             <h3>{s.title}</h3>
                             <p>{s.description}</p>
                         </div>
                         {i < steps.length - 1 && (
-                            <div className="how-connector" key={`c-${i}`}>
+                            <div className="how-connector">
                                 <div className="connector-line" />
                             </div>
                         )}
-                    </>
+                    </React.Fragment>
                 ))}
             </div>
         </section>

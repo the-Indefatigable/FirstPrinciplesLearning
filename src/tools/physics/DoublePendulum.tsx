@@ -1,10 +1,11 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
+import { useUrlState } from '../../hooks/useUrlState';
 
 export default function DoublePendulum() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const stateRef = useRef({ running: true, trail: [] as { x: number; y: number }[] });
 
-    const [params, setParams] = useState({
+    const [params, setParams] = useUrlState('p', {
         L1: 150, L2: 120,
         m1: 10, m2: 10,
         theta1: Math.PI / 2, theta2: Math.PI / 1.5,
