@@ -1,6 +1,9 @@
-import { useState, useMemo, useEffect } from 'react';
-import Plot from 'react-plotly.js';
+import { useState, useMemo, useEffect, lazy, Suspense } from 'react';
 import * as math from 'mathjs';
+
+// PlotGL3D uses plotly-gl3d partial bundle (~1.7 MB vs 4.8 MB for full plotly)
+// and is lazy-loaded so it only downloads when this component actually renders
+const Plot = lazy(() => import('./PlotGL3D'));
 
 export default function Plotter3D() {
     const [equation, setEquation] = useState('sin(x) * cos(y)');
@@ -115,30 +118,37 @@ export default function Plotter3D() {
                     }}
                 >
                     {plotData ? (
-                        <Plot
-                            data={plotData as any}
-                            layout={{
-                                width: undefined,
-                                height: undefined,
-                                autosize: true,
-                                margin: { l: 0, r: 0, b: 0, t: 0 },
-                                paper_bgcolor: 'transparent',
-                                plot_bgcolor: 'transparent',
-                                scene: {
-                                    xaxis: { title: { text: 'X' }, showgrid: true, zeroline: true, gridcolor: isDarkMode ? '#242018' : '#e8e0d2' },
-                                    yaxis: { title: { text: 'Y' }, showgrid: true, zeroline: true, gridcolor: isDarkMode ? '#242018' : '#e8e0d2' },
-                                    zaxis: { title: { text: 'Z' }, showgrid: true, zeroline: true, gridcolor: isDarkMode ? '#242018' : '#e8e0d2' },
-                                    camera: { eye: { x: 1.5, y: 1.5, z: 1.5 } }
-                                },
-                                font: {
-                                    family: 'Sora, sans-serif',
-                                    color: isDarkMode ? '#e8e4de' : '#1a1612'
-                                }
-                            }}
-                            useResizeHandler={true}
-                            style={{ width: '100%', height: '100%' }}
-                            config={{ displayModeBar: false, responsive: true }}
-                        />
+                        <Suspense fallback={
+                            <div style={{ color: 'var(--text-dim)', display: 'flex', alignItems: 'center', gap: 10 }}>
+                                <div className="animate-spin" style={{ width: 18, height: 18, border: '2px solid var(--border-warm)', borderTopColor: 'var(--amber)', borderRadius: '50%' }} />
+                                Loading 3D renderer…
+                            </div>
+                        }>
+                            <Plot
+                                data={plotData as any}
+                                layout={{
+                                    width: undefined,
+                                    height: undefined,
+                                    autosize: true,
+                                    margin: { l: 0, r: 0, b: 0, t: 0 },
+                                    paper_bgcolor: 'transparent',
+                                    plot_bgcolor: 'transparent',
+                                    scene: {
+                                        xaxis: { title: { text: 'X' }, showgrid: true, zeroline: true, gridcolor: isDarkMode ? '#242018' : '#e8e0d2' },
+                                        yaxis: { title: { text: 'Y' }, showgrid: true, zeroline: true, gridcolor: isDarkMode ? '#242018' : '#e8e0d2' },
+                                        zaxis: { title: { text: 'Z' }, showgrid: true, zeroline: true, gridcolor: isDarkMode ? '#242018' : '#e8e0d2' },
+                                        camera: { eye: { x: 1.5, y: 1.5, z: 1.5 } }
+                                    },
+                                    font: {
+                                        family: 'Sora, sans-serif',
+                                        color: isDarkMode ? '#e8e4de' : '#1a1612'
+                                    }
+                                }}
+                                useResizeHandler={true}
+                                style={{ width: '100%', height: '100%' }}
+                                config={{ displayModeBar: false, responsive: true }}
+                            />
+                        </Suspense>
                     ) : (
                         <div style={{ color: 'var(--text-dim)' }}>Waiting for valid equation...</div>
                     )}

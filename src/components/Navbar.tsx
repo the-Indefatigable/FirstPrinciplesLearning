@@ -34,9 +34,9 @@ export default function Navbar() {
                 <li><a href="#pricing">Pricing</a></li>
               </>
             ) : null}
-            <li><Link to="/math" className={location.pathname === '/math' ? 'active' : ''}>Math</Link></li>
-            <li><Link to="/physics" className={location.pathname === '/physics' ? 'active' : ''}>Physics</Link></li>
-            <li><Link to="/cs" className={location.pathname === '/cs' ? 'active' : ''}>CS</Link></li>
+            <li><Link to="/math" className={location.pathname.startsWith('/math') ? 'active' : ''}>Math</Link></li>
+            <li><Link to="/physics" className={location.pathname.startsWith('/physics') ? 'active' : ''}>Physics</Link></li>
+            <li><Link to="/cs" className={location.pathname.startsWith('/cs') ? 'active' : ''}>CS</Link></li>
           </ul>
 
           {isLanding ? (

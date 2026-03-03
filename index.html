@@ -6,6 +6,29 @@
     <meta name="description" content="FirstPrinciple Tutoring — Premium 1-on-1 tutoring in Math, Physics, and Computer Science. First-principles approach that builds deep understanding, not memorization." />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>" />
     <title>FirstPrinciple Tutoring — Math, Physics & CS Tutoring</title>
+
+    <!-- DNS + TCP handshake with Google Fonts before CSS is even parsed -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!--
+      Non-blocking font load via the media="print" trick:
+      Browser fetches the stylesheet without blocking paint.
+      onload switches it to media="all" so fonts apply once ready.
+    -->
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Sora:wght@300;400;500;600;700;800&display=swap"
+      media="print"
+      onload="this.media='all'"
+    />
+    <!-- Fallback for JS-disabled browsers -->
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Sora:wght@300;400;500;600;700;800&display=swap"
+      />
+    </noscript>
   </head>
   <body>
     <div id="root"></div>

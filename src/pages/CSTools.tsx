@@ -1,9 +1,24 @@
-import SortingVisualizer from '../tools/cs/SortingVisualizer';
-import GraphTraversal from '../tools/cs/GraphTraversal';
-import RecursionVisualizer from '../tools/cs/RecursionVisualizer';
-import CodeExecutor from '../tools/cs/CodeExecutor';
-import Pathfinding from '../tools/cs/Pathfinding';
-import SqlVisualizer from '../tools/cs/SqlVisualizer';
+import { lazy, Suspense } from 'react';
+import ToolSkeleton from '../components/ToolSkeleton';
+import VisibleOnScroll from '../components/VisibleOnScroll';
+
+const Pathfinding         = lazy(() => import('../tools/cs/Pathfinding'));
+const SqlVisualizer       = lazy(() => import('../tools/cs/SqlVisualizer'));
+const SortingVisualizer   = lazy(() => import('../tools/cs/SortingVisualizer'));
+const GraphTraversal      = lazy(() => import('../tools/cs/GraphTraversal'));
+const RecursionVisualizer = lazy(() => import('../tools/cs/RecursionVisualizer'));
+const CodeExecutor        = lazy(() => import('../tools/cs/CodeExecutor'));
+
+function LazyTool({ label, children }: { label: string; children: React.ReactNode }) {
+    const skeleton = <ToolSkeleton label={label} />;
+    return (
+        <VisibleOnScroll placeholder={skeleton}>
+            <Suspense fallback={skeleton}>
+                {children}
+            </Suspense>
+        </VisibleOnScroll>
+    );
+}
 
 export default function CSTools() {
     return (
@@ -22,12 +37,12 @@ export default function CSTools() {
                 </div>
             </div>
             <div className="tool-grid tool-grid--1col">
-                <Pathfinding />
-                <SqlVisualizer />
-                <SortingVisualizer />
-                <GraphTraversal />
-                <RecursionVisualizer />
-                <CodeExecutor />
+                <LazyTool label="Pathfinding"><Pathfinding /></LazyTool>
+                <LazyTool label="SQL Visualizer"><SqlVisualizer /></LazyTool>
+                <LazyTool label="Sorting Visualizer"><SortingVisualizer /></LazyTool>
+                <LazyTool label="Graph Traversal"><GraphTraversal /></LazyTool>
+                <LazyTool label="Recursion Visualizer"><RecursionVisualizer /></LazyTool>
+                <LazyTool label="Code Executor"><CodeExecutor /></LazyTool>
             </div>
         </div>
     );

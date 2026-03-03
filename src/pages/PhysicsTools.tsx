@@ -1,9 +1,26 @@
-import DoublePendulum from '../tools/physics/DoublePendulum';
-import SpringMass from '../tools/physics/SpringMass';
-import MomentumConservation from '../tools/physics/MomentumConservation';
-import RayOptics from '../tools/physics/RayOptics';
-import OrbitalMechanics from '../tools/physics/OrbitalMechanics';
-import CircuitBuilder from '../tools/physics/CircuitBuilder';
+import { lazy, Suspense } from 'react';
+import ToolSkeleton from '../components/ToolSkeleton';
+import VisibleOnScroll from '../components/VisibleOnScroll';
+
+// Physics sims start canvas animation loops on mount — VisibleOnScroll prevents
+// all 6 rAF loops from firing before the user scrolls to them
+const CircuitBuilder       = lazy(() => import('../tools/physics/CircuitBuilder'));
+const OrbitalMechanics    = lazy(() => import('../tools/physics/OrbitalMechanics'));
+const RayOptics           = lazy(() => import('../tools/physics/RayOptics'));
+const DoublePendulum      = lazy(() => import('../tools/physics/DoublePendulum'));
+const SpringMass          = lazy(() => import('../tools/physics/SpringMass'));
+const MomentumConservation = lazy(() => import('../tools/physics/MomentumConservation'));
+
+function LazyTool({ label, children }: { label: string; children: React.ReactNode }) {
+    const skeleton = <ToolSkeleton label={label} />;
+    return (
+        <VisibleOnScroll placeholder={skeleton}>
+            <Suspense fallback={skeleton}>
+                {children}
+            </Suspense>
+        </VisibleOnScroll>
+    );
+}
 
 export default function PhysicsTools() {
     return (
@@ -22,12 +39,12 @@ export default function PhysicsTools() {
                 </div>
             </div>
             <div className="tool-grid tool-grid--1col">
-                <CircuitBuilder />
-                <OrbitalMechanics />
-                <RayOptics />
-                <DoublePendulum />
-                <SpringMass />
-                <MomentumConservation />
+                <LazyTool label="Circuit Builder"><CircuitBuilder /></LazyTool>
+                <LazyTool label="Orbital Gravity Simulator"><OrbitalMechanics /></LazyTool>
+                <LazyTool label="Ray Optics"><RayOptics /></LazyTool>
+                <LazyTool label="Double Pendulum"><DoublePendulum /></LazyTool>
+                <LazyTool label="Spring-Mass System"><SpringMass /></LazyTool>
+                <LazyTool label="Momentum Conservation"><MomentumConservation /></LazyTool>
             </div>
         </div>
     );
