@@ -27,7 +27,7 @@ export default function RecursionVisualizer() {
         canvas.height = 380;
         const W = canvas.width;
         const H = canvas.height;
-        const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
 
         ctx.fillStyle = isDark ? '#141210' : '#faf8f5';
         ctx.fillRect(0, 0, W, H);

@@ -86,7 +86,7 @@
 /* ==========================
    DARK MODE OVERRIDES
    ========================== */
-@media (prefers-color-scheme: dark) {
+[data-theme="dark"] {
     .final-cta-card {
         background: var(--amber);
     }

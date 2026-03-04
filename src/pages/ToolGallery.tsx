@@ -6,19 +6,16 @@ const CATEGORY_META = {
   math: {
     title: 'Mathematics',
     subtitle: 'Calculus, linear algebra, and graphing — built to make abstract ideas click.',
-    count: 7,
     unit: 'interactive tools',
   },
   physics: {
     title: 'Physics Simulations',
     subtitle: 'Tweak parameters and watch the laws of physics unfold in real time.',
-    count: 6,
     unit: 'interactive simulations',
   },
   cs: {
     title: 'Computer Science',
     subtitle: 'Visualize algorithms, traverse graphs, and run code — all in the browser.',
-    count: 6,
     unit: 'interactive tools',
   },
 } as const;
@@ -44,7 +41,7 @@ export default function ToolGallery({ category }: Props) {
         <p>{meta.subtitle}</p>
         <div className="tool-count-badge">
           <span className="count-dot" />
-          {meta.count} {meta.unit}
+          {tools.length} {meta.unit}
         </div>
       </div>
 

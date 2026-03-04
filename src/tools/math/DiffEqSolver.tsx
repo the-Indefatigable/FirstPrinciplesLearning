@@ -56,7 +56,7 @@ export default function DiffEqSolver() {
         const H = canvas.height;
         const pad = 48;
 
-        const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
         ctx.fillStyle = isDark ? '#141210' : '#faf8f5';
         ctx.fillRect(0, 0, W, H);
 

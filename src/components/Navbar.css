@@ -222,7 +222,7 @@
 /* ==========================
    DARK MODE OVERRIDES
    ========================== */
-@media (prefers-color-scheme: dark) {
+[data-theme="dark"] {
     .navbar {
         background: rgba(20, 18, 16, 0.85);
         border-bottom-color: var(--border-light);

@@ -36,7 +36,7 @@ export default function ExportButton({ targetId, targetRef, filename = 'export' 
                 const html2canvas = (await import('html2canvas')).default;
                 const canvas = await html2canvas(el, {
                     scale: 2, // Hi-DPI
-                    backgroundColor: window.matchMedia('(prefers-color-scheme: dark)').matches ? '#1a1612' : '#ffffff',
+                    backgroundColor: document.documentElement.getAttribute('data-theme') === 'dark' ? '#1a1612' : '#ffffff',
                     logging: false
                 });
                 dataUrl = canvas.toDataURL('image/png');

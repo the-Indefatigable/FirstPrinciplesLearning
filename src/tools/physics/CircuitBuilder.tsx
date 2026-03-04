@@ -24,11 +24,11 @@ export default function CircuitBuilder() {
     const [isDarkMode, setIsDarkMode] = useState(false);
 
     useEffect(() => {
-        const mq = window.matchMedia('(prefers-color-scheme: dark)');
-        setIsDarkMode(mq.matches);
-        const handler = (e: MediaQueryListEvent) => setIsDarkMode(e.matches);
-        mq.addEventListener('change', handler);
-        return () => mq.removeEventListener('change', handler);
+        const el = document.documentElement;
+        setIsDarkMode(el.getAttribute('data-theme') === 'dark');
+        const obs = new MutationObserver(() => setIsDarkMode(el.getAttribute('data-theme') === 'dark'));
+        obs.observe(el, { attributes: true, attributeFilter: ['data-theme'] });
+        return () => obs.disconnect();
     }, []);
 
     // Draw Loop

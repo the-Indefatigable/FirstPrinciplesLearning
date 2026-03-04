@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import ThemeToggle from './ThemeToggle';
 import './Navbar.css';
 
 export default function Navbar() {
@@ -44,6 +45,8 @@ export default function Navbar() {
           ) : (
             <Link className="navbar-cta" to="/">← Back to Home</Link>
           )}
+
+          <ThemeToggle />
 
           <button
             className={`hamburger ${menuOpen ? 'open' : ''}`}

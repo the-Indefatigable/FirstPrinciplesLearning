@@ -84,7 +84,7 @@
 /* ==========================
    DARK MODE OVERRIDES
    ========================== */
-@media (prefers-color-scheme: dark) {
+[data-theme="dark"] {
     .testimonial-avatar {
         background: var(--bg-accent);
         border-color: var(--border-warm);

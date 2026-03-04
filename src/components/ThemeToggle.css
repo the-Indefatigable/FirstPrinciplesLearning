@@ -1,0 +1,38 @@
+/* ── THEME TOGGLE ── */
+.theme-toggle {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 3px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-warm);
+    border-radius: 100px;
+}
+
+.theme-toggle-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.2s ease;
+    padding: 0;
+}
+
+.theme-toggle-btn:hover {
+    background: var(--border-warm);
+}
+
+.theme-toggle-btn.active {
+    background: var(--bg-card);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+.theme-icon {
+    line-height: 1;
+}

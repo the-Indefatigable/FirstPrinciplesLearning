@@ -55,7 +55,7 @@ export default function MomentumConservation() {
         const dt = 0.016;
 
         const draw = () => {
-            const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
             ctx.fillStyle = isDark ? '#141210' : '#faf8f5';
             ctx.fillRect(0, 0, W, H);
 

@@ -11,25 +11,44 @@ export interface ToolMeta {
 }
 
 export const toolLoaders: Record<string, () => Promise<{ default: ComponentType }>> = {
-  'unit-circle':            () => import('../tools/math/UnitCircle'),
-  'plotter-3d':             () => import('../tools/math/Plotter3D'),
-  'slope-field':            () => import('../tools/math/SlopeField'),
-  'derivative-integral':    () => import('../tools/math/DerivativeIntegral'),
-  'graphing-calculator':    () => import('../tools/math/GraphingCalc'),
-  'diff-eq-solver':         () => import('../tools/math/DiffEqSolver'),
-  'matrix-calculator':      () => import('../tools/math/MatrixCalc'),
-  'circuit-builder':        () => import('../tools/physics/CircuitBuilder'),
-  'orbital-mechanics':      () => import('../tools/physics/OrbitalMechanics'),
-  'ray-optics':             () => import('../tools/physics/RayOptics'),
-  'double-pendulum':        () => import('../tools/physics/DoublePendulum'),
-  'spring-mass':            () => import('../tools/physics/SpringMass'),
-  'momentum-conservation':  () => import('../tools/physics/MomentumConservation'),
-  'pathfinding':            () => import('../tools/cs/Pathfinding'),
-  'sql-visualizer':         () => import('../tools/cs/SqlVisualizer'),
-  'sorting-visualizer':     () => import('../tools/cs/SortingVisualizer'),
-  'graph-traversal':        () => import('../tools/cs/GraphTraversal'),
-  'recursion-visualizer':   () => import('../tools/cs/RecursionVisualizer'),
-  'code-executor':          () => import('../tools/cs/CodeExecutor'),
+  'unit-circle': () => import('../tools/math/UnitCircle'),
+  'plotter-3d': () => import('../tools/math/Plotter3D'),
+  'slope-field': () => import('../tools/math/SlopeField'),
+  'derivative-integral': () => import('../tools/math/DerivativeIntegral'),
+  'graphing-calculator': () => import('../tools/math/GraphingCalc'),
+  'diff-eq-solver': () => import('../tools/math/DiffEqSolver'),
+  'matrix-calculator': () => import('../tools/math/MatrixCalc'),
+  'circuit-builder': () => import('../tools/physics/CircuitBuilder'),
+  'orbital-mechanics': () => import('../tools/physics/OrbitalMechanics'),
+  'ray-optics': () => import('../tools/physics/RayOptics'),
+  'double-pendulum': () => import('../tools/physics/DoublePendulum'),
+  'spring-mass': () => import('../tools/physics/SpringMass'),
+  'momentum-conservation': () => import('../tools/physics/MomentumConservation'),
+  'pathfinding': () => import('../tools/cs/Pathfinding'),
+  'sql-visualizer': () => import('../tools/cs/SqlVisualizer'),
+  'sorting-visualizer': () => import('../tools/cs/SortingVisualizer'),
+  'graph-traversal': () => import('../tools/cs/GraphTraversal'),
+  'recursion-visualizer': () => import('../tools/cs/RecursionVisualizer'),
+  'code-executor': () => import('../tools/cs/CodeExecutor'),
+  // Phase 1 — Math
+  'integration-visualizer': () => import('../tools/math/IntegrationVisualizer'),
+  'probability-sim': () => import('../tools/math/ProbabilitySim'),
+  'taylor-series': () => import('../tools/math/TaylorSeries'),
+  'complex-plotter': () => import('../tools/math/ComplexPlotter'),
+  'equation-solver': () => import('../tools/math/EquationSolver'),
+  // Phase 2 — Physics
+  'projectile-motion': () => import('../tools/physics/ProjectileMotion'),
+  'electric-field': () => import('../tools/physics/ElectricField'),
+  'wave-superposition': () => import('../tools/physics/WaveSuperposition'),
+  'free-body-diagram': () => import('../tools/physics/FreeBodyDiagram'),
+  'thermo-pv': () => import('../tools/physics/ThermoPV'),
+  // Phase 3 — CS
+  'binary-tree': () => import('../tools/cs/BinaryTree'),
+  'stack-queue': () => import('../tools/cs/StackQueue'),
+  'linked-list': () => import('../tools/cs/LinkedList'),
+  'bigo-comparator': () => import('../tools/cs/BigOComparator'),
+  'regex-tester': () => import('../tools/cs/RegexTester'),
+  'fsm-builder': () => import('../tools/cs/FSMBuilder'),
 };
 
 // ── Math Previews (amber) ────────────────────────────────────────────
@@ -293,6 +312,200 @@ const PreviewCodeExecutor: React.FC = () => (
   </svg>
 );
 
+// ── New Math Previews ─────────────────────────────────────────────────
+
+const PreviewIntegration: React.FC = () => (
+  <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+    {[18, 30, 42, 54].map((x, i) => (
+      <rect key={x} x={x} y={40 - i * 6} width="10" height={20 + i * 6} fill="#d97706" opacity={0.3 + i * 0.15} rx="1" />
+    ))}
+    <path d="M14 56 Q28 20 42 36 Q56 52 70 18" stroke="#d97706" strokeWidth="2" fill="none" strokeLinecap="round" />
+    <line x1="14" y1="56" x2="70" y2="56" stroke="#9c9488" strokeWidth="0.8" />
+  </svg>
+);
+
+const PreviewProbability: React.FC = () => (
+  <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+    {[{ h: 20, x: 10 }, { h: 35, x: 22 }, { h: 50, x: 34 }, { h: 45, x: 46 }, { h: 28, x: 58 }, { h: 12, x: 70 }].map(({ h, x }, i) => (
+      <rect key={i} x={x} y={64 - h} width="10" height={h} fill="#d97706" opacity={0.4 + i * 0.1} rx="2" />
+    ))}
+    <path d="M15 60Q25 35 40 18Q55 35 65 60" stroke="#fde68a" strokeWidth="1.5" fill="none" strokeDasharray="3 2" />
+  </svg>
+);
+
+const PreviewTaylor: React.FC = () => (
+  <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+    <path d="M8 40Q20 10 40 40Q60 70 72 40" stroke="#d97706" strokeWidth="2" fill="none" strokeDasharray="4 3" />
+    <path d="M8 40Q20 14 40 40Q60 66 72 40" stroke="#ef4444" strokeWidth="1.2" fill="none" opacity="0.5" />
+    <path d="M8 38Q22 8 40 40Q58 72 72 42" stroke="#3b82f6" strokeWidth="1.2" fill="none" opacity="0.5" />
+    <circle cx="40" cy="40" r="3" fill="#22c55e" />
+  </svg>
+);
+
+const PreviewComplex: React.FC = () => (
+  <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+    <line x1="10" y1="40" x2="70" y2="40" stroke="#9c9488" strokeWidth="0.8" />
+    <line x1="40" y1="10" x2="40" y2="70" stroke="#9c9488" strokeWidth="0.8" />
+    <circle cx="40" cy="40" r="20" stroke="#e8e0d4" strokeWidth="0.8" strokeDasharray="2 2" />
+    <line x1="40" y1="40" x2="58" y2="26" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" />
+    <circle cx="58" cy="26" r="3" fill="#3b82f6" />
+    <line x1="40" y1="40" x2="28" y2="32" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" />
+    <circle cx="28" cy="32" r="3" fill="#22c55e" />
+    <circle cx="46" cy="18" r="3" fill="#f59e0b" />
+  </svg>
+);
+
+const PreviewEquation: React.FC = () => (
+  <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+    <text x="40" y="28" fill="#d97706" fontSize="10" textAnchor="middle" fontFamily="monospace" fontWeight="bold">ax² + bx + c</text>
+    <line x1="16" y1="34" x2="64" y2="34" stroke="#d97706" strokeWidth="1" opacity="0.4" />
+    <text x="20" y="48" fill="#f59e0b" fontSize="8" fontFamily="monospace" opacity="0.7">Δ = b²-4ac</text>
+    <text x="20" y="60" fill="#d97706" fontSize="9" fontFamily="monospace" fontWeight="bold">x = 2, 3</text>
+    <circle cx="60" cy="54" r="8" fill="#d97706" opacity="0.15" />
+    <text x="60" y="57" fill="#d97706" fontSize="8" textAnchor="middle" fontWeight="bold">✓</text>
+  </svg>
+);
+
+// ── New Physics Previews ──────────────────────────────────────────────
+
+const PreviewProjectile: React.FC = () => (
+  <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+    <line x1="10" y1="66" x2="72" y2="66" stroke="#6b8f71" strokeWidth="1.5" />
+    <path d="M12 64Q28 10 68 64" stroke="#6b8f71" strokeWidth="2" fill="none" strokeLinecap="round" />
+    <circle cx="40" cy="18" r="2.5" fill="#a3c4a8" />
+    <line x1="40" y1="18" x2="40" y2="64" stroke="#6b8f71" strokeWidth="0.6" strokeDasharray="2 2" />
+    <circle cx="12" cy="64" r="4" fill="#1e293b" opacity="0.6" />
+    <line x1="12" y1="64" x2="22" y2="52" stroke="#6b8f71" strokeWidth="1.5" strokeLinecap="round" />
+  </svg>
+);
+
+const PreviewElectricField: React.FC = () => (
+  <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+    <circle cx="28" cy="40" r="8" fill="#ef4444" opacity="0.7" />
+    <text x="28" y="44" fill="white" fontSize="10" textAnchor="middle" fontWeight="bold">+</text>
+    <circle cx="56" cy="40" r="8" fill="#3b82f6" opacity="0.7" />
+    <text x="56" y="44" fill="white" fontSize="10" textAnchor="middle" fontWeight="bold">−</text>
+    {[20, 30, 40, 50, 60].map(y => (
+      <path key={y} d={`M36 ${y}Q42 ${y + 2} 48 ${y}`} stroke="#6b8f71" strokeWidth="0.8" fill="none" opacity="0.6" />
+    ))}
+  </svg>
+);
+
+const PreviewWave: React.FC = () => (
+  <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+    <path d="M8 25Q18 10 28 25Q38 40 48 25Q58 10 68 25" stroke="#3b82f6" strokeWidth="1.5" fill="none" />
+    <path d="M8 42Q22 30 36 42Q50 54 64 42" stroke="#22c55e" strokeWidth="1.5" fill="none" />
+    <path d="M8 60Q16 45 24 60Q32 75 40 60Q48 45 56 60Q64 75 72 60" stroke="#f59e0b" strokeWidth="2" fill="none" />
+  </svg>
+);
+
+const PreviewFBD: React.FC = () => (
+  <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+    <rect x="28" y="30" width="24" height="20" rx="3" fill="#a3c4a8" opacity="0.5" stroke="#6b8f71" strokeWidth="1.5" />
+    <line x1="40" y1="50" x2="40" y2="70" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" />
+    <polygon points="40,70 36,64 44,64" fill="#ef4444" />
+    <line x1="40" y1="30" x2="40" y2="12" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" />
+    <polygon points="40,12 36,18 44,18" fill="#3b82f6" />
+    <line x1="52" y1="40" x2="70" y2="40" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" />
+    <polygon points="70,40 64,36 64,44" fill="#22c55e" />
+  </svg>
+);
+
+const PreviewThermoPV: React.FC = () => (
+  <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+    <line x1="14" y1="14" x2="14" y2="66" stroke="#6b8f71" strokeWidth="1.5" />
+    <line x1="14" y1="66" x2="68" y2="66" stroke="#6b8f71" strokeWidth="1.5" />
+    <path d="M20 22Q30 28 42 38Q54 48 64 54" stroke="#6b8f71" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+    <path d="M20 22L20 66L64 66L64 54" fill="#a3c4a8" opacity="0.15" />
+    <circle cx="20" cy="22" r="3" fill="#f59e0b" />
+    <circle cx="64" cy="54" r="3" fill="#f59e0b" />
+    <text x="10" y="12" fill="#6b8f71" fontSize="7" fontWeight="bold">P</text>
+    <text x="68" y="74" fill="#6b8f71" fontSize="7" fontWeight="bold">V</text>
+  </svg>
+);
+
+// ── New CS Previews ───────────────────────────────────────────────────
+
+const PreviewBinaryTree: React.FC = () => (
+  <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+    <line x1="40" y1="18" x2="24" y2="38" stroke="#9c9488" strokeWidth="1.2" />
+    <line x1="40" y1="18" x2="56" y2="38" stroke="#9c9488" strokeWidth="1.2" />
+    <line x1="24" y1="38" x2="16" y2="58" stroke="#9c9488" strokeWidth="1.2" />
+    <line x1="24" y1="38" x2="32" y2="58" stroke="#9c9488" strokeWidth="1.2" />
+    <line x1="56" y1="38" x2="64" y2="58" stroke="#9c9488" strokeWidth="1.2" />
+    <circle cx="40" cy="18" r="7" fill="#c2714f" />
+    <circle cx="24" cy="38" r="7" fill="#c2714f" opacity="0.8" />
+    <circle cx="56" cy="38" r="7" fill="#c2714f" opacity="0.8" />
+    <circle cx="16" cy="58" r="5.5" fill="#e8956f" opacity="0.6" />
+    <circle cx="32" cy="58" r="5.5" fill="#e8956f" opacity="0.6" />
+    <circle cx="64" cy="58" r="5.5" fill="#e8956f" opacity="0.6" />
+  </svg>
+);
+
+const PreviewStackQueue: React.FC = () => (
+  <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+    {[{ y: 54, o: 0.5 }, { y: 42, o: 0.65 }, { y: 30, o: 0.8 }, { y: 18, o: 1 }].map(({ y, o }, i) => (
+      <rect key={i} x="24" y={y} width="32" height="10" rx="2" fill="#c2714f" opacity={o} />
+    ))}
+    <path d="M40 10L36 16L44 16Z" fill="#c2714f" opacity="0.5" />
+    <path d="M40 72L36 66L44 66Z" fill="#c2714f" opacity="0.5" />
+    <text x="40" y="12" fill="#c2714f" fontSize="5" textAnchor="middle" opacity="0.6">PUSH</text>
+    <text x="40" y="74" fill="#c2714f" fontSize="5" textAnchor="middle" opacity="0.6">POP</text>
+  </svg>
+);
+
+const PreviewLinkedList: React.FC = () => (
+  <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+    {[{ x: 8, v: '10' }, { x: 30, v: '20' }, { x: 52, v: '30' }].map(({ x, v }, i) => (
+      <g key={i}>
+        <rect x={x} y="32" width="18" height="16" rx="2" stroke="#c2714f" strokeWidth="1.5" fill="none" />
+        <text x={x + 9} y="43" fill="#c2714f" fontSize="7" textAnchor="middle" fontFamily="monospace">{v}</text>
+        {i < 2 && <><line x1={x + 18} y1="40" x2={x + 30} y2="40" stroke="#c2714f" strokeWidth="1.5" />
+          <polygon points={`${x + 28},37 ${x + 30},40 ${x + 28},43`} fill="#c2714f" /></>}
+      </g>
+    ))}
+    <text x="74" y="43" fill="#9c9488" fontSize="7" fontFamily="monospace">∅</text>
+  </svg>
+);
+
+const PreviewBigO: React.FC = () => (
+  <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+    <line x1="12" y1="68" x2="72" y2="68" stroke="#9c9488" strokeWidth="0.8" />
+    <line x1="12" y1="68" x2="12" y2="10" stroke="#9c9488" strokeWidth="0.8" />
+    <line x1="12" y1="60" x2="72" y2="60" stroke="#22c55e" strokeWidth="1.5" />
+    <path d="M12 64Q30 54 50 44Q65 38 72 32" stroke="#3b82f6" strokeWidth="1.5" fill="none" />
+    <path d="M12 64Q25 58 40 48Q55 36 66 24Q72 16 72 12" stroke="#f59e0b" strokeWidth="1.5" fill="none" />
+    <path d="M12 64Q20 60 30 52Q40 38 50 14" stroke="#ef4444" strokeWidth="1.5" fill="none" />
+  </svg>
+);
+
+const PreviewRegex: React.FC = () => (
+  <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+    <rect x="8" y="14" width="64" height="52" rx="4" fill="none" stroke="#c2714f" strokeWidth="1.5" />
+    <text x="14" y="30" fill="#9c9488" fontSize="7" fontFamily="monospace">The </text>
+    <text x="36" y="30" fill="#c2714f" fontSize="7" fontFamily="monospace" fontWeight="bold">fox</text>
+    <text x="53" y="30" fill="#9c9488" fontSize="7" fontFamily="monospace"> is</text>
+    <rect x="35" y="23" width="17" height="10" rx="2" fill="#c2714f" opacity="0.15" />
+    <text x="14" y="44" fill="#e8956f" fontSize="8" fontFamily="monospace">/\\b\\w+/g</text>
+    <text x="14" y="58" fill="#22c55e" fontSize="7" fontFamily="monospace">3 matches</text>
+  </svg>
+);
+
+const PreviewFSM: React.FC = () => (
+  <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+    <circle cx="20" cy="40" r="10" stroke="#c2714f" strokeWidth="1.5" fill="none" />
+    <circle cx="60" cy="40" r="10" stroke="#c2714f" strokeWidth="1.5" fill="none" />
+    <circle cx="60" cy="40" r="7" stroke="#c2714f" strokeWidth="1" fill="none" />
+    <line x1="30" y1="40" x2="48" y2="40" stroke="#9c9488" strokeWidth="1.5" />
+    <polygon points="48,37 50,40 48,43" fill="#9c9488" />
+    <text x="40" y="36" fill="#c2714f" fontSize="7" textAnchor="middle" fontFamily="monospace">a</text>
+    <text x="20" y="43" fill="#c2714f" fontSize="7" textAnchor="middle" fontFamily="monospace">q0</text>
+    <text x="60" y="43" fill="#c2714f" fontSize="7" textAnchor="middle" fontFamily="monospace">q1</text>
+    <path d="M5 40L10 40" stroke="#6b8f71" strokeWidth="1.5" />
+    <polygon points="10,37 12,40 10,43" fill="#6b8f71" />
+  </svg>
+);
+
 // ── Tool Registry ─────────────────────────────────────────────────────
 
 export const allTools: ToolMeta[] = [
@@ -346,6 +559,41 @@ export const allTools: ToolMeta[] = [
     gradient: 'linear-gradient(120deg, #fffbeb 0%, #fef3c7 60%, #fde68a 100%)',
     Preview: PreviewMatrixCalc,
   },
+  {
+    slug: 'integration-visualizer', name: 'Integration Visualizer', tag: 'Calculus',
+    description: 'Watch Riemann sums converge to the integral with adjustable rectangles and methods.',
+    category: 'math',
+    gradient: 'linear-gradient(135deg, #fef9ee 0%, #fef3c7 55%, #fde68a 100%)',
+    Preview: PreviewIntegration,
+  },
+  {
+    slug: 'probability-sim', name: 'Probability Simulator', tag: 'Statistics',
+    description: 'Run coin flips, dice rolls, and weighted experiments — see histograms build in real time.',
+    category: 'math',
+    gradient: 'linear-gradient(145deg, #fffbeb 0%, #fef9c3 55%, #fde68a 100%)',
+    Preview: PreviewProbability,
+  },
+  {
+    slug: 'taylor-series', name: 'Taylor Series Explorer', tag: 'Calculus',
+    description: 'Build Taylor polynomials term by term and watch them converge to the original function.',
+    category: 'math',
+    gradient: 'linear-gradient(150deg, #fef9ee 0%, #fef3c7 60%, #fbbf24 100%)',
+    Preview: PreviewTaylor,
+  },
+  {
+    slug: 'complex-plotter', name: 'Complex Number Plotter', tag: 'Complex Analysis',
+    description: 'Visualize complex number operations on an Argand diagram with magnitude and argument.',
+    category: 'math',
+    gradient: 'linear-gradient(140deg, #fffbeb 0%, #fef3c7 55%, #fde68a 100%)',
+    Preview: PreviewComplex,
+  },
+  {
+    slug: 'equation-solver', name: 'Equation Solver', tag: 'Algebra',
+    description: 'Solve linear and quadratic equations with detailed step-by-step explanations.',
+    category: 'math',
+    gradient: 'linear-gradient(130deg, #fef9ee 0%, #fef3c7 60%, #fde68a 100%)',
+    Preview: PreviewEquation,
+  },
 
   // Physics
   {
@@ -389,6 +637,41 @@ export const allTools: ToolMeta[] = [
     category: 'physics',
     gradient: 'linear-gradient(155deg, #f0f5f1 0%, #d8eada 55%, #a3c4a8 100%)',
     Preview: PreviewMomentumConservation,
+  },
+  {
+    slug: 'projectile-motion', name: 'Projectile Motion Lab', tag: 'Mechanics',
+    description: 'Fire projectiles with adjustable angle, speed, and air resistance. See trajectory, range, and max height.',
+    category: 'physics',
+    gradient: 'linear-gradient(145deg, #f0fdf4 0%, #dcfce7 55%, #bbf7d0 100%)',
+    Preview: PreviewProjectile,
+  },
+  {
+    slug: 'electric-field', name: 'Electric Field Visualizer', tag: 'Electromagnetism',
+    description: 'Place positive and negative charges, see field lines and equipotential regions in real time.',
+    category: 'physics',
+    gradient: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 60%, #a7f3d0 100%)',
+    Preview: PreviewElectricField,
+  },
+  {
+    slug: 'wave-superposition', name: 'Wave Superposition', tag: 'Waves',
+    description: 'Combine two waves with adjustable frequency, amplitude, and phase to see interference patterns.',
+    category: 'physics',
+    gradient: 'linear-gradient(150deg, #f0f5f1 0%, #d8eada 55%, #b8d4bd 100%)',
+    Preview: PreviewWave,
+  },
+  {
+    slug: 'free-body-diagram', name: 'Free Body Diagram', tag: 'Mechanics',
+    description: 'Build force diagrams with draggable forces, auto-compute net force and acceleration.',
+    category: 'physics',
+    gradient: 'linear-gradient(140deg, #f0fdf4 0%, #dcfce7 55%, #bbf7d0 100%)',
+    Preview: PreviewFBD,
+  },
+  {
+    slug: 'thermo-pv', name: 'PV Diagram', tag: 'Thermodynamics',
+    description: 'Explore isothermal, adiabatic, isobaric, and isochoric processes with work calculation.',
+    category: 'physics',
+    gradient: 'linear-gradient(130deg, #f0f5f1 0%, #c8deca 60%, #a3c4a8 100%)',
+    Preview: PreviewThermoPV,
   },
 
   // CS
@@ -434,6 +717,48 @@ export const allTools: ToolMeta[] = [
     gradient: 'linear-gradient(155deg, #1e1b17 0%, #2a201a 60%, #3d2b22 100%)',
     Preview: PreviewCodeExecutor,
   },
+  {
+    slug: 'binary-tree', name: 'Binary Search Tree', tag: 'Data Structures',
+    description: 'Insert, delete, and traverse a BST with animated in-order, pre-order, and post-order walks.',
+    category: 'cs',
+    gradient: 'linear-gradient(145deg, #faf0ec 0%, #f0d5c8 55%, #e0baa8 100%)',
+    Preview: PreviewBinaryTree,
+  },
+  {
+    slug: 'stack-queue', name: 'Stack & Queue', tag: 'Data Structures',
+    description: 'Push, pop, enqueue, dequeue — visualize LIFO and FIFO data structures side by side.',
+    category: 'cs',
+    gradient: 'linear-gradient(150deg, #fdf4f2 0%, #fce7e2 55%, #f9c8c0 100%)',
+    Preview: PreviewStackQueue,
+  },
+  {
+    slug: 'linked-list', name: 'Linked List', tag: 'Data Structures',
+    description: 'Visual insert, delete, reverse a linked list with animated pointer arrows.',
+    category: 'cs',
+    gradient: 'linear-gradient(135deg, #faf0ec 0%, #f5d9ce 55%, #e8b9a8 100%)',
+    Preview: PreviewLinkedList,
+  },
+  {
+    slug: 'bigo-comparator', name: 'Big-O Comparator', tag: 'Algorithms',
+    description: 'Plot O(1) through O(2ⁿ) growth curves overlaid to visually compare complexity classes.',
+    category: 'cs',
+    gradient: 'linear-gradient(140deg, #fdf4f2 0%, #f0d5c8 55%, #e0baa8 100%)',
+    Preview: PreviewBigO,
+  },
+  {
+    slug: 'regex-tester', name: 'Regex Tester', tag: 'Programming',
+    description: 'Test regular expressions with live highlighting, match details, and a handy cheatsheet.',
+    category: 'cs',
+    gradient: 'linear-gradient(155deg, #faf0ec 0%, #f0d5c8 55%, #c2714f30 100%)',
+    Preview: PreviewRegex,
+  },
+  {
+    slug: 'fsm-builder', name: 'Finite State Machine', tag: 'Automata',
+    description: 'Build finite automata with draggable states, add transitions, and test input strings.',
+    category: 'cs',
+    gradient: 'linear-gradient(145deg, #fdf4f2 0%, #fce7e2 55%, #f9c8c0 100%)',
+    Preview: PreviewFSM,
+  },
 ];
 
 export const getByCategory = (cat: 'math' | 'physics' | 'cs') =>
@@ -441,3 +766,4 @@ export const getByCategory = (cat: 'math' | 'physics' | 'cs') =>
 
 export const getBySlug = (slug: string) =>
   allTools.find(t => t.slug === slug);
+

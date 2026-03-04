@@ -126,7 +126,7 @@
 /* ==========================
    DARK MODE OVERRIDES
    ========================== */
-@media (prefers-color-scheme: dark) {
+[data-theme="dark"] {
     .pricing-badge {
         background: var(--amber);
         color: var(--bg-primary);

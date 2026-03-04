@@ -80,7 +80,7 @@ export default function SpringMass() {
                 setIsWinner(false);
             }
 
-            const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
 
             // Clear
             ctx.fillStyle = isDark ? '#141210' : '#faf8f5';

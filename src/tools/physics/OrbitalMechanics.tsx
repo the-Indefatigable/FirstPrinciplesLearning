@@ -1,256 +1,207 @@
-import React, { useRef, useState, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 
 interface Body {
-    id: string;
-    x: number;
-    y: number;
-    vx: number;
-    vy: number;
-    mass: number;
-    radius: number;
-    color: string;
-    isStatic: boolean;
-    trail: { x: number, y: number }[];
+    x: number; y: number;
+    vx: number; vy: number;
+    mass: number; radius: number;
+    color: string; isStatic: boolean;
+    trail: { x: number; y: number }[];
 }
 
-const G = 0.5; // Scaled gravitational constant for visuals
+const G = 0.5;
+
+const DEFAULT_BODIES: Body[] = [
+    { x: 400, y: 300, vx: 0, vy: 0, mass: 5000, radius: 30, color: '#f59e0b', isStatic: true, trail: [] },
+    { x: 400, y: 100, vx: 3.5, vy: 0, mass: 10, radius: 8, color: '#3b82f6', isStatic: false, trail: [] },
+];
 
 export default function OrbitalMechanics() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const requestRef = useRef<number>(0);
+    const animRef = useRef(0);
+    const bodiesRef = useRef<Body[]>(JSON.parse(JSON.stringify(DEFAULT_BODIES)));
+    const dragRef = useRef<{ active: boolean; sx: number; sy: number; cx: number; cy: number }>({
+        active: false, sx: 0, sy: 0, cx: 0, cy: 0,
+    });
+    const [, forceRender] = useState(0);
+    const trailFrameRef = useRef(0);
 
-    // Default state: A large central sun and one orbiting planet
-    const [, setBodies] = useState<Body[]>([
-        {
-            id: 'sun', x: 400, y: 300, vx: 0, vy: 0, mass: 5000, radius: 30, color: '#f59e0b', isStatic: true, trail: []
-        },
-        {
-            id: 'planet1', x: 400, y: 100, vx: 3.5, vy: 0, mass: 10, radius: 8, color: '#3b82f6', isStatic: false, trail: []
-        }
-    ]);
-
-    const [isDragging, setIsDragging] = useState(false);
-    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-    const [dragCurrent, setDragCurrent] = useState({ x: 0, y: 0 });
-
-    // Physics Loop
-    const updatePhysics = (currentBodies: Body[], dt: number = 1): Body[] => {
-        const nextBodies = JSON.parse(JSON.stringify(currentBodies)) as Body[];
-
-        // Calculate gravity forces
-        for (let i = 0; i < nextBodies.length; i++) {
-            if (nextBodies[i].isStatic) continue;
-
-            let ax = 0;
-            let ay = 0;
-
-            for (let j = 0; j < nextBodies.length; j++) {
-                if (i === j) continue;
-                const b1 = nextBodies[i];
-                const b2 = nextBodies[j];
-
-                const dx = b2.x - b1.x;
-                const dy = b2.y - b1.y;
-                const distSq = dx * dx + dy * dy;
-                const dist = Math.sqrt(distSq);
-
-                if (dist < (b1.radius + b2.radius)) {
-                    // Collision - simple merge or just bounce. For now, let's just let them pass through 
-                    // or ignore gravity if perfectly centered to avoid infinity.
-                    if (dist < 1) continue;
-                }
-
-                const force = (G * b2.mass) / distSq;
-                ax += force * (dx / dist);
-                ay += force * (dy / dist);
-            }
-
-            nextBodies[i].vx += ax * dt;
-            nextBodies[i].vy += ay * dt;
-        }
-
-        // Update positions
-        for (let i = 0; i < nextBodies.length; i++) {
-            if (nextBodies[i].isStatic) continue;
-            nextBodies[i].x += nextBodies[i].vx * dt;
-            nextBodies[i].y += nextBodies[i].vy * dt;
-
-            // Trail storage
-            if (nextBodies[i].trail.length % 5 === 0) {
-                nextBodies[i].trail.push({ x: nextBodies[i].x, y: nextBodies[i].y });
-            } else {
-                // Push dummy to keep counter moving fast without eating memory if we don't render them all
-                nextBodies[i].trail.push(null as any);
-            }
-            if (nextBodies[i].trail.length > 500) {
-                nextBodies[i].trail.shift();
-            }
-        }
-
-        return nextBodies;
-    };
-
-    // Render Loop
-    const draw = () => {
+    useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
+        const ctx = canvas.getContext('2d')!;
+        canvas.width = 800;
+        canvas.height = 600;
+        canvas.style.width = '100%';
+        canvas.style.height = '100%';
 
-        setBodies(prev => {
-            const next = updatePhysics(prev);
+        const loop = () => {
+            const bodies = bodiesRef.current;
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
 
-            // Render
-            ctx.clearRect(0, 0, canvas.width, canvas.height); // Logical width/height
-
-            // Draw Trails
-            next.forEach(b => {
-                if (b.trail.length < 2) return;
-                ctx.beginPath();
-                // Find first valid point
-                let started = false;
-                for (let i = 0; i < b.trail.length; i++) {
-                    if (b.trail[i]) {
-                        if (!started) {
-                            ctx.moveTo(b.trail[i].x, b.trail[i].y);
-                            started = true;
-                        } else {
-                            ctx.lineTo(b.trail[i].x, b.trail[i].y);
-                        }
-                    }
+            // --- Physics ---
+            for (const b of bodies) {
+                if (b.isStatic) continue;
+                let ax = 0, ay = 0;
+                for (const other of bodies) {
+                    if (b === other) continue;
+                    const dx = other.x - b.x, dy = other.y - b.y;
+                    const distSq = Math.max(dx * dx + dy * dy, 100); // softened
+                    const dist = Math.sqrt(distSq);
+                    const f = (G * other.mass) / distSq;
+                    ax += f * dx / dist;
+                    ay += f * dy / dist;
                 }
-                ctx.strokeStyle = `${b.color}40`; // 25% opacity
+                b.vx += ax; b.vy += ay;
+            }
+            for (const b of bodies) {
+                if (b.isStatic) continue;
+                b.x += b.vx; b.y += b.vy;
+            }
+
+            // --- Trail (every 3rd frame) ---
+            trailFrameRef.current++;
+            if (trailFrameRef.current % 3 === 0) {
+                for (const b of bodies) {
+                    if (b.isStatic) continue;
+                    b.trail.push({ x: b.x, y: b.y });
+                    if (b.trail.length > 400) b.trail.shift();
+                }
+            }
+
+            // --- Draw ---
+            ctx.fillStyle = isDark ? '#141210' : '#faf8f5';
+            ctx.fillRect(0, 0, 800, 600);
+
+            // Stars
+            if (isDark) {
+                ctx.fillStyle = '#4a443c';
+                for (let i = 0; i < 60; i++) {
+                    const sx = ((i * 137.5) % 800);
+                    const sy = ((i * 97.3) % 600);
+                    ctx.fillRect(sx, sy, 1, 1);
+                }
+            }
+
+            // Trails
+            for (const b of bodies) {
+                if (b.trail.length < 2) continue;
+                ctx.beginPath();
+                ctx.moveTo(b.trail[0].x, b.trail[0].y);
+                for (let i = 1; i < b.trail.length; i++) {
+                    ctx.lineTo(b.trail[i].x, b.trail[i].y);
+                }
+                ctx.strokeStyle = b.color + '40';
                 ctx.lineWidth = 1.5;
                 ctx.stroke();
-            });
+            }
 
-            // Draw Bodies
-            next.forEach(b => {
+            // Bodies
+            for (const b of bodies) {
+                // Glow for sun
+                if (b.isStatic) {
+                    const grad = ctx.createRadialGradient(b.x, b.y, b.radius * 0.5, b.x, b.y, b.radius * 3);
+                    grad.addColorStop(0, b.color + '50');
+                    grad.addColorStop(1, b.color + '00');
+                    ctx.beginPath();
+                    ctx.arc(b.x, b.y, b.radius * 3, 0, Math.PI * 2);
+                    ctx.fillStyle = grad;
+                    ctx.fill();
+                }
+
                 ctx.beginPath();
                 ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
                 ctx.fillStyle = b.color;
                 ctx.fill();
 
-                // Glow for sun
-                if (b.id === 'sun') {
-                    const gradient = ctx.createRadialGradient(b.x, b.y, b.radius, b.x, b.y, b.radius * 2.5);
-                    gradient.addColorStop(0, `${b.color}60`);
-                    gradient.addColorStop(1, `${b.color}00`);
-                    ctx.fillStyle = gradient;
-                    ctx.beginPath();
-                    ctx.arc(b.x, b.y, b.radius * 2.5, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-            });
-
-            // Draw Drag Vector
-            if (isDragging) {
+                // Specular highlight
                 ctx.beginPath();
-                ctx.moveTo(dragStart.x, dragStart.y);
-                ctx.lineTo(dragCurrent.x, dragCurrent.y);
-                ctx.strokeStyle = 'var(--text-secondary)';
-                ctx.lineWidth = 2;
-                ctx.setLineDash([5, 5]);
-                ctx.stroke();
-                ctx.setLineDash([]);
-
-                // Ghost planet at start
-                ctx.beginPath();
-                ctx.arc(dragStart.x, dragStart.y, 6, 0, Math.PI * 2);
-                ctx.fillStyle = 'var(--sage)';
+                ctx.arc(b.x - b.radius * 0.25, b.y - b.radius * 0.25, b.radius * 0.35, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255,255,255,0.3)';
                 ctx.fill();
             }
 
-            requestRef.current = requestAnimationFrame(draw);
-            return next;
-        });
-    };
+            // Drag vector
+            const d = dragRef.current;
+            if (d.active) {
+                ctx.setLineDash([6, 4]);
+                ctx.strokeStyle = isDark ? '#e8e4de' : '#5c544a';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(d.sx, d.sy);
+                ctx.lineTo(d.cx, d.cy);
+                ctx.stroke();
+                ctx.setLineDash([]);
 
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        if (canvas) {
-            const rect = canvas.parentElement?.getBoundingClientRect();
-            if (rect) {
-                // To keep physics simple, we use 800x600 logical coordinate space, and scale the canvas
-                canvas.width = 800; // Logical
-                canvas.height = 600; // Logical
-                canvas.style.width = '100%';
-                canvas.style.height = '100%';
+                // Ghost planet
+                ctx.beginPath();
+                ctx.arc(d.sx, d.sy, 6, 0, Math.PI * 2);
+                ctx.fillStyle = isDark ? '#86efac' : '#6b8f71';
+                ctx.fill();
+
+                // Arrow head
+                const adx = d.cx - d.sx, ady = d.cy - d.sy;
+                const len = Math.sqrt(adx * adx + ady * ady);
+                if (len > 10) {
+                    const ux = adx / len, uy = ady / len;
+                    ctx.beginPath();
+                    ctx.moveTo(d.cx, d.cy);
+                    ctx.lineTo(d.cx - ux * 10 + uy * 5, d.cy - uy * 10 - ux * 5);
+                    ctx.lineTo(d.cx - ux * 10 - uy * 5, d.cy - uy * 10 + ux * 5);
+                    ctx.fillStyle = isDark ? '#e8e4de' : '#5c544a';
+                    ctx.fill();
+                }
             }
-        }
 
-        requestRef.current = requestAnimationFrame(draw);
-        return () => {
-            if (requestRef.current) cancelAnimationFrame(requestRef.current);
+            // Info HUD
+            ctx.font = '11px JetBrains Mono, monospace';
+            ctx.fillStyle = isDark ? '#6b6358' : '#9c9488';
+            ctx.textAlign = 'left';
+            ctx.fillText(`Bodies: ${bodies.length}`, 16, 24);
+            ctx.fillText(`G = ${G}`, 16, 40);
+
+            animRef.current = requestAnimationFrame(loop);
         };
-    }, [isDragging, dragStart, dragCurrent]); // Re-bind on state changes so closure captures them
 
-    // Interactions
-    const handlePointerDown = (e: React.MouseEvent | React.TouchEvent) => {
-        if (!canvasRef.current) return;
-        const rect = canvasRef.current.getBoundingClientRect();
+        animRef.current = requestAnimationFrame(loop);
+        return () => cancelAnimationFrame(animRef.current);
+    }, []);
+
+    const toLogical = (e: React.MouseEvent | React.TouchEvent) => {
+        const rect = canvasRef.current!.getBoundingClientRect();
         const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
         const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
-
-        // Map to logical 800x600 space
-        const scaleX = 800 / rect.width;
-        const scaleY = 600 / rect.height;
-
-        const x = (clientX - rect.left) * scaleX;
-        const y = (clientY - rect.top) * scaleY;
-
-        setIsDragging(true);
-        setDragStart({ x, y });
-        setDragCurrent({ x, y });
+        return { x: (clientX - rect.left) * 800 / rect.width, y: (clientY - rect.top) * 600 / rect.height };
     };
 
-    const handlePointerMove = (e: React.MouseEvent | React.TouchEvent) => {
-        if (!isDragging || !canvasRef.current) return;
-        const rect = canvasRef.current.getBoundingClientRect();
-        const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
-        const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
-
-        const scaleX = 800 / rect.width;
-        const scaleY = 600 / rect.height;
-
-        setDragCurrent({
-            x: (clientX - rect.left) * scaleX,
-            y: (clientY - rect.top) * scaleY
+    const handleDown = (e: React.MouseEvent | React.TouchEvent) => {
+        const p = toLogical(e);
+        dragRef.current = { active: true, sx: p.x, sy: p.y, cx: p.x, cy: p.y };
+    };
+    const handleMove = (e: React.MouseEvent | React.TouchEvent) => {
+        if (!dragRef.current.active) return;
+        const p = toLogical(e);
+        dragRef.current.cx = p.x;
+        dragRef.current.cy = p.y;
+    };
+    const handleUp = () => {
+        const d = dragRef.current;
+        if (!d.active) return;
+        d.active = false;
+        const dx = d.sx - d.cx, dy = d.sy - d.cy;
+        const colors = ['#3b82f6', '#86efac', '#c2714f', '#f59e0b', '#a78bfa', '#f472b6'];
+        bodiesRef.current.push({
+            x: d.sx, y: d.sy,
+            vx: dx * 0.05, vy: dy * 0.05,
+            mass: 10, radius: 6,
+            color: colors[bodiesRef.current.length % colors.length],
+            isStatic: false, trail: [],
         });
-    };
-
-    const handlePointerUp = () => {
-        if (!isDragging) return;
-        setIsDragging(false);
-
-        // Calculate initial velocity vector based on drag length and direction
-        const dx = dragStart.x - dragCurrent.x;
-        const dy = dragStart.y - dragCurrent.y;
-
-        // Scale down the drag to a reasonable velocity
-        const velocityScale = 0.05;
-
-        setBodies(prev => [
-            ...prev,
-            {
-                id: `body-${Date.now()}`,
-                x: dragStart.x,
-                y: dragStart.y,
-                vx: dx * velocityScale,
-                vy: dy * velocityScale,
-                mass: 10,
-                radius: 6,
-                color: 'var(--sage)',
-                isStatic: false,
-                trail: []
-            }
-        ]);
+        forceRender(n => n + 1);
     };
 
     const resetSim = () => {
-        setBodies([
-            { id: 'sun', x: 400, y: 300, vx: 0, vy: 0, mass: 5000, radius: 30, color: '#f59e0b', isStatic: true, trail: [] }
-        ]);
+        bodiesRef.current = JSON.parse(JSON.stringify(DEFAULT_BODIES));
+        forceRender(n => n + 1);
     };
 
     return (
@@ -263,31 +214,22 @@ export default function OrbitalMechanics() {
             <div className="tool-card-body">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                     <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: 0 }}>
-                        <strong>Click and drag</strong> on the canvas to launch a satellite. The length and direction of your drag determines its initial velocity.
+                        <strong>Click and drag</strong> to launch a satellite. Length = speed, direction = velocity.
                     </p>
-                    <button className="tool-btn--outline" onClick={resetSim}>Clear Satellites</button>
+                    <button className="tool-btn tool-btn--outline" onClick={resetSim}>Clear Satellites</button>
                 </div>
 
-                <div
-                    style={{
-                        width: '100%',
-                        aspectRatio: '8/6', // matches 800/600 logical size
-                        background: 'var(--bg-secondary)',
-                        border: '1px solid var(--border-warm)',
-                        borderRadius: 'var(--radius-md)',
-                        overflow: 'hidden'
-                    }}
-                >
+                <div style={{
+                    width: '100%', aspectRatio: '8/6',
+                    background: 'var(--bg-secondary)', border: '1px solid var(--border-warm)',
+                    borderRadius: 'var(--radius-md)', overflow: 'hidden',
+                }}>
                     <canvas
                         ref={canvasRef}
                         style={{ display: 'block', touchAction: 'none', cursor: 'crosshair' }}
-                        onMouseDown={handlePointerDown}
-                        onMouseMove={handlePointerMove}
-                        onMouseUp={handlePointerUp}
-                        onMouseOut={handlePointerUp}
-                        onTouchStart={handlePointerDown}
-                        onTouchMove={handlePointerMove}
-                        onTouchEnd={handlePointerUp}
+                        onMouseDown={handleDown} onMouseMove={handleMove}
+                        onMouseUp={handleUp} onMouseOut={handleUp}
+                        onTouchStart={handleDown} onTouchMove={handleMove} onTouchEnd={handleUp}
                     />
                 </div>
             </div>

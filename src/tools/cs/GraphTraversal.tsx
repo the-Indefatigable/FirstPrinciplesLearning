@@ -37,7 +37,7 @@ export default function GraphTraversal() {
         canvas.height = 320;
         const W = canvas.width;
         const H = canvas.height;
-        const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
         const offsetX = (W - 600) / 2;
 
         ctx.fillStyle = isDark ? '#141210' : '#faf8f5';

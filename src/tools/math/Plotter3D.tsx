@@ -14,11 +14,11 @@ export default function Plotter3D() {
 
     // Watch for dark mode changes
     useEffect(() => {
-        const mediaQuery = matchMedia('(prefers-color-scheme: dark)');
-        setIsDarkMode(mediaQuery.matches);
-        const handler = (e: MediaQueryListEvent) => setIsDarkMode(e.matches);
-        mediaQuery.addEventListener('change', handler);
-        return () => mediaQuery.removeEventListener('change', handler);
+        const el = document.documentElement;
+        setIsDarkMode(el.getAttribute('data-theme') === 'dark');
+        const obs = new MutationObserver(() => setIsDarkMode(el.getAttribute('data-theme') === 'dark'));
+        obs.observe(el, { attributes: true, attributeFilter: ['data-theme'] });
+        return () => obs.disconnect();
     }, []);
 
     const plotData = useMemo(() => {

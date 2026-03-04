@@ -61,13 +61,14 @@ export default function Pathfinding() {
 
     const toggleWall = (r: number, c: number) => {
         if (isRunning) return;
-        setGrid(prev => {
-            const next = [...prev];
-            const node = next[r][c];
-            if (node.type === 'empty') node.type = 'wall';
-            else if (node.type === 'wall') node.type = 'empty';
-            return next;
-        });
+        setGrid(prev => prev.map((row, rIdx) =>
+            rIdx !== r ? row : row.map((node, cIdx) => {
+                if (cIdx !== c) return node;
+                if (node.type === 'empty') return { ...node, type: 'wall' as NodeType };
+                if (node.type === 'wall') return { ...node, type: 'empty' as NodeType };
+                return node;
+            })
+        ));
     };
 
     const handleMouseDown = (r: number, c: number) => {
