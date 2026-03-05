@@ -1,18 +1,15 @@
-// ── Firebase Configuration ────────────────────────────────────────────
-// Replace the placeholder values below with YOUR Firebase project config.
-// Get it from: Firebase Console → Project Settings → Your apps → Config
-// ──────────────────────────────────────────────────────────────────────
-
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
-    apiKey: 'YOUR_API_KEY',
-    authDomain: 'YOUR_PROJECT.firebaseapp.com',
-    projectId: 'YOUR_PROJECT_ID',
-    storageBucket: 'YOUR_PROJECT.appspot.com',
-    messagingSenderId: '000000000000',
-    appId: '1:000000000000:web:0000000000000000',
+    apiKey: 'AIzaSyBgtqkn_jsWMtTu8cHqBowSA9UrKFUnN_Y',
+    authDomain: 'firstprincipleslearning-f7526.firebaseapp.com',
+    databaseURL: 'https://firstprincipleslearning-f7526-default-rtdb.firebaseio.com',
+    projectId: 'firstprincipleslearning-f7526',
+    storageBucket: 'firstprincipleslearning-f7526.firebasestorage.app',
+    messagingSenderId: '67354182023',
+    appId: '1:67354182023:web:9908140439106c39325322',
+    measurementId: 'G-9MXBD0NJ5B',
 };
 
 const app = initializeApp(firebaseConfig);
