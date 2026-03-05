@@ -29,13 +29,16 @@ export const toolLoaders: Record<string, () => Promise<{ default: ComponentType 
   'sorting-visualizer': () => import('../tools/cs/SortingVisualizer'),
   'graph-traversal': () => import('../tools/cs/GraphTraversal'),
   'recursion-visualizer': () => import('../tools/cs/RecursionVisualizer'),
-  'code-executor': () => import('../tools/cs/CodeExecutor'),
+
   // Phase 1 — Math
   'integration-visualizer': () => import('../tools/math/IntegrationVisualizer'),
   'probability-sim': () => import('../tools/math/ProbabilitySim'),
   'taylor-series': () => import('../tools/math/TaylorSeries'),
   'complex-plotter': () => import('../tools/math/ComplexPlotter'),
   'equation-solver': () => import('../tools/math/EquationSolver'),
+  'fourier-series': () => import('../tools/math/FourierSeries'),
+  'fourier-transform': () => import('../tools/math/FourierTransform'),
+  'laplace-transform': () => import('../tools/math/LaplaceTransform'),
   // Phase 2 — Physics
   'projectile-motion': () => import('../tools/physics/ProjectileMotion'),
   'electric-field': () => import('../tools/physics/ElectricField'),
@@ -49,6 +52,7 @@ export const toolLoaders: Record<string, () => Promise<{ default: ComponentType 
   'bigo-comparator': () => import('../tools/cs/BigOComparator'),
   'regex-tester': () => import('../tools/cs/RegexTester'),
   'fsm-builder': () => import('../tools/cs/FSMBuilder'),
+  'code-visualizer': () => import('../tools/cs/CodeVisualizer'),
 };
 
 // ── Math Previews (amber) ────────────────────────────────────────────
@@ -299,18 +303,6 @@ const PreviewRecursionVisualizer: React.FC = () => (
   </svg>
 );
 
-const PreviewCodeExecutor: React.FC = () => (
-  <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
-    <rect x="8" y="10" width="64" height="60" rx="5" fill="#1a1612" opacity="0.92" />
-    <circle cx="18" cy="19" r="3" fill="#ff5f56" opacity="0.85" />
-    <circle cx="27" cy="19" r="3" fill="#ffbd2e" opacity="0.85" />
-    <circle cx="36" cy="19" r="3" fill="#27c93f" opacity="0.85" />
-    <text x="14" y="34" fill="#c2714f" fontSize="7" fontFamily="monospace">{'>'} def fib(n):</text>
-    <text x="18" y="44" fill="#a3c4a8" fontSize="7" fontFamily="monospace">  if n {'<'}= 1:</text>
-    <text x="22" y="54" fill="#e8e0d4" fontSize="7" fontFamily="monospace">    return n</text>
-    <text x="14" y="64" fill="#f59e0b" fontSize="8" fontFamily="monospace">▌</text>
-  </svg>
-);
 
 // ── New Math Previews ─────────────────────────────────────────────────
 
@@ -506,6 +498,73 @@ const PreviewFSM: React.FC = () => (
   </svg>
 );
 
+const PreviewCodeVisualizer: React.FC = () => (
+  <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+    <rect x="8" y="10" width="64" height="60" rx="5" fill="#1a1612" opacity="0.92" />
+    {/* Variable rows */}
+    <rect x="14" y="22" width="18" height="9" rx="2" fill="#0e2218" stroke="#4ade80" strokeWidth="0.8" />
+    <text x="23" y="29" fill="#6ee7b7" fontSize="5.5" textAnchor="middle" fontFamily="monospace">42</text>
+    <text x="13" y="29" fill="#9c9488" fontSize="5" fontFamily="monospace">x</text>
+    <rect x="14" y="35" width="36" height="9" rx="1" fill="#0a1e2d" stroke="#7dd3fc" strokeWidth="0.6" />
+    <text x="32" y="42" fill="#7dd3fc" fontSize="5.5" textAnchor="middle" fontFamily="monospace">"hello"</text>
+    <text x="13" y="42" fill="#9c9488" fontSize="5" fontFamily="monospace">s</text>
+    {/* Object card */}
+    <rect x="14" y="48" width="32" height="16" rx="2" fill="#0e0e1e" stroke="#332c24" strokeWidth="0.8" />
+    <text x="16" y="55" fill="#94a3b8" fontSize="4.5" fontFamily="monospace">val: 1</text>
+    <text x="16" y="61" fill="#94a3b8" fontSize="4.5" fontFamily="monospace">next: →</text>
+    <text x="13" y="56" fill="#9c9488" fontSize="5" fontFamily="monospace">n</text>
+    {/* Step badge */}
+    <rect x="50" y="20" width="16" height="8" rx="2" fill="#b45309" opacity="0.8" />
+    <text x="58" y="26" fill="#fef3c7" fontSize="5" textAnchor="middle" fontWeight="bold">2/8</text>
+  </svg>
+);
+
+const PreviewFourierSeries: React.FC = () => (
+  <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+    <circle cx="25" cy="40" r="16" stroke="#d97706" strokeWidth="0.8" opacity="0.5" />
+    <circle cx="25" cy="40" r="10" stroke="#ef4444" strokeWidth="0.6" opacity="0.4" />
+    <circle cx="25" cy="40" r="5" stroke="#22c55e" strokeWidth="0.6" opacity="0.4" />
+    <line x1="25" y1="40" x2="38" y2="30" stroke="#d97706" strokeWidth="1.5" />
+    <circle cx="38" cy="30" r="2" fill="#d97706" />
+    <line x1="38" y1="30" x2="75" y2="30" stroke="#d97706" strokeWidth="0.8" strokeDasharray="2 2" opacity="0.5" />
+    <path d="M42 40 Q48 25 54 40 Q60 55 66 40 Q72 25 78 40" stroke="#d97706" strokeWidth="1.8" fill="none" />
+    <path d="M42 40 L78 40" stroke="#9c9488" strokeWidth="0.5" opacity="0.3" />
+  </svg>
+);
+
+const PreviewFourierTransform: React.FC = () => (
+  <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+    <path d="M8 25 Q16 15 24 25 Q32 35 40 25 Q48 15 56 25 Q64 35 72 25" stroke="#d97706" strokeWidth="1.5" fill="none" />
+    <line x1="8" y1="25" x2="72" y2="25" stroke="#9c9488" strokeWidth="0.5" opacity="0.3" />
+    <line x1="8" y1="48" x2="72" y2="48" stroke="#9c9488" strokeWidth="0.5" opacity="0.3" />
+    <rect x="14" y="42" width="5" height="6" fill="#3b82f6" opacity="0.5" rx="0.5" />
+    <rect x="24" y="32" width="5" height="16" fill="#3b82f6" opacity="0.7" rx="0.5" />
+    <rect x="34" y="38" width="5" height="10" fill="#3b82f6" opacity="0.6" rx="0.5" />
+    <rect x="44" y="36" width="5" height="12" fill="#3b82f6" opacity="0.65" rx="0.5" />
+    <rect x="54" y="44" width="5" height="4" fill="#3b82f6" opacity="0.4" rx="0.5" />
+    <text x="40" y="14" fill="#d97706" fontSize="6" textAnchor="middle" fontWeight="bold">f(t)</text>
+    <text x="40" y="60" fill="#3b82f6" fontSize="6" textAnchor="middle" fontWeight="bold">F(ω)</text>
+  </svg>
+);
+
+const PreviewLaplace: React.FC = () => (
+  <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+    <rect x="4" y="8" width="40" height="64" rx="3" fill="rgba(34,197,94,0.05)" stroke="#9c9488" strokeWidth="0.5" />
+    <line x1="24" y1="8" x2="24" y2="72" stroke="#9c9488" strokeWidth="0.7" />
+    <line x1="4" y1="40" x2="44" y2="40" stroke="#9c9488" strokeWidth="0.7" />
+    <line x1="14" y1="25" x2="22" y2="33" stroke="#ef4444" strokeWidth="2" />
+    <line x1="22" y1="25" x2="14" y2="33" stroke="#ef4444" strokeWidth="2" />
+    <line x1="14" y1="47" x2="22" y2="55" stroke="#ef4444" strokeWidth="2" />
+    <line x1="22" y1="47" x2="14" y2="55" stroke="#ef4444" strokeWidth="2" />
+    <text x="24" y="78" fill="#9c9488" fontSize="5" textAnchor="middle">σ</text>
+    <text x="2" y="12" fill="#9c9488" fontSize="5">jω</text>
+    <path d="M48 36 Q54 20 60 34 Q66 48 72 34 Q74 28 76 30" stroke="#22c55e" strokeWidth="1.5" fill="none" />
+    <path d="M48 60 L60 52 Q66 48 72 54 L76 60" stroke="#a855f7" strokeWidth="1.5" fill="none" />
+    <text x="62" y="14" fill="#22c55e" fontSize="5" textAnchor="middle">h(t)</text>
+    <text x="62" y="70" fill="#a855f7" fontSize="5" textAnchor="middle">|H|</text>
+  </svg>
+);
+
 // ── Tool Registry ─────────────────────────────────────────────────────
 
 export const allTools: ToolMeta[] = [
@@ -593,6 +652,27 @@ export const allTools: ToolMeta[] = [
     category: 'math',
     gradient: 'linear-gradient(130deg, #fef9ee 0%, #fef3c7 60%, #fde68a 100%)',
     Preview: PreviewEquation,
+  },
+  {
+    slug: 'fourier-series', name: 'Fourier Series', tag: 'Signals',
+    description: 'Build periodic waves from sine harmonics with animated epicycles and live convergence.',
+    category: 'math',
+    gradient: 'linear-gradient(140deg, #fefce8 0%, #fef08a 55%, #fde047 100%)',
+    Preview: PreviewFourierSeries,
+  },
+  {
+    slug: 'fourier-transform', name: 'Fourier Transform', tag: 'Signals',
+    description: 'Compose signals from sinusoids and see the DFT decompose them into frequency spectra.',
+    category: 'math',
+    gradient: 'linear-gradient(145deg, #eff6ff 0%, #bfdbfe 55%, #93c5fd 100%)',
+    Preview: PreviewFourierTransform,
+  },
+  {
+    slug: 'laplace-transform', name: 'Laplace Transform', tag: 'Signals & Systems',
+    description: 'Explore pole-zero plots, impulse responses, and Bode magnitudes for classic transfer functions.',
+    category: 'math',
+    gradient: 'linear-gradient(150deg, #faf5ff 0%, #e9d5ff 55%, #d8b4fe 100%)',
+    Preview: PreviewLaplace,
   },
 
   // Physics
@@ -710,13 +790,7 @@ export const allTools: ToolMeta[] = [
     gradient: 'linear-gradient(140deg, #fdf4f2 0%, #f0d5c8 55%, #e0baa8 100%)',
     Preview: PreviewRecursionVisualizer,
   },
-  {
-    slug: 'code-executor', name: 'Code Executor', tag: 'Programming',
-    description: 'Write and run Python, JavaScript, and more directly in the browser.',
-    category: 'cs',
-    gradient: 'linear-gradient(155deg, #1e1b17 0%, #2a201a 60%, #3d2b22 100%)',
-    Preview: PreviewCodeExecutor,
-  },
+
   {
     slug: 'binary-tree', name: 'Binary Search Tree', tag: 'Data Structures',
     description: 'Insert, delete, and traverse a BST with animated in-order, pre-order, and post-order walks.',
@@ -758,6 +832,13 @@ export const allTools: ToolMeta[] = [
     category: 'cs',
     gradient: 'linear-gradient(145deg, #fdf4f2 0%, #fce7e2 55%, #f9c8c0 100%)',
     Preview: PreviewFSM,
+  },
+  {
+    slug: 'code-visualizer', name: 'Code Visualizer', tag: 'Programming',
+    description: 'Step through JavaScript code and watch variables, arrays, and objects come alive in memory.',
+    category: 'cs',
+    gradient: 'linear-gradient(155deg, #1e1b17 0%, #2a201a 60%, #3d2b22 100%)',
+    Preview: PreviewCodeVisualizer,
   },
 ];
 

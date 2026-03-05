@@ -59,7 +59,9 @@ function raySegment(
    GET ELEMENT ENDPOINTS  (surface line segment)
    ═══════════════════════════════════════════════════════════════════════ */
 function elemEndpoints(el: Elem): [V2, V2] {
-    const along = v2(Math.cos(el.angle), Math.sin(el.angle));
+    // The canvas draws elements by rotating a vertical line by el.angle,
+    // so the surface runs in the (-sin, cos) direction in world space.
+    const along = v2(-Math.sin(el.angle), Math.cos(el.angle));
     return [
         vsub(el, vscale(along, el.halfLen)),
         vadd(el, vscale(along, el.halfLen)),
@@ -74,6 +76,7 @@ interface AngleInfo {
     point: V2;
     normalAngle: number;   // angle of the outward-facing normal (radians)
     incAngle: number;       // angle of incidence (radians, measured from normal)
+    refAngle: number;       // angle of reflection (radians, measured from normal)
     incRayAngle: number;    // global angle of the incoming ray
     refRayAngle: number;    // global angle of the reflected ray
 }
@@ -113,7 +116,8 @@ function traceRays(
         segments.push({ from: P, to: best.point });
 
         const el = best.el;
-        const along = v2(Math.cos(el.angle), Math.sin(el.angle));
+        // Surface runs in (-sin, cos) direction — must match elemEndpoints and canvas drawing
+        const along = v2(-Math.sin(el.angle), Math.cos(el.angle));
         // Surface normal = perpendicular to the surface direction
         let N = vnorm(vperp(along));
         // Flip normal to face the incoming ray (i.e., dot(N, D) < 0)
@@ -126,11 +130,15 @@ function traceRays(
         if (el.kind === 'mirror') {
             // === SPECULAR REFLECTION ===
             const Drefl = vreflect(D, N);
+            // θᵣ = θᵢ for flat mirrors (law of reflection)
+            const cosRef = Math.abs(vdot(Drefl, vscale(N, -1)));
+            const refAngle = Math.acos(Math.min(1, Math.max(-1, cosRef)));
 
             angles.push({
                 point: best.point,
                 normalAngle: Math.atan2(N.y, N.x),
                 incAngle,
+                refAngle,
                 incRayAngle: Math.atan2(D.y, D.x),
                 refRayAngle: Math.atan2(Drefl.y, Drefl.x),
             });
@@ -143,18 +151,24 @@ function traceRays(
 
         if (el.kind === 'lens') {
             // === THIN LENS REFRACTION ===
-            // h = signed distance from center along the lens surface
+            // Surface direction (matches drawing): (-sin, cos)
+            const surf = along; // already computed as (-sin, cos)
+            // Optical axis: perpendicular to surface, pointing in the direction of travel
+            let optAxis = v2(Math.cos(el.angle), Math.sin(el.angle));
+            if (vdot(optAxis, D) < 0) optAxis = vscale(optAxis, -1);
+
+            // h = signed offset from lens center along the surface (height in thin-lens formula)
             const toHit = vsub(best.point, el);
-            const h = vdot(toHit, along);
+            const h = vdot(toHit, surf);
             const f = el.focalLength ?? 200;
 
-            // Thin lens: the ray deflects so that a parallel ray would converge at F.
-            // Deflection angle ≈ −h / f (paraxial approximation)
-            const deflect = Math.atan2(-h, f);
-
-            // Rotate the direction vector by the deflection
-            const c = Math.cos(deflect), s = Math.sin(deflect);
-            D = vnorm(v2(D.x * c - D.y * s, D.x * s + D.y * c));
+            // Decompose D into axial and transverse components, then apply the
+            // paraxial thin-lens kick: Δ(transverse) = -(h/f) along surf direction.
+            // This works correctly for any lens orientation and ray angle.
+            const daLen = vdot(D, optAxis);
+            const Dt = vsub(D, vscale(optAxis, daLen));
+            const DtNew = vsub(Dt, vscale(surf, h / f));
+            D = vnorm(vadd(vscale(optAxis, daLen), DtNew));
 
             P = vadd(best.point, vscale(D, 0.5));
             lastHitId = el.id;
@@ -178,11 +192,14 @@ export default function RayOptics() {
         { id: 'L1', kind: 'laser', x: 80, y: 300, angle: 0, halfLen: 22 },
         { id: 'M1', kind: 'mirror', x: 550, y: 300, angle: Math.PI * 3 / 4, halfLen: 70 },
         { id: 'M2', kind: 'mirror', x: 550, y: 500, angle: Math.PI / 4, halfLen: 70 },
-        { id: 'N1', kind: 'lens', x: 300, y: 300, angle: Math.PI / 2, halfLen: 70, focalLength: 250 },
+        { id: 'N1', kind: 'lens', x: 300, y: 300, angle: 0, halfLen: 70, focalLength: 250 },
     ]);
 
     const [selId, setSelId] = useState<string | null>(null);
     const dragRef = useRef<{ id: string; ox: number; oy: number } | null>(null);
+    // Keep a ref so non-passive touch handlers always see the latest elements
+    const elementsRef = useRef(elements);
+    useEffect(() => { elementsRef.current = elements; }, [elements]);
 
     /* ── Draw ──────────────────────────────────────────────────────────── */
     const paint = useCallback(() => {
@@ -253,6 +270,7 @@ export default function RayOptics() {
                 const ARC = 32; // arc radius
                 const nA = a.normalAngle;
                 const incDeg = Math.round(a.incAngle * 180 / Math.PI * 10) / 10;
+                const refDeg = Math.round(a.refAngle * 180 / Math.PI * 10) / 10;
 
                 // --- dashed normal line ---
                 ctx.save();
@@ -276,12 +294,8 @@ export default function RayOptics() {
                 ctx.strokeStyle = '#60a5fa';
                 ctx.lineWidth = 1.5;
                 ctx.beginPath();
-                // Arc from normal angle to incoming ray (reversed) direction
-                const incStart = Math.min(nA, inAngle);
-                const incEnd = Math.max(nA, inAngle);
-                // We need the smaller arc. Check if the arc crosses and adjust.
-                let iStart = nA, iEnd = inAngle;
-                let iDiff = iEnd - iStart;
+                let iStart = nA;
+                let iDiff = inAngle - iStart;
                 // Normalize to [-π, π]
                 while (iDiff > Math.PI) iDiff -= 2 * Math.PI;
                 while (iDiff < -Math.PI) iDiff += 2 * Math.PI;
@@ -309,8 +323,8 @@ export default function RayOptics() {
                 ctx.save();
                 ctx.strokeStyle = COL.angle;
                 ctx.lineWidth = 1.5;
-                let rStart = nA, rEnd = outAngle;
-                let rDiff = rEnd - rStart;
+                let rStart = nA;
+                let rDiff = outAngle - rStart;
                 while (rDiff > Math.PI) rDiff -= 2 * Math.PI;
                 while (rDiff < -Math.PI) rDiff += 2 * Math.PI;
                 ctx.beginPath();
@@ -354,7 +368,7 @@ export default function RayOptics() {
                 // θᵣ label
                 ctx.fillStyle = COL.angle;
                 ctx.fillText(
-                    `θᵣ=${incDeg}°`,
+                    `θᵣ=${refDeg}°`,
                     a.point.x + Math.cos(refMid) * (ARC + 18),
                     a.point.y + Math.sin(refMid) * (ARC + 18)
                 );
@@ -470,15 +484,14 @@ export default function RayOptics() {
     useEffect(() => { paint(); }, [paint]);
 
     /* ── pointer interaction ──────────────────────────────────────────── */
-    const pos = (e: React.MouseEvent | React.TouchEvent): V2 => {
+    const canvasPos = (clientX: number, clientY: number): V2 => {
         const cr = canvasRef.current!.getBoundingClientRect();
-        const cx = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
-        const cy = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
-        return v2(cx - cr.left, cy - cr.top);
+        return v2(clientX - cr.left, clientY - cr.top);
     };
 
-    const onDown = (e: React.MouseEvent | React.TouchEvent) => {
-        const p = pos(e);
+    // Mouse handlers (React synthetic events are fine for mouse — no passive issue)
+    const onMouseDown = (e: React.MouseEvent) => {
+        const p = canvasPos(e.clientX, e.clientY);
         for (let i = elements.length - 1; i >= 0; i--) {
             const el = elements[i];
             if (Math.hypot(p.x - el.x, p.y - el.y) < el.halfLen + 20) {
@@ -490,15 +503,57 @@ export default function RayOptics() {
         setSelId(null);
     };
 
-    const onMove = (e: React.MouseEvent | React.TouchEvent) => {
+    const onMouseMove = (e: React.MouseEvent) => {
         if (!dragRef.current) return;
-        const p = pos(e);
+        const p = canvasPos(e.clientX, e.clientY);
         setElements(prev => prev.map(el =>
             el.id === dragRef.current!.id
                 ? { ...el, x: p.x - dragRef.current!.ox, y: p.y - dragRef.current!.oy }
                 : el
         ));
     };
+
+    // Touch handlers attached via useEffect with { passive: false } so we can
+    // call preventDefault() and block the browser from scrolling/panning the page.
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        const onTouchStart = (e: TouchEvent) => {
+            e.preventDefault();
+            const t = e.touches[0];
+            const p = canvasPos(t.clientX, t.clientY);
+            const elems = elementsRef.current;
+            for (let i = elems.length - 1; i >= 0; i--) {
+                const el = elems[i];
+                if (Math.hypot(p.x - el.x, p.y - el.y) < el.halfLen + 20) {
+                    setSelId(el.id);
+                    dragRef.current = { id: el.id, ox: p.x - el.x, oy: p.y - el.y };
+                    return;
+                }
+            }
+            setSelId(null);
+        };
+
+        const onTouchMove = (e: TouchEvent) => {
+            e.preventDefault();
+            if (!dragRef.current) return;
+            const t = e.touches[0];
+            const p = canvasPos(t.clientX, t.clientY);
+            setElements(prev => prev.map(el =>
+                el.id === dragRef.current!.id
+                    ? { ...el, x: p.x - dragRef.current!.ox, y: p.y - dragRef.current!.oy }
+                    : el
+            ));
+        };
+
+        canvas.addEventListener('touchstart', onTouchStart, { passive: false });
+        canvas.addEventListener('touchmove', onTouchMove, { passive: false });
+        return () => {
+            canvas.removeEventListener('touchstart', onTouchStart);
+            canvas.removeEventListener('touchmove', onTouchMove);
+        };
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const onUp = useCallback(() => { dragRef.current = null; }, []);
     useEffect(() => {
@@ -526,7 +581,7 @@ export default function RayOptics() {
         const n: Elem = {
             id, kind,
             x: 250, y: 300,
-            angle: kind === 'laser' ? 0 : Math.PI / 2,
+            angle: 0,
             halfLen: kind === 'laser' ? 22 : 70,
             ...(kind === 'lens' ? { focalLength: 200 } : {}),
         };
@@ -585,10 +640,10 @@ export default function RayOptics() {
                     background: 'var(--bg-primary)', border: '1px solid var(--border-warm)',
                     borderRadius: 'var(--radius-md)', overflow: 'hidden',
                     cursor: dragRef.current ? 'grabbing' : 'grab',
+                    touchAction: 'none',
                 }}>
                     <canvas ref={canvasRef} style={{ display: 'block', touchAction: 'none' }}
-                        onMouseDown={onDown} onMouseMove={onMove}
-                        onTouchStart={onDown} onTouchMove={onMove} />
+                        onMouseDown={onMouseDown} onMouseMove={onMouseMove} />
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: '0.78rem', color: 'var(--text-dim)' }}>
