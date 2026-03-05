@@ -13,7 +13,72 @@ interface Review {
     text: string;
 }
 
+/* ── Login Gate ───────────────────────────────────────────────────────── */
+const ADMIN_USER = 'alam';
+const ADMIN_PASS = 'alam@5621';
+
+function LoginGate({ onAuth }: { onAuth: () => void }) {
+    const [user, setUser] = useState('');
+    const [pass, setPass] = useState('');
+    const [error, setError] = useState('');
+
+    const handleLogin = () => {
+        if (user === ADMIN_USER && pass === ADMIN_PASS) {
+            sessionStorage.setItem('fp-admin', '1');
+            onAuth();
+        } else {
+            setError('Invalid credentials');
+        }
+    };
+
+    const inputStyle: React.CSSProperties = {
+        width: '100%', padding: '12px 16px', borderRadius: 'var(--radius-sm)',
+        border: '1px solid var(--border-warm)', background: 'var(--bg-secondary)',
+        color: 'var(--text-primary)', fontSize: '0.95rem', fontFamily: 'inherit',
+        boxSizing: 'border-box',
+    };
+
+    return (
+        <>
+            <SEOHead title="Admin Login — FirstPrinciple" description="Admin login" />
+            <main style={{ padding: '140px 24px 60px', maxWidth: 380, margin: '0 auto', textAlign: 'center' }}>
+                <div style={{ fontSize: '2.5rem', marginBottom: 8 }}>🔒</div>
+                <h1 style={{ fontSize: '1.5rem', marginBottom: 4 }}>Admin Login</h1>
+                <p style={{ color: 'var(--text-dim)', marginBottom: 28, fontSize: '0.9rem' }}>Enter your credentials to continue.</p>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, textAlign: 'left' }}>
+                    <div>
+                        <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-dim)', marginBottom: 4, fontWeight: 600 }}>Username</label>
+                        <input style={inputStyle} value={user} onChange={e => setUser(e.target.value)}
+                            placeholder="Username" autoFocus
+                            onKeyDown={e => e.key === 'Enter' && handleLogin()} />
+                    </div>
+                    <div>
+                        <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-dim)', marginBottom: 4, fontWeight: 600 }}>Password</label>
+                        <input style={inputStyle} type="password" value={pass} onChange={e => setPass(e.target.value)}
+                            placeholder="Password"
+                            onKeyDown={e => e.key === 'Enter' && handleLogin()} />
+                    </div>
+                    {error && <p style={{ color: '#ef4444', fontSize: '0.85rem', margin: 0 }}>{error}</p>}
+                    <button className="btn-primary" onClick={handleLogin} style={{ width: '100%', marginTop: 4 }}>
+                        Log In
+                    </button>
+                </div>
+            </main>
+        </>
+    );
+}
+
+/* ── Admin Dashboard ──────────────────────────────────────────────────── */
 export default function Admin() {
+    const [authed, setAuthed] = useState(() => sessionStorage.getItem('fp-admin') === '1');
+
+    if (!authed) return <LoginGate onAuth={() => setAuthed(true)} />;
+
+    return <AdminDashboard />;
+}
+
+function AdminDashboard() {
     /* ── Reviews ── */
     const [reviews, setReviews] = useState<Review[]>([]);
     const [loadingR, setLoadingR] = useState(true);
@@ -62,6 +127,11 @@ export default function Admin() {
         setSaving(false);
     };
 
+    const logout = () => {
+        sessionStorage.removeItem('fp-admin');
+        window.location.reload();
+    };
+
     useEffect(() => { fetchReviews(); loadSettings(); }, []);
 
     const renderStars = (n: number) => '★'.repeat(n) + '☆'.repeat(5 - n);
@@ -76,7 +146,13 @@ export default function Admin() {
         <>
             <SEOHead title="Admin — FirstPrinciple" description="Admin dashboard" />
             <main style={{ padding: '100px 24px 60px', maxWidth: 900, margin: '0 auto' }}>
-                <h1 style={{ fontSize: '2rem', marginBottom: 8 }}>Admin Dashboard</h1>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <h1 style={{ fontSize: '2rem', margin: 0 }}>Admin Dashboard</h1>
+                    <button onClick={logout} style={{
+                        background: 'none', border: '1px solid var(--border-warm)', borderRadius: 'var(--radius-sm)',
+                        padding: '6px 14px', color: 'var(--text-dim)', cursor: 'pointer', fontSize: '0.82rem',
+                    }}>Log Out</button>
+                </div>
                 <p style={{ color: 'var(--text-dim)', marginBottom: 32 }}>Manage reviews and site settings.</p>
 
                 {toast && (
@@ -97,7 +173,10 @@ export default function Admin() {
                                 </label>
                                 <input style={inputStyle} value={settings.bookingLink}
                                     onChange={e => setSettings(s => ({ ...s, bookingLink: e.target.value }))}
-                                    placeholder="https://calendly.com/..." />
+                                    placeholder="https://calendly.com/... or mailto:you@email.com" />
+                                <p style={{ fontSize: '0.78rem', color: 'var(--text-dim)', margin: '4px 0 0' }}>
+                                    This is the <strong>link destination</strong> for all "Book" buttons. Use a full URL (https://...) or mailto: link.
+                                </p>
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-dim)', marginBottom: 4, fontWeight: 600 }}>
@@ -114,6 +193,9 @@ export default function Admin() {
                                 <input style={inputStyle} value={settings.heroCtaText}
                                     onChange={e => setSettings(s => ({ ...s, heroCtaText: e.target.value }))}
                                     placeholder="Book a Free Consultation →" />
+                                <p style={{ fontSize: '0.78rem', color: 'var(--text-dim)', margin: '4px 0 0' }}>
+                                    This is the <strong>text on the button</strong>, not the link. E.g. "Book a Free Consultation →"
+                                </p>
                             </div>
                             <button className="btn-primary" onClick={handleSave} disabled={saving}
                                 style={{ alignSelf: 'flex-start', opacity: saving ? 0.6 : 1 }}>
