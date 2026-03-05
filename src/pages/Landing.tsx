@@ -1,3 +1,4 @@
+import SEOHead from '../components/SEOHead';
 import Hero from '../components/Hero';
 import Philosophy from '../components/Philosophy';
 import Subjects from '../components/Subjects';
@@ -10,6 +11,11 @@ import Footer from '../components/Footer';
 export default function Landing() {
     return (
         <>
+            <SEOHead
+                title="FirstPrinciple Tutoring — Math, Physics & CS Tutoring in Canada"
+                description="Premium 1-on-1 tutoring in Math, Physics, and Computer Science. First-principles approach that builds deep understanding. $30–$45/hr CAD. Free consultation available."
+                canonical="https://firstprinciple.ca/"
+            />
             <Hero />
             <Philosophy />
             <Subjects />

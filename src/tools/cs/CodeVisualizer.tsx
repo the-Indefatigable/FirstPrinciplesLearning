@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 
 /* ═══════════════════════════════════════════════════════════════════════
    TYPES
@@ -17,12 +17,12 @@ type Lang = 'js' | 'python' | 'java' | 'go';
    SERIALISATION
    ═══════════════════════════════════════════════════════════════════════ */
 function makeVNode(val: unknown, hm: WeakMap<object, number>, hc: { n: number }, depth: number): VNode {
-  if (val === null)       return { kind: 'null' };
-  if (val === undefined)  return { kind: 'undefined' };
+  if (val === null) return { kind: 'null' };
+  if (val === undefined) return { kind: 'undefined' };
   if (typeof val === 'function') return { kind: 'function' };
-  if (typeof val === 'number')   return { kind: 'number',  prim: val };
-  if (typeof val === 'string')   return { kind: 'string',  prim: val };
-  if (typeof val === 'boolean')  return { kind: 'boolean', prim: val };
+  if (typeof val === 'number') return { kind: 'number', prim: val };
+  if (typeof val === 'string') return { kind: 'string', prim: val };
+  if (typeof val === 'boolean') return { kind: 'boolean', prim: val };
   if (!hm.has(val as object)) hm.set(val as object, hc.n++);
   const id = hm.get(val as object)!;
   if (Array.isArray(val)) {
@@ -80,13 +80,13 @@ function transpilePython(py: string): { js: string; lineMap: number[] } {
 
   const convExpr = (s: string) =>
     s.replace(/\bNone\b/g, 'null')
-     .replace(/\bTrue\b/g, 'true')
-     .replace(/\bFalse\b/g, 'false')
-     .replace(/\blen\s*\((\w+)\)/g, '$1.length')
-     .replace(/\band\b/g, '&&')
-     .replace(/\bor\b/g, '||')
-     .replace(/\bnot\s+/g, '!')
-     .replace(/\.append\s*\(/g, '.push(');
+      .replace(/\bTrue\b/g, 'true')
+      .replace(/\bFalse\b/g, 'false')
+      .replace(/\blen\s*\((\w+)\)/g, '$1.length')
+      .replace(/\band\b/g, '&&')
+      .replace(/\bor\b/g, '||')
+      .replace(/\bnot\s+/g, '!')
+      .replace(/\.append\s*\(/g, '.push(');
 
   for (let pi = 0; pi < pyLines.length; pi++) {
     const raw = pyLines[pi];
@@ -245,34 +245,34 @@ interface Pal {
 }
 function pal(dark: boolean): Pal {
   return dark ? {
-    bg:'#16130f',grid:'#1e1a15',border:'#332c24',txt:'#e8e4de',dim:'#6b6358',
-    headerBg:'#1e1a14',headerAccent:'#f59e0b',
-    numBg:'#0e2218',numFg:'#6ee7b7',strBg:'#0a1e2d',strFg:'#7dd3fc',
-    boolBg:'#1c0e2d',boolFg:'#c4b5fd',nullFg:'#6b6358',
-    arrBg:'#0e1e0e',arrBorder:'#2a442a',arrIdx:'#4a7a4a',
-    objBg:'#0e0e1e',objKey:'#94a3b8',labelFg:'#9c9488',secLine:'#2a2420',
+    bg: '#16130f', grid: '#1e1a15', border: '#332c24', txt: '#e8e4de', dim: '#6b6358',
+    headerBg: '#1e1a14', headerAccent: '#f59e0b',
+    numBg: '#0e2218', numFg: '#6ee7b7', strBg: '#0a1e2d', strFg: '#7dd3fc',
+    boolBg: '#1c0e2d', boolFg: '#c4b5fd', nullFg: '#6b6358',
+    arrBg: '#0e1e0e', arrBorder: '#2a442a', arrIdx: '#4a7a4a',
+    objBg: '#0e0e1e', objKey: '#94a3b8', labelFg: '#9c9488', secLine: '#2a2420',
   } : {
-    bg:'#faf8f5',grid:'#ede7da',border:'#d6c9b0',txt:'#1a1612',dim:'#9c9488',
-    headerBg:'#fef3c7',headerAccent:'#b45309',
-    numBg:'#dcfce7',numFg:'#15803d',strBg:'#dbeafe',strFg:'#1d4ed8',
-    boolBg:'#f3e8ff',boolFg:'#7c3aed',nullFg:'#9c9488',
-    arrBg:'#f0fdf4',arrBorder:'#bbf7d0',arrIdx:'#22c55e',
-    objBg:'#eff6ff',objKey:'#475569',labelFg:'#78716c',secLine:'#e8e0d0',
+    bg: '#faf8f5', grid: '#ede7da', border: '#d6c9b0', txt: '#1a1612', dim: '#9c9488',
+    headerBg: '#fef3c7', headerAccent: '#b45309',
+    numBg: '#dcfce7', numFg: '#15803d', strBg: '#dbeafe', strFg: '#1d4ed8',
+    boolBg: '#f3e8ff', boolFg: '#7c3aed', nullFg: '#9c9488',
+    arrBg: '#f0fdf4', arrBorder: '#bbf7d0', arrIdx: '#22c55e',
+    objBg: '#eff6ff', objKey: '#475569', labelFg: '#78716c', secLine: '#e8e0d0',
   };
 }
 function vLabel(n: VNode, max = 20): string {
   switch (n.kind) {
-    case 'number':    return String(n.prim);
-    case 'string':    return `"${String(n.prim).slice(0, max)}"`;
-    case 'boolean':   return String(n.prim);
-    case 'null':      return 'null';
+    case 'number': return String(n.prim);
+    case 'string': return `"${String(n.prim).slice(0, max)}"`;
+    case 'boolean': return String(n.prim);
+    case 'null': return 'null';
     case 'undefined': return 'undefined';
-    case 'function':  return 'ƒ()';
-    case 'array':     return `Array(${n.len ?? n.items?.length ?? 0})`;
-    case 'object':    return `{${(n.fields ?? []).map(([k]) => k).join(', ').slice(0, 24)}}`;
+    case 'function': return 'ƒ()';
+    case 'array': return `Array(${n.len ?? n.items?.length ?? 0})`;
+    case 'object': return `{${(n.fields ?? []).map(([k]) => k).join(', ').slice(0, 24)}}`;
   }
 }
-function isPrim(n: VNode) { return ['number','string','boolean','null','undefined','function'].includes(n.kind); }
+function isPrim(n: VNode) { return ['number', 'string', 'boolean', 'null', 'undefined', 'function'].includes(n.kind); }
 function primFg(n: VNode, P: Pal) {
   switch (n.kind) {
     case 'number': return P.numFg; case 'string': return P.strFg;
@@ -449,12 +449,12 @@ interface CodeAreaProps {
 }
 
 function CodeArea({ code, setCode, activeLine, dark, lang }: CodeAreaProps) {
-  const taRef  = useRef<HTMLTextAreaElement>(null);
-  const bgRef  = useRef<HTMLDivElement>(null);
+  const taRef = useRef<HTMLTextAreaElement>(null);
+  const bgRef = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const lines = code.split('\n');
 
-  const bgColor  = dark ? '#0d0b08' : '#f8f8f2';
+  const bgColor = dark ? '#0d0b08' : '#f8f8f2';
   const gutterBg = dark ? '#0a0806' : '#f0ede8';
   const gutterBorder = dark ? '#1e1a16' : '#e0d8cc';
 
@@ -560,10 +560,10 @@ while i < len(nums):
 };
 
 const LANG_META: Record<Lang, { label: string; color: string; bg: string }> = {
-  js:     { label: 'JavaScript', color: '#b45309', bg: 'rgba(245,158,11,0.12)' },
-  python: { label: 'Python',     color: '#1d4ed8', bg: 'rgba(59,130,246,0.12)' },
-  java:   { label: 'Java',       color: '#b91c1c', bg: 'rgba(239,68,68,0.12)'  },
-  go:     { label: 'Go',         color: '#0369a1', bg: 'rgba(14,165,233,0.12)' },
+  js: { label: 'JavaScript', color: '#b45309', bg: 'rgba(245,158,11,0.12)' },
+  python: { label: 'Python', color: '#1d4ed8', bg: 'rgba(59,130,246,0.12)' },
+  java: { label: 'Java', color: '#b91c1c', bg: 'rgba(239,68,68,0.12)' },
+  go: { label: 'Go', color: '#0369a1', bg: 'rgba(14,165,233,0.12)' },
 };
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -571,16 +571,16 @@ const LANG_META: Record<Lang, { label: string; color: string; bg: string }> = {
    ═══════════════════════════════════════════════════════════════════════ */
 export default function CodeVisualizer() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const boxRef    = useRef<HTMLDivElement>(null);
-  const animRef   = useRef<number | null>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
+  const animRef = useRef<number | null>(null);
 
-  const [lang,    setLang]    = useState<Lang>('js');
-  const [code,    setCode]    = useState(EXAMPLES.js);
-  const [steps,   setSteps]   = useState<Step[]>([]);
+  const [lang, setLang] = useState<Lang>('js');
+  const [code, setCode] = useState(EXAMPLES.js);
+  const [steps, setSteps] = useState<Step[]>([]);
   const [stepIdx, setStepIdx] = useState(0);
-  const [status,  setStatus]  = useState<'idle' | 'processing' | 'ready' | 'error'>('idle');
-  const [error,   setError]   = useState<string | null>(null);
-  const [dark,    setDark]    = useState(
+  const [status, setStatus] = useState<'idle' | 'processing' | 'ready' | 'error'>('idle');
+  const [error, setError] = useState<string | null>(null);
+  const [dark, setDark] = useState(
     () => document.documentElement.getAttribute('data-theme') === 'dark'
   );
   // lineMap: for Python, maps JS line → Python source line
@@ -671,7 +671,7 @@ export default function CodeVisualizer() {
     if (status !== 'ready') return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'ArrowRight') setStepIdx(i => Math.min(i + 1, steps.length - 1));
-      if (e.key === 'ArrowLeft')  setStepIdx(i => Math.max(i - 1, 0));
+      if (e.key === 'ArrowLeft') setStepIdx(i => Math.max(i - 1, 0));
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);

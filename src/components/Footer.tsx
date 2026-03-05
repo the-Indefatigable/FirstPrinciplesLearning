@@ -7,7 +7,7 @@ export default function Footer() {
                 <a href="#top">Home</a>
                 <a href="#approach">Approach</a>
                 <a href="#subjects">Subjects</a>
-                <a href="#testimonials">Reviews</a>
+                <a href="/reviews">Reviews</a>
                 <a href="#pricing">Pricing</a>
                 <a href="#booking">Book a Session</a>
             </div>

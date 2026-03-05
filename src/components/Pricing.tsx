@@ -1,6 +1,9 @@
 import './Pricing.css';
+import { useSettings } from '../hooks/SettingsProvider';
 
 export default function Pricing() {
+    const { bookingLink } = useSettings();
+
     return (
         <section className="section pricing-section" id="pricing">
             <div className="pricing-header">
@@ -36,7 +39,7 @@ export default function Pricing() {
                             </li>
                         ))}
                     </ul>
-                    <a className="btn-secondary" href="#booking">Book Free Call</a>
+                    <a className="btn-secondary" href={bookingLink}>Book Free Call</a>
                 </div>
 
                 {/* Regular Sessions */}
@@ -44,7 +47,7 @@ export default function Pricing() {
                     <div className="pricing-badge">Most Popular</div>
                     <div className="pricing-tier">Regular Sessions</div>
                     <div className="pricing-amount">
-                        <span className="price">$45</span>
+                        <span className="price">$30 – $45</span>
                         <span className="period">/ hour CAD</span>
                     </div>
                     <div className="pricing-note">Flexible scheduling, cancel anytime</div>
@@ -64,7 +67,7 @@ export default function Pricing() {
                             </li>
                         ))}
                     </ul>
-                    <a className="btn-primary" href="#booking">Start Learning →</a>
+                    <a className="btn-primary" href={bookingLink}>Start Learning →</a>
                 </div>
             </div>
         </section>

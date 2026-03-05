@@ -1,6 +1,9 @@
 import './FinalCTA.css';
+import { useSettings } from '../hooks/SettingsProvider';
 
 export default function FinalCTA() {
+    const { bookingLink } = useSettings();
+
     return (
         <section className="final-cta" id="booking">
             <div className="final-cta-card">
@@ -9,7 +12,7 @@ export default function FinalCTA() {
                     Join students who stopped struggling and started understanding.
                     Book a free consultation — no commitment, no pressure.
                 </p>
-                <a className="btn-cta-light" href="mailto:tutoring@firstprinciple.ca">
+                <a className="btn-cta-light" href={bookingLink}>
                     Book Your Free Session →
                 </a>
             </div>

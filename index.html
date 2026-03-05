@@ -4,25 +4,122 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- ── Primary Meta ── -->
+  <title>FirstPrinciple Tutoring — Math, Physics & CS Tutoring in Canada</title>
   <meta name="description"
-    content="FirstPrinciple Tutoring — Premium 1-on-1 tutoring in Math, Physics, and Computer Science. First-principles approach that builds deep understanding, not memorization." />
+    content="Premium 1-on-1 tutoring in Math, Physics, and Computer Science. First-principles approach that builds deep understanding, not memorization. Serving students across Canada." />
+  <meta name="keywords"
+    content="tutoring, math tutor, physics tutor, computer science tutor, first principles, STEM tutoring, Canada tutoring, online tutoring, calculus help, coding tutor, AP physics, university math, interactive learning tools" />
+  <meta name="author" content="FirstPrinciple Tutoring" />
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large" />
+  <meta name="theme-color" content="#d97706" />
+  <link rel="canonical" href="https://firstprinciple.ca/" />
+
+  <!-- ── Open Graph (Facebook, LinkedIn, iMessage) ── -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="FirstPrinciple Tutoring" />
+  <meta property="og:title" content="FirstPrinciple Tutoring — Where Tough Subjects Click" />
+  <meta property="og:description"
+    content="First-principles 1-on-1 tutoring in Math, Physics, and CS. Interactive learning tools, real results. Serving students across Canada." />
+  <meta property="og:url" content="https://firstprinciple.ca/" />
+  <meta property="og:locale" content="en_CA" />
+
+  <!-- ── Twitter Card ── -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="FirstPrinciple Tutoring — Math, Physics & CS" />
+  <meta name="twitter:description"
+    content="Premium 1-on-1 STEM tutoring using first principles. 50+ interactive tools. Based in Canada." />
+
+  <!-- ── GEO targeting ── -->
+  <meta name="geo.region" content="CA" />
+  <meta name="geo.placename" content="Canada" />
+
+  <!-- ── Favicon ── -->
   <link rel="icon" type="image/svg+xml"
     href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>" />
-  <title>FirstPrinciple Tutoring — Math, Physics & CS Tutoring</title>
 
-  <!-- DNS + TCP handshake with Google Fonts before CSS is even parsed -->
+  <!-- ── JSON-LD Structured Data (SEO + AEO) ── -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "EducationalOrganization",
+    "name": "FirstPrinciple Tutoring",
+    "url": "https://firstprinciple.ca",
+    "description": "Premium 1-on-1 tutoring in Math, Physics, and Computer Science using a first-principles methodology.",
+    "areaServed": {
+      "@type": "Country",
+      "name": "Canada"
+    },
+    "serviceType": ["Math Tutoring", "Physics Tutoring", "Computer Science Tutoring"],
+    "priceRange": "$30–$45 CAD/hour",
+    "hasOfferCatalog": {
+      "@type": "OfferCatalog",
+      "name": "Tutoring Services",
+      "itemListElement": [
+        { "@type": "OfferCatalog", "name": "Math Tutoring", "description": "Calculus, Algebra, Linear Algebra, Statistics, Fourier Analysis" },
+        { "@type": "OfferCatalog", "name": "Physics Tutoring", "description": "Mechanics, Electromagnetism, Thermodynamics, Optics, Orbital Mechanics" },
+        { "@type": "OfferCatalog", "name": "CS Tutoring", "description": "Data Structures, Algorithms, Automata, Programming" }
+      ]
+    },
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "5.0",
+      "reviewCount": "100",
+      "bestRating": "5",
+      "worstRating": "1"
+    }
+  }
+  </script>
+
+  <!-- FAQ Schema (AEO — Answer Engine Optimization) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What subjects does FirstPrinciple Tutoring cover?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "FirstPrinciple Tutoring offers 1-on-1 sessions in Mathematics (Calculus, Algebra, Linear Algebra, Fourier Analysis), Physics (Mechanics, Electromagnetism, Thermodynamics, Optics), and Computer Science (Data Structures, Algorithms, Programming, Automata Theory)."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How much does tutoring cost?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Sessions range from $30 to $45 CAD per hour. A free 30-minute consultation is available with no obligation."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is first-principles tutoring?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "First-principles tutoring focuses on building deep understanding from fundamental concepts rather than memorizing formulas. Students learn WHY things work, which makes complex subjects click and builds lasting knowledge."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Are there free interactive learning tools?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes! FirstPrinciple offers 30+ free interactive tools including a graphing calculator, Fourier transform visualizer, circuit builder, sorting algorithm visualizer, and many more — all accessible without registration."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- ── Fonts (non-blocking) ── -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-
-  <!--
-      Non-blocking font load via the media="print" trick:
-      Browser fetches the stylesheet without blocking paint.
-      onload switches it to media="all" so fonts apply once ready.
-    -->
   <link rel="stylesheet"
     href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Sora:wght@300;400;500;600;700;800&display=swap"
     media="print" onload="this.media='all'" />
-  <!-- Fallback for JS-disabled browsers -->
   <noscript>
     <link rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Sora:wght@300;400;500;600;700;800&display=swap" />

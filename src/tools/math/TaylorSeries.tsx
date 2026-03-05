@@ -52,16 +52,6 @@ export default function TaylorSeries() {
             prevDeriv = dfdx;
         }
 
-        const taylor = (x: number) => {
-            let sum = 0;
-            let fact = 1;
-            for (let k = 0; k <= terms; k++) {
-                if (k > 0) fact *= k;
-                sum += (derivAtCenter[k] / fact) * Math.pow(x - center, k);
-            }
-            return sum;
-        };
-
         // View window
         const xMin = center - 8, xMax = center + 8;
         let yMin = -4, yMax = 4;

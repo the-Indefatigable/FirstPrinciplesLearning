@@ -1,6 +1,10 @@
 import './Hero.css';
+import { Link } from 'react-router-dom';
+import { useSettings } from '../hooks/SettingsProvider';
 
 export default function Hero() {
+    const { bookingLink, heroBadge, heroCtaText } = useSettings();
+
     return (
         <section className="hero" id="top">
             {/* Organic blob shapes */}
@@ -13,7 +17,7 @@ export default function Hero() {
             <div className="hero-content">
                 <div className="hero-badge">
                     <span className="badge-dot" />
-                    Now accepting students for Summer 2026
+                    {heroBadge}
                 </div>
 
                 <h1 className="hero-title">
@@ -27,12 +31,15 @@ export default function Hero() {
                 </p>
 
                 <div className="hero-cta-group">
-                    <a className="btn-primary" href="#booking">
-                        Book a Free Consultation →
+                    <a className="btn-primary" href={bookingLink}>
+                        {heroCtaText}
                     </a>
                     <a className="btn-secondary" href="#approach">
                         See My Approach
                     </a>
+                    <Link className="btn-secondary" to="/reviews" style={{ background: 'transparent' }}>
+                        ✍ Leave a Review
+                    </Link>
                 </div>
 
                 <div className="hero-trust">

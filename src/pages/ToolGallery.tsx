@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import GlassCard from '../components/GlassCard';
+import SEOHead from '../components/SEOHead';
 import { getByCategory } from '../config/tools';
 
 const CATEGORY_META = {
@@ -7,16 +8,22 @@ const CATEGORY_META = {
     title: 'Mathematics',
     subtitle: 'Calculus, linear algebra, and graphing — built to make abstract ideas click.',
     unit: 'interactive tools',
+    seoTitle: 'Free Math Tools — Interactive Calculators & Visualizers | FirstPrinciple',
+    seoDesc: 'Explore 12+ free interactive math tools: graphing calculator, unit circle, Fourier transform visualizer, equation solver, matrix tools, and more.',
   },
   physics: {
     title: 'Physics Simulations',
     subtitle: 'Tweak parameters and watch the laws of physics unfold in real time.',
     unit: 'interactive simulations',
+    seoTitle: 'Free Physics Simulations — Interactive Labs | FirstPrinciple',
+    seoDesc: 'Run real-time physics simulations: circuit builder, projectile motion, electric fields, wave superposition, ray optics, orbital mechanics, and more.',
   },
   cs: {
     title: 'Computer Science',
     subtitle: 'Visualize algorithms, traverse graphs, and run code — all in the browser.',
     unit: 'interactive tools',
+    seoTitle: 'Free CS Tools — Algorithm Visualizers & Data Structures | FirstPrinciple',
+    seoDesc: 'Visualize sorting algorithms, graph traversal, binary trees, stacks, queues, linked lists, finite state machines, and Big-O complexity — all in the browser.',
   },
 } as const;
 
@@ -31,6 +38,7 @@ export default function ToolGallery({ category }: Props) {
 
   return (
     <div className="gallery-page">
+      <SEOHead title={meta.seoTitle} description={meta.seoDesc} canonical={`https://firstprinciple.ca/${category}`} />
       <div className="tool-page-header">
         <div className="tool-page-eyebrow">
           <span className="eyebrow-line" />

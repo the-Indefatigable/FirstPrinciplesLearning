@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import ThemeToggle from './ThemeToggle';
+import { useSettings } from '../hooks/SettingsProvider';
 import './Navbar.css';
 
 export default function Navbar() {
@@ -8,6 +9,7 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
   const isLanding = location.pathname === '/';
+  const { bookingLink } = useSettings();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -31,7 +33,7 @@ export default function Navbar() {
               <>
                 <li><a href="#approach">Approach</a></li>
                 <li><a href="#subjects">Subjects</a></li>
-                <li><a href="#testimonials">Reviews</a></li>
+                <li><Link to="/reviews">Reviews</Link></li>
                 <li><a href="#pricing">Pricing</a></li>
               </>
             ) : null}
@@ -41,7 +43,7 @@ export default function Navbar() {
           </ul>
 
           {isLanding ? (
-            <a className="navbar-cta" href="#booking">Book a Session</a>
+            <a className="navbar-cta" href={bookingLink}>Book a Session</a>
           ) : (
             <Link className="navbar-cta" to="/">← Back to Home</Link>
           )}
@@ -63,7 +65,7 @@ export default function Navbar() {
           <>
             <a href="#approach" onClick={closeMenu}>Approach</a>
             <a href="#subjects" onClick={closeMenu}>Subjects</a>
-            <a href="#testimonials" onClick={closeMenu}>Reviews</a>
+            <Link to="/reviews" onClick={closeMenu}>Reviews</Link>
             <a href="#pricing" onClick={closeMenu}>Pricing</a>
           </>
         )}
@@ -71,7 +73,7 @@ export default function Navbar() {
         <Link to="/physics" onClick={closeMenu}>Physics Tools</Link>
         <Link to="/cs" onClick={closeMenu}>CS Tools</Link>
         {isLanding ? (
-          <a className="navbar-cta" href="#booking" onClick={closeMenu}>Book a Session</a>
+          <a className="navbar-cta" href={bookingLink} onClick={closeMenu}>Book a Session</a>
         ) : (
           <Link className="navbar-cta" to="/" onClick={closeMenu}>← Back to Home</Link>
         )}
