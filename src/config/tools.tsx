@@ -40,6 +40,8 @@ export const toolLoaders: Record<string, () => Promise<{ default: ComponentType 
   'fourier-transform': () => import('../tools/math/FourierTransform'),
   'laplace-transform': () => import('../tools/math/LaplaceTransform'),
   'vector-field': () => import('../tools/math/VectorField'),
+  'monte-carlo': () => import('../tools/math/MonteCarloSim'),
+  'statistics-calc': () => import('../tools/math/StatisticsCalc'),
   // Phase 2 — Physics
   'projectile-motion': () => import('../tools/physics/ProjectileMotion'),
   'electric-field': () => import('../tools/physics/ElectricField'),
@@ -56,6 +58,7 @@ export const toolLoaders: Record<string, () => Promise<{ default: ComponentType 
   'code-visualizer': () => import('../tools/cs/CodeVisualizer'),
   'packet-simulator': () => import('../tools/cs/PacketSimulator'),
   'hash-table': () => import('../tools/cs/HashTableViz'),
+  'logic-gates': () => import('../tools/cs/LogicGateSim'),
 };
 
 // ── Math Previews (amber) ────────────────────────────────────────────
@@ -633,6 +636,48 @@ const PreviewHashTable: React.FC = () => (
   </svg>
 );
 
+const PreviewMonteCarlo: React.FC = () => (
+  <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+    <rect x="10" y="10" width="60" height="60" stroke="#9c9488" strokeWidth="1" rx="2" />
+    <path d="M10 70 A60 60 0 0 1 70 10" stroke="#22c55e" strokeWidth="1.5" fill="none" />
+    {[{ x: 20, y: 25 }, { x: 35, y: 40 }, { x: 15, y: 55 }, { x: 45, y: 20 }, { x: 50, y: 50 }, { x: 28, y: 62 }, { x: 60, y: 35 }, { x: 55, y: 60 }, { x: 22, y: 38 }].map((p, i) => (
+      <circle key={i} cx={p.x} cy={p.y} r="2" fill={Math.sqrt((p.x - 10) ** 2 + (70 - p.y) ** 2) <= 60 ? '#22c55e' : '#ef4444'} opacity="0.8" />
+    ))}
+    <text x="40" y="78" fill="#d97706" fontSize="6" textAnchor="middle" fontWeight="bold">π ≈ 3.14</text>
+  </svg>
+);
+
+const PreviewStatistics: React.FC = () => (
+  <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+    {[{ x: 12, h: 15 }, { x: 22, h: 28 }, { x: 32, h: 42 }, { x: 42, h: 50 }, { x: 52, h: 35 }, { x: 62, h: 20 }].map(({ x, h }, i) => (
+      <rect key={i} x={x} y={64 - h} width="8" height={h} fill="#d97706" opacity={0.5 + i * 0.08} rx="1" />
+    ))}
+    <line x1="10" y1="64" x2="72" y2="64" stroke="#9c9488" strokeWidth="0.8" />
+    <line x1="40" y1="10" x2="40" y2="64" stroke="#ef4444" strokeWidth="1.5" strokeDasharray="3 2" />
+    <text x="40" y="8" fill="#ef4444" fontSize="5" textAnchor="middle" fontWeight="bold">μ</text>
+    <path d="M10 56Q25 30 40 14Q55 30 70 56" stroke="#22c55e" strokeWidth="1.5" fill="none" opacity="0.6" />
+  </svg>
+);
+
+const PreviewLogicGate: React.FC = () => (
+  <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+    <rect x="8" y="14" width="12" height="8" rx="2" fill="#22c55e" />
+    <text x="14" y="20" fill="white" fontSize="5" textAnchor="middle" fontWeight="bold">1</text>
+    <rect x="8" y="28" width="12" height="8" rx="2" fill="#ef4444" />
+    <text x="14" y="34" fill="white" fontSize="5" textAnchor="middle" fontWeight="bold">0</text>
+    <line x1="20" y1="18" x2="30" y2="26" stroke="#9c9488" strokeWidth="1" />
+    <line x1="20" y1="32" x2="30" y2="26" stroke="#9c9488" strokeWidth="1" />
+    <path d="M30 18 L42 18 Q50 26 42 34 L30 34 Z" fill="#3b82f620" stroke="#3b82f6" strokeWidth="1.5" />
+    <text x="38" y="28" fill="#3b82f6" fontSize="6" textAnchor="middle" fontWeight="bold">&amp;</text>
+    <line x1="50" y1="26" x2="62" y2="26" stroke="#9c9488" strokeWidth="1" />
+    <rect x="62" y="22" width="12" height="8" rx="2" fill="#ef4444" />
+    <text x="68" y="28" fill="white" fontSize="5" textAnchor="middle" fontWeight="bold">0</text>
+    <rect x="14" y="50" width="52" height="20" rx="3" fill="none" stroke="#9c9488" strokeWidth="0.8" />
+    <text x="18" y="58" fill="#9c9488" fontSize="5" fontFamily="monospace">A B | OUT</text>
+    <text x="18" y="66" fill="#c2714f" fontSize="5" fontFamily="monospace">1 0 |  0</text>
+  </svg>
+);
+
 // ── Tool Registry ─────────────────────────────────────────────────────
 
 export const allTools: ToolMeta[] = [
@@ -748,6 +793,20 @@ export const allTools: ToolMeta[] = [
     category: 'math',
     gradient: 'linear-gradient(140deg, #fef9ee 0%, #fef3c7 55%, #fde68a 100%)',
     Preview: PreviewVectorField,
+  },
+  {
+    slug: 'monte-carlo', name: 'Monte Carlo Simulator', tag: 'Statistics',
+    description: 'Estimate π, compute integrals, and run Buffon\'s needle — see how random sampling converges to exact values.',
+    category: 'math',
+    gradient: 'linear-gradient(145deg, #fef9ee 0%, #fef3c7 55%, #fde68a 100%)',
+    Preview: PreviewMonteCarlo,
+  },
+  {
+    slug: 'statistics-calc', name: 'Statistics Calculator', tag: 'Statistics',
+    description: 'Visualize data with histograms, compute mean, median, mode, std dev, quartiles, and fit a normal curve.',
+    category: 'math',
+    gradient: 'linear-gradient(135deg, #fffbeb 0%, #fef9c3 55%, #fde68a 100%)',
+    Preview: PreviewStatistics,
   },
 
   // Physics
@@ -928,6 +987,13 @@ export const allTools: ToolMeta[] = [
     category: 'cs',
     gradient: 'linear-gradient(150deg, #fdf4f2 0%, #fce7e2 55%, #f9c8c0 100%)',
     Preview: PreviewHashTable,
+  },
+  {
+    slug: 'logic-gates', name: 'Logic Gate Simulator', tag: 'Digital Logic',
+    description: 'Build circuits with AND, OR, NOT, NAND, NOR, XOR, XNOR gates — toggle inputs and see truth tables.',
+    category: 'cs',
+    gradient: 'linear-gradient(140deg, #fdf4f2 0%, #f0d5c8 55%, #e0baa8 100%)',
+    Preview: PreviewLogicGate,
   },
 ];
 

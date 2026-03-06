@@ -98,34 +98,32 @@ export default function VectorField() {
 
             // ── Background: divergence / curl heatmap ──
             if (showDiv || showCurl) {
-                const step = 6;
-                const h = 0.01;
+                const step = 4;
+                const h = 0.05;
                 for (let sx = 0; sx < W; sx += step) {
                     for (let sy = 0; sy < H; sy += step) {
                         const [wx, wy] = toWorld(sx, sy);
 
                         let val = 0;
                         if (showDiv) {
-                            // ∂P/∂x + ∂Q/∂y (numerical)
                             const dPdx = (evalExpr(pExpr, wx + h, wy) - evalExpr(pExpr, wx - h, wy)) / (2 * h);
                             const dQdy = (evalExpr(qExpr, wx, wy + h) - evalExpr(qExpr, wx, wy - h)) / (2 * h);
                             val = dPdx + dQdy;
                         } else {
-                            // ∂Q/∂x - ∂P/∂y (curl z-component)
                             const dQdx = (evalExpr(qExpr, wx + h, wy) - evalExpr(qExpr, wx - h, wy)) / (2 * h);
                             const dPdy = (evalExpr(pExpr, wx, wy + h) - evalExpr(pExpr, wx, wy - h)) / (2 * h);
                             val = dQdx - dPdy;
                         }
 
-                        const intensity = Math.min(Math.abs(val) * 0.3, 1);
-                        if (val > 0.01) {
+                        const intensity = Math.min(Math.abs(val) * 1.5, 1);
+                        if (val > 0.001) {
                             ctx.fillStyle = showDiv
-                                ? `rgba(34,197,94,${intensity * 0.35})`    // green = positive div (source)
-                                : `rgba(59,130,246,${intensity * 0.35})`;   // blue = positive curl (CCW)
-                        } else if (val < -0.01) {
+                                ? `rgba(34,197,94,${intensity * 0.6})`
+                                : `rgba(59,130,246,${intensity * 0.6})`;
+                        } else if (val < -0.001) {
                             ctx.fillStyle = showDiv
-                                ? `rgba(239,68,68,${intensity * 0.35})`    // red = negative div (sink)
-                                : `rgba(239,68,68,${intensity * 0.35})`;   // red = negative curl (CW)
+                                ? `rgba(239,68,68,${intensity * 0.6})`
+                                : `rgba(239,68,68,${intensity * 0.6})`;
                         } else {
                             continue;
                         }

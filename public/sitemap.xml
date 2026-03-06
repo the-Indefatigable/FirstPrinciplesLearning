@@ -41,4 +41,7 @@
   <url><loc>https://www.firstprincipleslearningg.com/cs/packet-simulator</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://www.firstprincipleslearningg.com/math/vector-field</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://www.firstprincipleslearningg.com/cs/hash-table</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/math/monte-carlo</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/math/statistics-calc</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/cs/logic-gates</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
 </urlset>
