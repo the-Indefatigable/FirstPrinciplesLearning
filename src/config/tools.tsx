@@ -53,6 +53,7 @@ export const toolLoaders: Record<string, () => Promise<{ default: ComponentType 
   'regex-tester': () => import('../tools/cs/RegexTester'),
   'fsm-builder': () => import('../tools/cs/FSMBuilder'),
   'code-visualizer': () => import('../tools/cs/CodeVisualizer'),
+  'packet-simulator': () => import('../tools/cs/PacketSimulator'),
 };
 
 // ── Math Previews (amber) ────────────────────────────────────────────
@@ -498,6 +499,27 @@ const PreviewFSM: React.FC = () => (
   </svg>
 );
 
+const PreviewPacketSim: React.FC = () => (
+  <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+    <circle cx="14" cy="40" r="8" fill="#3b82f6" opacity="0.8" />
+    <text x="14" y="43" fill="white" fontSize="6" textAnchor="middle" fontFamily="monospace">C</text>
+    <circle cx="40" cy="24" r="7" fill="#f59e0b" opacity="0.7" />
+    <text x="40" y="27" fill="white" fontSize="5" textAnchor="middle" fontFamily="monospace">R</text>
+    <circle cx="40" cy="56" r="7" fill="#f59e0b" opacity="0.7" />
+    <text x="40" y="59" fill="white" fontSize="5" textAnchor="middle" fontFamily="monospace">R</text>
+    <circle cx="66" cy="40" r="8" fill="#22c55e" opacity="0.8" />
+    <text x="66" y="43" fill="white" fontSize="6" textAnchor="middle" fontFamily="monospace">S</text>
+    <line x1="22" y1="36" x2="33" y2="27" stroke="#9c9488" strokeWidth="0.8" strokeDasharray="2 2" />
+    <line x1="22" y1="44" x2="33" y2="53" stroke="#9c9488" strokeWidth="0.8" strokeDasharray="2 2" />
+    <line x1="47" y1="27" x2="58" y2="36" stroke="#9c9488" strokeWidth="0.8" strokeDasharray="2 2" />
+    <line x1="47" y1="53" x2="58" y2="44" stroke="#9c9488" strokeWidth="0.8" strokeDasharray="2 2" />
+    <rect x="25" y="29" width="12" height="7" rx="2" fill="#8b5cf6" opacity="0.85" />
+    <text x="31" y="34" fill="white" fontSize="4" textAnchor="middle" fontWeight="bold">SYN</text>
+    <rect x="48" y="44" width="12" height="7" rx="2" fill="#22c55e" opacity="0.85" />
+    <text x="54" y="49" fill="white" fontSize="4" textAnchor="middle" fontWeight="bold">ACK</text>
+  </svg>
+);
+
 const PreviewCodeVisualizer: React.FC = () => (
   <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
     <rect x="8" y="10" width="64" height="60" rx="5" fill="#1a1612" opacity="0.92" />
@@ -839,6 +861,13 @@ export const allTools: ToolMeta[] = [
     category: 'cs',
     gradient: 'linear-gradient(155deg, #1e1b17 0%, #2a201a 60%, #3d2b22 100%)',
     Preview: PreviewCodeVisualizer,
+  },
+  {
+    slug: 'packet-simulator', name: 'Packet Simulator', tag: 'Networking',
+    description: 'Simulate TCP handshakes, data transfer, packet loss, retransmission, and UDP — animated network packet flow.',
+    category: 'cs',
+    gradient: 'linear-gradient(145deg, #faf0ec 0%, #f0d5c8 55%, #e0baa8 100%)',
+    Preview: PreviewPacketSim,
   },
 ];
 

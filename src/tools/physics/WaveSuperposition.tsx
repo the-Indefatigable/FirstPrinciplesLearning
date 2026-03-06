@@ -68,11 +68,19 @@ export default function WaveSuperposition() {
                 for (let px = 0; px <= W; px++) {
                     const x = (px / W) * 4 * Math.PI;
                     let y: number;
-                    if (s === 0) y = amp1 * Math.sin(freq1 * x - t * 2);
-                    else if (s === 1) y = amp2 * Math.sin(freq2 * x - t * 2 + phase2 * Math.PI / 180);
-                    else y = amp1 * Math.sin(freq1 * x - t * 2) + amp2 * Math.sin(freq2 * x - t * 2 + phase2 * Math.PI / 180);
+                    let normMax: number;
+                    if (s === 0) {
+                        y = amp1 * Math.sin(freq1 * x - t * 2);
+                        normMax = Math.max(amp1, 0.01);          // normalize by own amp
+                    } else if (s === 1) {
+                        y = amp2 * Math.sin(freq2 * x - t * 2 + phase2 * Math.PI / 180);
+                        normMax = Math.max(amp2, 0.01);          // normalize by own amp
+                    } else {
+                        y = amp1 * Math.sin(freq1 * x - t * 2) + amp2 * Math.sin(freq2 * x - t * 2 + phase2 * Math.PI / 180);
+                        normMax = Math.max(amp1 + amp2, 0.01);   // combined max for superposition
+                    }
 
-                    const normY = (y / (amp1 + amp2 || 1)) * maxAmp;
+                    const normY = (y / normMax) * maxAmp;
                     px === 0 ? ctx.moveTo(px, cy - normY) : ctx.lineTo(px, cy - normY);
                 }
                 ctx.stroke();
@@ -83,10 +91,11 @@ export default function WaveSuperposition() {
                     ctx.fillStyle = colors[2];
                     ctx.beginPath();
                     ctx.moveTo(0, cy);
+                    const fillMax = Math.max(amp1 + amp2, 0.01);
                     for (let px = 0; px <= W; px++) {
                         const x = (px / W) * 4 * Math.PI;
                         const y = amp1 * Math.sin(freq1 * x - t * 2) + amp2 * Math.sin(freq2 * x - t * 2 + phase2 * Math.PI / 180);
-                        const normY = (y / (amp1 + amp2 || 1)) * maxAmp;
+                        const normY = (y / fillMax) * maxAmp;
                         ctx.lineTo(px, cy - normY);
                     }
                     ctx.lineTo(W, cy);
