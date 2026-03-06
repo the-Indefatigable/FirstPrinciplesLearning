@@ -39,6 +39,7 @@ export const toolLoaders: Record<string, () => Promise<{ default: ComponentType 
   'fourier-series': () => import('../tools/math/FourierSeries'),
   'fourier-transform': () => import('../tools/math/FourierTransform'),
   'laplace-transform': () => import('../tools/math/LaplaceTransform'),
+  'vector-field': () => import('../tools/math/VectorField'),
   // Phase 2 — Physics
   'projectile-motion': () => import('../tools/physics/ProjectileMotion'),
   'electric-field': () => import('../tools/physics/ElectricField'),
@@ -54,6 +55,7 @@ export const toolLoaders: Record<string, () => Promise<{ default: ComponentType 
   'fsm-builder': () => import('../tools/cs/FSMBuilder'),
   'code-visualizer': () => import('../tools/cs/CodeVisualizer'),
   'packet-simulator': () => import('../tools/cs/PacketSimulator'),
+  'hash-table': () => import('../tools/cs/HashTableViz'),
 };
 
 // ── Math Previews (amber) ────────────────────────────────────────────
@@ -587,6 +589,50 @@ const PreviewLaplace: React.FC = () => (
   </svg>
 );
 
+const PreviewVectorField: React.FC = () => (
+  <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+    <line x1="10" y1="40" x2="70" y2="40" stroke="#9c9488" strokeWidth="0.6" />
+    <line x1="40" y1="10" x2="40" y2="70" stroke="#9c9488" strokeWidth="0.6" />
+    {/* Rotation field arrows */}
+    <line x1="55" y1="20" x2="50" y2="16" stroke="#d97706" strokeWidth="1.5" strokeLinecap="round" />
+    <line x1="60" y1="40" x2="60" y2="34" stroke="#d97706" strokeWidth="1.5" strokeLinecap="round" />
+    <line x1="55" y1="60" x2="60" y2="56" stroke="#d97706" strokeWidth="1.5" strokeLinecap="round" />
+    <line x1="40" y1="65" x2="40" y2="59" stroke="#d97706" strokeWidth="1.5" strokeLinecap="round" />
+    <line x1="25" y1="60" x2="20" y2="56" stroke="#d97706" strokeWidth="1.5" strokeLinecap="round" />
+    <line x1="20" y1="40" x2="20" y2="46" stroke="#d97706" strokeWidth="1.5" strokeLinecap="round" />
+    <line x1="25" y1="20" x2="20" y2="24" stroke="#d97706" strokeWidth="1.5" strokeLinecap="round" />
+    <line x1="40" y1="15" x2="40" y2="21" stroke="#d97706" strokeWidth="1.5" strokeLinecap="round" />
+    <circle cx="40" cy="40" r="2" fill="#d97706" />
+    {/* Flow dots */}
+    <circle cx="52" cy="18" r="1.5" fill="#fbbf24" opacity="0.6" />
+    <circle cx="62" cy="32" r="1.5" fill="#fbbf24" opacity="0.5" />
+    <circle cx="58" cy="58" r="1.5" fill="#fbbf24" opacity="0.4" />
+    <circle cx="22" cy="52" r="1.5" fill="#fbbf24" opacity="0.6" />
+  </svg>
+);
+
+const PreviewHashTable: React.FC = () => (
+  <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+    {[14, 26, 38, 50, 62].map((y, i) => (
+      <g key={i}>
+        <rect x="8" y={y} width="14" height="10" rx="2" fill="#c2714f" opacity={0.4 + i * 0.1} />
+        <text x="15" y={y + 7.5} fill="white" fontSize="6" textAnchor="middle" fontFamily="monospace">{i}</text>
+      </g>
+    ))}
+    <rect x="28" y="14" width="20" height="10" rx="2" fill="#22c55e" opacity="0.7" />
+    <text x="38" y="21.5" fill="white" fontSize="5" textAnchor="middle" fontFamily="monospace">Alice</text>
+    <rect x="28" y="26" width="20" height="10" rx="2" fill="#3b82f6" opacity="0.7" />
+    <text x="38" y="33.5" fill="white" fontSize="5" textAnchor="middle" fontFamily="monospace">Bob</text>
+    <rect x="28" y="38" width="20" height="10" rx="2" fill="#22c55e" opacity="0.7" />
+    <text x="38" y="45.5" fill="white" fontSize="5" textAnchor="middle" fontFamily="monospace">Carol</text>
+    {/* Collision chain */}
+    <rect x="50" y="38" width="20" height="10" rx="2" fill="#ef4444" opacity="0.7" />
+    <text x="60" y="45.5" fill="white" fontSize="5" textAnchor="middle" fontFamily="monospace">Eve</text>
+    <line x1="48" y1="43" x2="50" y2="43" stroke="#c2714f" strokeWidth="1" />
+    <text x="40" y="60" fill="#ef4444" fontSize="5" textAnchor="middle" fontWeight="bold">💥</text>
+  </svg>
+);
+
 // ── Tool Registry ─────────────────────────────────────────────────────
 
 export const allTools: ToolMeta[] = [
@@ -695,6 +741,13 @@ export const allTools: ToolMeta[] = [
     category: 'math',
     gradient: 'linear-gradient(150deg, #faf5ff 0%, #e9d5ff 55%, #d8b4fe 100%)',
     Preview: PreviewLaplace,
+  },
+  {
+    slug: 'vector-field', name: 'Vector Field Visualizer', tag: 'Multivariable Calculus',
+    description: 'Visualize 2D vector fields with animated flow particles, divergence and curl heatmaps, and custom expressions.',
+    category: 'math',
+    gradient: 'linear-gradient(140deg, #fef9ee 0%, #fef3c7 55%, #fde68a 100%)',
+    Preview: PreviewVectorField,
   },
 
   // Physics
@@ -868,6 +921,13 @@ export const allTools: ToolMeta[] = [
     category: 'cs',
     gradient: 'linear-gradient(145deg, #faf0ec 0%, #f0d5c8 55%, #e0baa8 100%)',
     Preview: PreviewPacketSim,
+  },
+  {
+    slug: 'hash-table', name: 'Hash Table Visualizer', tag: 'Data Structures',
+    description: 'Insert keys and watch hashing, collisions, chaining, and open addressing in action.',
+    category: 'cs',
+    gradient: 'linear-gradient(150deg, #fdf4f2 0%, #fce7e2 55%, #f9c8c0 100%)',
+    Preview: PreviewHashTable,
   },
 ];
 
