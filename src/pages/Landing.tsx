@@ -14,7 +14,7 @@ export default function Landing() {
             <SEOHead
                 title="FirstPrinciple Tutoring — Math, Physics & CS Tutoring in Canada"
                 description="Premium 1-on-1 tutoring in Math, Physics, and Computer Science. First-principles approach that builds deep understanding. $30–$45/hr CAD. Free consultation available."
-                canonical="https://firstprinciple.ca/"
+                canonical="https://www.firstprincipleslearningg.com/"
             />
             <Hero />
             <Philosophy />

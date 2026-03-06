@@ -93,7 +93,7 @@ export default function Reviews() {
             <SEOHead
                 title="Student Reviews — FirstPrinciple Tutoring"
                 description="Read real student reviews and leave your own feedback. See why students love first-principles tutoring in Math, Physics, and Computer Science."
-                canonical="https://firstprinciple.ca/reviews"
+                canonical="https://www.firstprincipleslearningg.com/reviews"
             />
             <main style={{ padding: '100px 24px 60px', maxWidth: 900, margin: '0 auto' }}>
                 {/* Header */}

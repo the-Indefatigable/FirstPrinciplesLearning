@@ -38,7 +38,15 @@ export default function ToolGallery({ category }: Props) {
 
   return (
     <div className="gallery-page">
-      <SEOHead title={meta.seoTitle} description={meta.seoDesc} canonical={`https://firstprinciple.ca/${category}`} />
+      <SEOHead
+        title={meta.seoTitle}
+        description={meta.seoDesc}
+        canonical={`https://www.firstprincipleslearningg.com/${category}`}
+        breadcrumbs={[
+          { name: 'Home', url: 'https://www.firstprincipleslearningg.com/' },
+          { name: meta.seoTitle.split('—')[0].trim(), url: `https://www.firstprincipleslearningg.com/${category}` },
+        ]}
+      />
       <div className="tool-page-header">
         <div className="tool-page-eyebrow">
           <span className="eyebrow-line" />

@@ -3,7 +3,7 @@ import type { SiteSettings } from '../lib/siteSettings';
 import { fetchSettings } from '../lib/siteSettings';
 
 const DEFAULTS: SiteSettings = {
-    bookingLink: 'mailto:tutoring@firstprinciple.ca',
+    bookingLink: 'mailto:tutoring@firstprincipleslearningg.com',
     heroBadge: 'Now accepting students for 2026',
     heroCtaText: 'Book a Free Consultation →',
 };

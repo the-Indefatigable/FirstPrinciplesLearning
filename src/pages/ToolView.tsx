@@ -1,9 +1,12 @@
 import { useState, useEffect, type ComponentType } from 'react';
 import { useParams, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import BootScreen from '../components/BootScreen';
+import SEOHead from '../components/SEOHead';
 import { getBySlug, toolLoaders } from '../config/tools';
 
 type Phase = 'booting' | 'fading' | 'ready';
+
+const DOMAIN = 'https://www.firstprincipleslearningg.com';
 
 const CATEGORY_DISPLAY: Record<string, string> = {
   math: 'Mathematics',
@@ -16,7 +19,7 @@ export default function ToolView() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const category = location.pathname.split('/')[1]; // 'math' | 'physics' | 'cs'
+  const category = location.pathname.split('/')[1];
   const tool = getBySlug(toolId ?? '');
   const loader = toolId ? toolLoaders[toolId] : null;
 
@@ -42,8 +45,21 @@ export default function ToolView() {
     return <Navigate to={`/${category}`} replace />;
   }
 
+  const catLabel = CATEGORY_DISPLAY[category] ?? category;
+  const seoTitle = `${tool.name} — Free ${catLabel} Tool | FirstPrinciple`;
+  const seoDesc = `${tool.description} Free interactive ${tool.tag.toLowerCase()} tool. No login required.`;
+  const canonical = `${DOMAIN}/${category}/${tool.slug}`;
+
+  const breadcrumbs = [
+    { name: 'Home', url: `${DOMAIN}/` },
+    { name: catLabel, url: `${DOMAIN}/${category}` },
+    { name: tool.name, url: canonical },
+  ];
+
   return (
     <div className="tool-view-page">
+      <SEOHead title={seoTitle} description={seoDesc} canonical={canonical} breadcrumbs={breadcrumbs} />
+
       {phase !== 'ready' && (
         <BootScreen tool={tool} categoryLabel={category} fading={phase === 'fading'} />
       )}
@@ -54,12 +70,12 @@ export default function ToolView() {
             <button
               className="tool-view-back"
               onClick={() => navigate(`/${category}`)}
-              aria-label={`Back to ${CATEGORY_DISPLAY[category] ?? category}`}
+              aria-label={`Back to ${catLabel}`}
             >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                 <path d="M10 12L6 8l4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-              {CATEGORY_DISPLAY[category] ?? category}
+              {catLabel}
             </button>
             <span className="tool-view-title">{tool.name}</span>
             <div className="tool-view-spacer" />

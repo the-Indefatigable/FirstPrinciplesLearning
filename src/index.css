@@ -1,5 +1,46 @@
 /* Font is now loaded non-blocking via <link> in index.html */
 
+/* ── Accessibility: skip to main content link ── */
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: 16px;
+  background: var(--amber);
+  color: #fff;
+  padding: 8px 18px;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 0.9rem;
+  z-index: 10000;
+  transition: top 0.2s;
+  text-decoration: none;
+}
+
+.skip-link:focus {
+  top: 12px;
+}
+
+.btn-secondary {
+  display: inline-block;
+  padding: 10px 24px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-warm);
+  background: transparent;
+  color: var(--text-primary);
+  font-weight: 500;
+  font-size: 0.95rem;
+  cursor: pointer;
+  text-decoration: none;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+  background: var(--bg-secondary);
+  border-color: var(--amber);
+  color: var(--amber);
+}
+
 /* ==========================
    WARM ACADEMIC DESIGN SYSTEM
    ========================== */

@@ -5,13 +5,13 @@ interface SEOProps {
     description: string;
     canonical?: string;
     type?: string;
+    breadcrumbs?: { name: string; url: string }[];
 }
 
 /**
- * Sets per-page <title> and <meta> description dynamically.
- * Also updates OG tags for social sharing crawlers.
+ * Sets per-page <title>, <meta> description, OG, Twitter, canonical, and breadcrumb schema.
  */
-export default function SEOHead({ title, description, canonical, type = 'website' }: SEOProps) {
+export default function SEOHead({ title, description, canonical, type = 'website', breadcrumbs }: SEOProps) {
     useEffect(() => {
         // Title
         document.title = title;
@@ -58,7 +58,35 @@ export default function SEOHead({ title, description, canonical, type = 'website
             }
             link.href = canonical;
         }
-    }, [title, description, canonical, type]);
 
-    return null; // Renders nothing — side-effect only
+        // Breadcrumb JSON-LD
+        const bcId = 'seo-breadcrumb-ld';
+        const oldBc = document.getElementById(bcId);
+        if (oldBc) oldBc.remove();
+
+        if (breadcrumbs && breadcrumbs.length > 0) {
+            const script = document.createElement('script');
+            script.id = bcId;
+            script.type = 'application/ld+json';
+            script.textContent = JSON.stringify({
+                '@context': 'https://schema.org',
+                '@type': 'BreadcrumbList',
+                itemListElement: breadcrumbs.map((bc, i) => ({
+                    '@type': 'ListItem',
+                    position: i + 1,
+                    name: bc.name,
+                    item: bc.url,
+                })),
+            });
+            document.head.appendChild(script);
+        }
+
+        return () => {
+            // Clean up breadcrumb on unmount
+            const el = document.getElementById(bcId);
+            if (el) el.remove();
+        };
+    }, [title, description, canonical, type, breadcrumbs]);
+
+    return null;
 }

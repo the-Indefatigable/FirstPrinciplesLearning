@@ -8,7 +8,7 @@ export interface SiteSettings {
 }
 
 const DEFAULTS: SiteSettings = {
-    bookingLink: 'mailto:tutoring@firstprinciple.ca',
+    bookingLink: 'mailto:tutoring@firstprincipleslearningg.com',
     heroBadge: 'Now accepting students for 2026',
     heroCtaText: 'Book a Free Consultation →',
 };
