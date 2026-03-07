@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import { derivative, parse, simplify, compile, type MathNode } from 'mathjs';
+import { derivative, parse, simplify, compile, type MathNode, type EvalFunction } from 'mathjs';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 
@@ -222,8 +222,8 @@ function Graph({ expr, derivExpr, variable }: { expr: string; derivExpr: string 
         const H = rect.height;
         const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
-        let fCompiled: ReturnType<typeof compile>;
-        let dCompiled: ReturnType<typeof compile> | null = null;
+        let fCompiled: EvalFunction;
+        let dCompiled: EvalFunction | null = null;
 
         try {
             fCompiled = compile(expr);
@@ -236,7 +236,7 @@ function Graph({ expr, derivExpr, variable }: { expr: string; derivExpr: string 
             return;
         }
 
-        const evalFn = (compiled: ReturnType<typeof compile>, x: number) => {
+        const evalFn = (compiled: EvalFunction, x: number) => {
             try {
                 return Number(compiled.evaluate({ [variable]: x, e: Math.E, pi: Math.PI }));
             } catch { return NaN; }
