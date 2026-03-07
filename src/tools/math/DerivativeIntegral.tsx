@@ -305,7 +305,7 @@ function Graph({ expr, derivExpr, variable }: { expr: string; derivExpr: string 
         }
 
         // Draw curve helper
-        const drawCurve = (compiled: ReturnType<typeof compile>, color: string, width: number, dashed = false) => {
+        const drawCurve = (compiled: EvalFunction, color: string, width: number, dashed = false) => {
             ctx.strokeStyle = color;
             ctx.lineWidth = width;
             ctx.setLineDash(dashed ? [6, 4] : []);
