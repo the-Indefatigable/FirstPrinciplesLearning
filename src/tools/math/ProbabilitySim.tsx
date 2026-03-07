@@ -67,16 +67,16 @@ export default function ProbabilitySim() {
                         const total = results.reduce((s, c) => s + c, 0) || 1;
                         const pct = ((count / total) * 100).toFixed(1);
                         const thPct = (theoretical[i] * 100).toFixed(1);
-                        const barH = maxCount > 0 ? (count / maxCount) * 200 : 0;
+                        const barH = maxCount > 0 ? (count / maxCount) * 130 : 0;
 
                         return (
-                            <div key={label} style={{ flex: 1, minWidth: 60, textAlign: 'center' }}>
-                                <div style={{ height: 220, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center' }}>
-                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginBottom: 4, fontFamily: 'monospace' }}>
+                            <div key={label} style={{ flex: 1, minWidth: 50, textAlign: 'center' }}>
+                                <div style={{ height: 150, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center' }}>
+                                    <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginBottom: 3, fontFamily: 'monospace' }}>
                                         {count > 0 ? `${pct}%` : '—'}
                                     </div>
                                     <div style={{
-                                        width: '70%', height: barH, minHeight: 2,
+                                        width: '65%', height: barH, minHeight: 2,
                                         background: `linear-gradient(to top, var(--amber), var(--amber-light))`,
                                         borderRadius: '4px 4px 0 0',
                                         transition: 'height 0.15s ease-out',
@@ -85,7 +85,7 @@ export default function ProbabilitySim() {
                                         {/* Theoretical line */}
                                         <div style={{
                                             position: 'absolute', left: -4, right: -4,
-                                            bottom: maxCount > 0 ? (theoretical[i] * total / maxCount) * 200 - barH : 0,
+                                            bottom: maxCount > 0 ? (theoretical[i] * total / maxCount) * 130 - barH : 0,
                                             height: 2, background: 'var(--sage)',
                                             borderRadius: 1, opacity: count > 0 ? 1 : 0
                                         }} />

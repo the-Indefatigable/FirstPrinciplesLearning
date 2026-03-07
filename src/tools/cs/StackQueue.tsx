@@ -75,7 +75,7 @@ export default function StackQueue() {
                     </div>
                 )}
 
-                <div style={{ display: 'flex', justifyContent: 'center', padding: '32px 0', minHeight: 300 }}>
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '16px 0', minHeight: 180 }}>
                     {dsType === 'stack' ? (
                         <div style={{ display: 'flex', flexDirection: 'column-reverse', gap: 4, alignItems: 'center' }}>
                             <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 8 }}>Bottom</div>

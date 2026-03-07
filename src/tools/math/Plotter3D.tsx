@@ -107,7 +107,7 @@ export default function Plotter3D() {
                     className="plot-container"
                     style={{
                         width: '100%',
-                        height: '500px',
+                        height: '260px',
                         background: 'var(--bg-secondary)',
                         borderRadius: 'var(--radius-md)',
                         overflow: 'hidden',

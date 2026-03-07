@@ -195,8 +195,8 @@ export default function Pathfinding() {
                 <div
                     style={{
                         display: 'grid',
-                        gridTemplateRows: `repeat(${ROWS}, 20px)`,
-                        gridTemplateColumns: `repeat(${COLS}, 20px)`,
+                        gridTemplateRows: `repeat(${ROWS}, 14px)`,
+                        gridTemplateColumns: `repeat(${COLS}, 14px)`,
                         gap: '1px',
                         background: 'var(--border-warm)', // Acts as grid lines due to gap
                         border: '1px solid var(--border-warm)',
@@ -219,8 +219,8 @@ export default function Pathfinding() {
                                 <div
                                     key={`${rIdx}-${cIdx}`}
                                     style={{
-                                        width: '20px',
-                                        height: '20px',
+                                        width: '14px',
+                                        height: '14px',
                                         background: bg,
                                         transition: node.type === 'visited' ? 'background 0.3s ease-out' : 'none',
                                         borderRadius: node.type === 'start' || node.type === 'end' ? '50%' : '2px',

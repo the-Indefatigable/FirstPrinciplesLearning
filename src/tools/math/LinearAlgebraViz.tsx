@@ -191,7 +191,7 @@ export default function LinearAlgebraViz() {
     <div className="tool-card">
       <div className="tool-layout-2col">
         <div>
-          <div ref={boxRef} style={{ width: '100%', aspectRatio: '1/1', maxHeight: 340, border: '1px solid var(--border-warm)', borderRadius: 8, overflow: 'hidden' }}>
+          <div ref={boxRef} style={{ width: '100%', aspectRatio: '1/1', maxHeight: 260, border: '1px solid var(--border-warm)', borderRadius: 8, overflow: 'hidden' }}>
             <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: '100%' }} />
           </div>
           <div style={{ marginTop: 8 }}>

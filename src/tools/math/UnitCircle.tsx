@@ -7,7 +7,7 @@ export default function UnitCircle() {
     const circleRef = useRef<SVGSVGElement>(null);
 
     // Coordinate system parameters
-    const size = 300;
+    const size = 240;
     const center = size / 2;
     const radius = size * 0.35; // leaves room for labels
 

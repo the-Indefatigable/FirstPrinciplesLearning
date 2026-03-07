@@ -24,7 +24,7 @@ export default function RecursionVisualizer() {
         if (!canvas || !treeRef.current) return;
         const ctx = canvas.getContext('2d')!;
         canvas.width = canvas.parentElement!.clientWidth;
-        canvas.height = 280;
+        canvas.height = 260;
         const W = canvas.width;
         const H = canvas.height;
         const isDark = document.documentElement.getAttribute('data-theme') === 'dark';

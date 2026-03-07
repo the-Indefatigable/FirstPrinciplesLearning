@@ -132,7 +132,7 @@ export default function GraphingCalc() {
         if (!canvas) return;
         const resize = () => {
             canvas.width = canvas.parentElement!.clientWidth;
-            canvas.height = 300;
+            canvas.height = 260;
             draw();
         };
         resize();

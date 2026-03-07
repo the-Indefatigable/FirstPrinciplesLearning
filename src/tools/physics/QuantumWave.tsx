@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 
-const W = 560, H = 300;
+const W = 560, H = 200;
 
 export default function QuantumWave() {
   const psiRef = useRef<HTMLCanvasElement>(null);

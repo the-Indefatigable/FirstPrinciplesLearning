@@ -911,7 +911,7 @@ img {
 
 .canvas-container {
   width: 100%;
-  max-height: 340px;
+  max-height: 260px;
   border-radius: var(--radius-sm);
   overflow: hidden;
   background: var(--bg-primary);
@@ -923,9 +923,10 @@ img {
   display: block;
 }
 
-/* Cap all canvas containers inside tool cards so visualizations never dominate the viewport */
-.tool-card-body div:has(> canvas) {
-  max-height: 340px;
+/* Cap all canvas containers inside tool cards — compact, zoomable */
+.tool-card-body div:has(> canvas),
+.tool-card-body div:has(> svg) {
+  max-height: 260px;
 }
 
 [data-theme="dark"] {
