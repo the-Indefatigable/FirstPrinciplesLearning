@@ -9,7 +9,6 @@ export default function MonteCarloSim() {
 
     const [sim, setSim] = useState<Sim>('pi');
     const [totalPoints, setTotalPoints] = useState(0);
-    const [insideCount, setInsideCount] = useState(0);
     const [estimate, setEstimate] = useState('—');
     const [running, setRunning] = useState(false);
     const [speed, setSpeed] = useState(10);
@@ -18,7 +17,6 @@ export default function MonteCarloSim() {
     const clear = useCallback(() => {
         pointsRef.current = [];
         setTotalPoints(0);
-        setInsideCount(0);
         setEstimate('—');
         runRef.current = false;
         setRunning(false);
@@ -160,7 +158,6 @@ export default function MonteCarloSim() {
 
                     pointsRef.current.push({ x, y, inside });
                     setTotalPoints(n => n + 1);
-                    if (inside) setInsideCount(n => n + 1);
                 }
 
                 // Compute estimate
