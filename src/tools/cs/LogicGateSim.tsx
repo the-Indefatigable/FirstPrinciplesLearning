@@ -1,267 +1,359 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
 
 type GateType = 'AND' | 'OR' | 'NOT' | 'NAND' | 'NOR' | 'XOR' | 'XNOR';
 
 interface Gate {
-    id: number;
+    id: string;
     type: GateType;
-    inputs: [boolean, boolean];
+    in0: string; // input name ('A','B','C','D') or gate id ('g1','g2'...)
+    in1: string; // same — ignored for NOT
 }
 
 const GATE_FN: Record<GateType, (a: boolean, b: boolean) => boolean> = {
-    AND: (a, b) => a && b,
-    OR: (a, b) => a || b,
-    NOT: (a) => !a,
+    AND:  (a, b) => a && b,
+    OR:   (a, b) => a || b,
+    NOT:  (a)    => !a,
     NAND: (a, b) => !(a && b),
-    NOR: (a, b) => !(a || b),
-    XOR: (a, b) => a !== b,
+    NOR:  (a, b) => !(a || b),
+    XOR:  (a, b) => a !== b,
     XNOR: (a, b) => a === b,
 };
 
-const GATE_SYMBOL: Record<GateType, string> = {
-    AND: '&', OR: '≥1', NOT: '1', NAND: '&̶', NOR: '≥̶1', XOR: '=1', XNOR: '=̶1',
-};
-
 const GATE_COLORS: Record<GateType, string> = {
-    AND: '#3b82f6', OR: '#22c55e', NOT: '#ef4444', NAND: '#8b5cf6', NOR: '#f59e0b', XOR: '#06b6d4', XNOR: '#ec4899',
+    AND: '#3b82f6', OR: '#22c55e', NOT: '#ef4444',
+    NAND: '#8b5cf6', NOR: '#f59e0b', XOR: '#06b6d4', XNOR: '#ec4899',
 };
 
-let nextId = 1;
+const INPUT_NAMES = ['A', 'B', 'C', 'D'];
+
+// Evaluate all gates in order; each gate can reference any earlier gate or input
+function evaluate(inputs: Record<string, boolean>, gates: Gate[]): Record<string, boolean> {
+    const vals: Record<string, boolean> = { ...inputs };
+    for (const g of gates) {
+        const a = vals[g.in0] ?? false;
+        const b = vals[g.in1] ?? false;
+        vals[g.id] = GATE_FN[g.type](a, b);
+    }
+    return vals;
+}
+
+// Build readable boolean expression for a gate (recursive)
+function buildExpr(src: string, gates: Gate[], depth = 0): string {
+    if (depth > 6) return src; // guard against deep nesting display
+    if (INPUT_NAMES.includes(src)) return src;
+    const g = gates.find(x => x.id === src);
+    if (!g) return src;
+    const a = buildExpr(g.in0, gates, depth + 1);
+    if (g.type === 'NOT') return `¬${a}`;
+    const b = buildExpr(g.in1, gates, depth + 1);
+    const op: Record<GateType, string> = {
+        AND: '·', OR: '+', NAND: '↑', NOR: '↓', XOR: '⊕', XNOR: '⊙', NOT: '¬',
+    };
+    return `(${a} ${op[g.type]} ${b})`;
+}
+
+// Return only the input names actually reachable from a gate
+function reachableInputs(gateId: string, gates: Gate[]): string[] {
+    const seen = new Set<string>();
+    function walk(src: string) {
+        if (INPUT_NAMES.includes(src)) { seen.add(src); return; }
+        const g = gates.find(x => x.id === src);
+        if (!g) return;
+        walk(g.in0);
+        if (g.type !== 'NOT') walk(g.in1);
+    }
+    walk(gateId);
+    return INPUT_NAMES.filter(n => seen.has(n));
+}
+
+const thStyle: React.CSSProperties = {
+    padding: '5px 10px', textAlign: 'center', fontWeight: 700, color: 'var(--text-dim)', fontSize: '0.78rem',
+};
+const tdStyle: React.CSSProperties = { padding: '4px 10px', textAlign: 'center' };
+const bitStyle = (on: boolean, bold = false): React.CSSProperties => ({
+    display: 'inline-block', width: 22, height: 22, lineHeight: '22px',
+    borderRadius: 4, color: '#fff', fontWeight: bold ? 800 : 600,
+    textAlign: 'center', fontSize: '0.78rem',
+    background: on ? '#22c55e' : '#ef4444',
+});
+const srcSelect: React.CSSProperties = {
+    padding: '2px 6px', borderRadius: 4, fontSize: '0.74rem', fontWeight: 600,
+    border: '1px solid var(--border-warm)', background: 'var(--bg-primary)',
+    color: 'var(--text-primary)', cursor: 'pointer',
+};
 
 export default function LogicGateSim() {
+    const counterRef = useRef(2); // g1, g2 used by defaults
+
+    const [inputs, setInputs] = useState<Record<string, boolean>>({
+        A: true, B: false, C: false, D: false,
+    });
     const [gates, setGates] = useState<Gate[]>([
-        { id: nextId++, type: 'AND', inputs: [true, false] },
+        { id: 'g1', type: 'AND', in0: 'A', in1: 'B' },
+        { id: 'g2', type: 'OR',  in0: 'g1', in1: 'C' },
     ]);
-    const [selectedType, setSelectedType] = useState<GateType>('AND');
+    const [addType, setAddType] = useState<GateType>('AND');
+
+    // Live values for all signals
+    const values = useMemo(() => evaluate(inputs, gates), [inputs, gates]);
+
+    const toggleInput = useCallback((name: string) => {
+        setInputs(prev => ({ ...prev, [name]: !prev[name] }));
+    }, []);
 
     const addGate = useCallback(() => {
-        setGates(prev => [...prev, { id: nextId++, type: selectedType, inputs: [false, false] }]);
-    }, [selectedType]);
+        counterRef.current++;
+        const id = `g${counterRef.current}`;
+        const available = [...INPUT_NAMES, ...gates.map(g => g.id)];
+        setGates(prev => [...prev, {
+            id, type: addType,
+            in0: available[0] ?? 'A',
+            in1: available[1] ?? 'A',
+        }]);
+    }, [addType, gates]);
 
-    const removeGate = useCallback((id: number) => {
-        setGates(prev => prev.filter(g => g.id !== id));
+    const removeGate = useCallback((id: string) => {
+        setGates(prev => {
+            const kept = prev.filter(g => g.id !== id);
+            // Remap any reference to the removed gate → 'A'
+            return kept.map(g => ({
+                ...g,
+                in0: g.in0 === id ? 'A' : g.in0,
+                in1: g.in1 === id ? 'A' : g.in1,
+            }));
+        });
     }, []);
 
-    const toggleInput = useCallback((id: number, idx: 0 | 1) => {
-        setGates(prev => prev.map(g => {
-            if (g.id !== id) return g;
-            const inputs: [boolean, boolean] = [...g.inputs] as [boolean, boolean];
-            inputs[idx] = !inputs[idx];
-            return { ...g, inputs };
-        }));
-    }, []);
-
-    const changeType = useCallback((id: number, type: GateType) => {
+    const setGateType = useCallback((id: string, type: GateType) => {
         setGates(prev => prev.map(g => g.id === id ? { ...g, type } : g));
     }, []);
 
-    // Generate truth table for selected gate type
-    const truthTable = (() => {
-        const fn = GATE_FN[selectedType];
-        if (selectedType === 'NOT') {
-            return [
-                { a: false, b: false, out: fn(false, false) },
-                { a: true, b: false, out: fn(true, false) },
-            ];
+    const setGateSrc = useCallback((id: string, pin: 0 | 1, src: string) => {
+        setGates(prev => prev.map(g =>
+            g.id === id ? { ...g, [pin === 0 ? 'in0' : 'in1']: src } : g
+        ));
+    }, []);
+
+    // Truth table — only for the last gate, only over inputs it actually uses
+    const lastGate = gates[gates.length - 1] ?? null;
+    const usedInputs = useMemo(
+        () => lastGate ? reachableInputs(lastGate.id, gates) : [],
+        [lastGate, gates]
+    );
+    const truthTable = useMemo(() => {
+        if (!lastGate || usedInputs.length === 0) return [];
+        const n = usedInputs.length;
+        const rows: Array<{ ins: Record<string, boolean>; out: boolean }> = [];
+        for (let mask = 0; mask < (1 << n); mask++) {
+            const ins: Record<string, boolean> = { ...inputs }; // carry through non-table inputs
+            usedInputs.forEach((name, i) => { ins[name] = !!(mask & (1 << (n - 1 - i))); });
+            const vals = evaluate(ins, gates);
+            rows.push({ ins, out: vals[lastGate.id] });
         }
-        return [
-            { a: false, b: false, out: fn(false, false) },
-            { a: false, b: true, out: fn(false, true) },
-            { a: true, b: false, out: fn(true, false) },
-            { a: true, b: true, out: fn(true, true) },
-        ];
-    })();
+        return rows;
+    }, [lastGate, gates, usedInputs, inputs]);
 
     return (
         <div className="tool-card">
             <div className="tool-card-header">
                 <h3>Logic Gate Simulator</h3>
-                <span className="subject-topic" style={{ background: 'rgba(194,113,79,0.12)', color: '#c2714f' }}>Digital Logic</span>
+                <span className="subject-topic" style={{ background: 'rgba(194,113,79,0.12)', color: '#c2714f' }}>
+                    Digital Logic
+                </span>
             </div>
             <div className="tool-card-body">
-                {/* Gate type selector */}
-                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 12 }}>
+
+                {/* ── Input signals ── */}
+                <div style={{ marginBottom: 18 }}>
+                    <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+                        Input Signals — click to toggle
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        {INPUT_NAMES.map(name => (
+                            <button key={name} onClick={() => toggleInput(name)}
+                                style={{
+                                    padding: '7px 20px', borderRadius: 'var(--radius-sm)',
+                                    fontWeight: 800, fontSize: '0.95rem', cursor: 'pointer',
+                                    background: inputs[name] ? '#22c55e' : '#ef4444',
+                                    color: '#fff', border: 'none', transition: 'all 0.15s',
+                                    boxShadow: inputs[name]
+                                        ? '0 0 12px rgba(34,197,94,0.35)'
+                                        : '0 0 8px rgba(239,68,68,0.25)',
+                                }}>
+                                {name} = {inputs[name] ? '1' : '0'}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* ── Add gate toolbar ── */}
+                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
                     {(Object.keys(GATE_FN) as GateType[]).map(t => (
-                        <button key={t} onClick={() => setSelectedType(t)}
+                        <button key={t} onClick={() => setAddType(t)}
                             style={{
-                                padding: '5px 12px', borderRadius: 'var(--radius-sm)', fontSize: '0.78rem',
-                                fontWeight: 700, cursor: 'pointer',
-                                background: selectedType === t ? GATE_COLORS[t] : 'transparent',
-                                color: selectedType === t ? '#fff' : 'var(--text-dim)',
-                                border: `1px solid ${selectedType === t ? GATE_COLORS[t] : 'var(--border-warm)'}`,
-                                transition: 'all 0.15s',
+                                padding: '4px 10px', borderRadius: 'var(--radius-sm)', fontSize: '0.74rem',
+                                fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s',
+                                background: addType === t ? GATE_COLORS[t] : 'transparent',
+                                color: addType === t ? '#fff' : 'var(--text-dim)',
+                                border: `1px solid ${addType === t ? GATE_COLORS[t] : 'var(--border-warm)'}`,
                             }}>
                             {t}
                         </button>
                     ))}
+                    <button onClick={addGate}
+                        style={{
+                            padding: '5px 14px', borderRadius: 'var(--radius-sm)', fontSize: '0.8rem',
+                            fontWeight: 700, cursor: 'pointer', marginLeft: 4,
+                            background: GATE_COLORS[addType], color: '#fff', border: 'none',
+                        }}>
+                        + Add {addType}
+                    </button>
                 </div>
 
-                <button className="btn-primary" onClick={addGate} style={{ fontSize: '0.82rem', padding: '7px 18px', marginBottom: 14 }}>
-                    + Add {selectedType} Gate
-                </button>
+                {/* ── Gate chain ── */}
+                {gates.length === 0 ? (
+                    <div style={{ padding: '32px', textAlign: 'center', color: 'var(--text-dim)', fontSize: '0.85rem' }}>
+                        Add a gate above to start building a circuit
+                    </div>
+                ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
+                        {gates.map((gate, idx) => {
+                            const color = GATE_COLORS[gate.type];
+                            const val = values[gate.id];
+                            const isNot = gate.type === 'NOT';
+                            // A gate can reference any input or any *earlier* gate
+                            const available = [...INPUT_NAMES, ...gates.slice(0, idx).map(g => g.id)];
 
-                {/* Gates workspace */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 10, marginBottom: 16 }}>
-                    {gates.map(gate => {
-                        const fn = GATE_FN[gate.type];
-                        const output = fn(gate.inputs[0], gate.inputs[1]);
-                        const color = GATE_COLORS[gate.type];
-                        const isNot = gate.type === 'NOT';
+                            return (
+                                <div key={gate.id} style={{
+                                    display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
+                                    background: 'var(--bg-secondary)',
+                                    border: `1.5px solid ${color}35`,
+                                    borderRadius: 'var(--radius-md)', padding: '9px 12px',
+                                }}>
+                                    {/* Gate output name */}
+                                    <code style={{ minWidth: 26, fontWeight: 700, fontSize: '0.8rem', color: 'var(--text-dim)' }}>
+                                        {gate.id}
+                                    </code>
 
-                        return (
-                            <div key={gate.id} style={{
-                                background: 'var(--bg-secondary)', border: `1.5px solid ${color}30`,
-                                borderRadius: 'var(--radius-md)', padding: 14, position: 'relative',
-                            }}>
-                                {/* Header */}
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                                    <select value={gate.type} onChange={e => changeType(gate.id, e.target.value as GateType)}
+                                    <span style={{ color: 'var(--text-dim)', fontSize: '0.82rem' }}>=</span>
+
+                                    {/* Gate type */}
+                                    <select value={gate.type} onChange={e => setGateType(gate.id, e.target.value as GateType)}
                                         style={{
-                                            background: color, color: '#fff', border: 'none', borderRadius: 4,
-                                            padding: '2px 8px', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer',
+                                            background: color, color: '#fff', border: 'none', borderRadius: 6,
+                                            padding: '3px 8px', fontWeight: 700, fontSize: '0.76rem', cursor: 'pointer',
                                         }}>
                                         {(Object.keys(GATE_FN) as GateType[]).map(t => (
                                             <option key={t} value={t}>{t}</option>
                                         ))}
                                     </select>
+
+                                    {/* Input source pickers */}
+                                    <span style={{ fontSize: '0.78rem', color: 'var(--text-dim)' }}>(</span>
+                                    <select value={gate.in0} onChange={e => setGateSrc(gate.id, 0, e.target.value)} style={srcSelect}>
+                                        {available.map(s => <option key={s} value={s}>{s}</option>)}
+                                    </select>
+
+                                    {!isNot && (
+                                        <>
+                                            <span style={{ fontSize: '0.78rem', color: 'var(--text-dim)' }}>,</span>
+                                            <select value={gate.in1} onChange={e => setGateSrc(gate.id, 1, e.target.value)} style={srcSelect}>
+                                                {available.map(s => <option key={s} value={s}>{s}</option>)}
+                                            </select>
+                                        </>
+                                    )}
+                                    <span style={{ fontSize: '0.78rem', color: 'var(--text-dim)' }}>)</span>
+
+                                    {/* Signal wire */}
+                                    <div style={{
+                                        flex: 1, minWidth: 24, height: 2,
+                                        background: val ? '#22c55e60' : '#9c948840',
+                                        borderRadius: 1,
+                                    }} />
+
+                                    {/* Output LED */}
+                                    <div style={{
+                                        width: 36, height: 26, borderRadius: 5,
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        background: val ? '#22c55e' : '#ef4444',
+                                        color: '#fff', fontWeight: 800, fontSize: '0.88rem',
+                                        boxShadow: val ? '0 0 10px rgba(34,197,94,0.4)' : '0 0 8px rgba(239,68,68,0.22)',
+                                    }}>
+                                        {val ? '1' : '0'}
+                                    </div>
+
+                                    {/* Delete */}
                                     <button onClick={() => removeGate(gate.id)}
-                                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', fontSize: '1rem' }}>
+                                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', fontSize: '0.85rem', padding: '0 2px', lineHeight: 1 }}>
                                         ✕
                                     </button>
                                 </div>
-
-                                {/* Gate visual */}
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
-                                    {/* Inputs */}
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                                        <button onClick={() => toggleInput(gate.id, 0)}
-                                            style={{
-                                                width: 32, height: 24, borderRadius: 4, cursor: 'pointer',
-                                                background: gate.inputs[0] ? '#22c55e' : '#ef4444',
-                                                color: '#fff', fontWeight: 700, fontSize: '0.75rem',
-                                                border: 'none',
-                                            }}>
-                                            {gate.inputs[0] ? '1' : '0'}
-                                        </button>
-                                        {!isNot && (
-                                            <button onClick={() => toggleInput(gate.id, 1)}
-                                                style={{
-                                                    width: 32, height: 24, borderRadius: 4, cursor: 'pointer',
-                                                    background: gate.inputs[1] ? '#22c55e' : '#ef4444',
-                                                    color: '#fff', fontWeight: 700, fontSize: '0.75rem',
-                                                    border: 'none',
-                                                }}>
-                                                {gate.inputs[1] ? '1' : '0'}
-                                            </button>
-                                        )}
-                                    </div>
-
-                                    {/* Wires in */}
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: isNot ? 0 : 10 }}>
-                                        <div style={{ width: 16, height: 2, background: gate.inputs[0] ? '#22c55e' : '#9c9488' }} />
-                                        {!isNot && <div style={{ width: 16, height: 2, background: gate.inputs[1] ? '#22c55e' : '#9c9488' }} />}
-                                    </div>
-
-                                    {/* Gate body */}
-                                    <div style={{
-                                        width: 48, height: 40, borderRadius: '6px 16px 16px 6px',
-                                        background: `${color}20`, border: `2px solid ${color}`,
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        fontWeight: 800, fontSize: '0.85rem', color,
-                                        position: 'relative',
-                                    }}>
-                                        {GATE_SYMBOL[gate.type]}
-                                        {/* Inversion bubble for NAND/NOR/NOT/XNOR */}
-                                        {['NOT', 'NAND', 'NOR', 'XNOR'].includes(gate.type) && (
-                                            <div style={{
-                                                position: 'absolute', right: -6, width: 8, height: 8,
-                                                borderRadius: '50%', background: 'var(--bg-primary)',
-                                                border: `2px solid ${color}`,
-                                            }} />
-                                        )}
-                                    </div>
-
-                                    {/* Wire out */}
-                                    <div style={{ width: 16, height: 2, background: output ? '#22c55e' : '#9c9488' }} />
-
-                                    {/* Output */}
-                                    <div style={{
-                                        width: 32, height: 28, borderRadius: 6,
-                                        background: output ? '#22c55e' : '#ef4444',
-                                        color: '#fff', fontWeight: 800, fontSize: '0.9rem',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        boxShadow: output ? '0 0 8px rgba(34,197,94,0.4)' : '0 0 8px rgba(239,68,68,0.3)',
-                                    }}>
-                                        {output ? '1' : '0'}
-                                    </div>
-                                </div>
-
-                                {/* Expression */}
-                                <div style={{
-                                    marginTop: 8, textAlign: 'center', fontSize: '0.72rem',
-                                    fontFamily: 'monospace', color: 'var(--text-dim)',
-                                }}>
-                                    {isNot
-                                        ? `NOT(${gate.inputs[0] ? '1' : '0'}) = ${output ? '1' : '0'}`
-                                        : `${gate.inputs[0] ? '1' : '0'} ${gate.type} ${gate.inputs[1] ? '1' : '0'} = ${output ? '1' : '0'}`
-                                    }
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-
-                {/* Truth table */}
-                <div style={{
-                    background: 'var(--bg-secondary)', border: '1px solid var(--border-warm)',
-                    borderRadius: 'var(--radius-sm)', padding: 12,
-                }}>
-                    <div style={{ fontWeight: 700, marginBottom: 8, fontSize: '0.82rem', color: GATE_COLORS[selectedType] }}>
-                        {selectedType} Gate — Truth Table
+                            );
+                        })}
                     </div>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'monospace', fontSize: '0.82rem' }}>
-                        <thead>
-                            <tr style={{ borderBottom: '2px solid var(--border-warm)' }}>
-                                <th style={thStyle}>A</th>
-                                {selectedType !== 'NOT' && <th style={thStyle}>B</th>}
-                                <th style={{ ...thStyle, color: GATE_COLORS[selectedType] }}>Output</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {truthTable.map((row, i) => (
-                                <tr key={i} style={{ borderBottom: '1px solid var(--border-warm)' }}>
-                                    <td style={tdStyle}>
-                                        <span style={{ ...bitStyle, background: row.a ? '#22c55e' : '#ef4444' }}>{row.a ? '1' : '0'}</span>
-                                    </td>
-                                    {selectedType !== 'NOT' && (
-                                        <td style={tdStyle}>
-                                            <span style={{ ...bitStyle, background: row.b ? '#22c55e' : '#ef4444' }}>{row.b ? '1' : '0'}</span>
-                                        </td>
-                                    )}
-                                    <td style={tdStyle}>
-                                        <span style={{
-                                            ...bitStyle,
-                                            background: row.out ? '#22c55e' : '#ef4444',
-                                            fontWeight: 800,
-                                        }}>{row.out ? '1' : '0'}</span>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                )}
+
+                {/* ── Boolean expression ── */}
+                {lastGate && (
+                    <div style={{
+                        marginBottom: 18, padding: '8px 12px', borderRadius: 'var(--radius-sm)',
+                        background: 'var(--bg-secondary)', border: '1px solid var(--border-warm)',
+                        fontFamily: 'monospace', fontSize: '0.8rem', color: 'var(--text-secondary)',
+                        wordBreak: 'break-word',
+                    }}>
+                        <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-dim)', fontFamily: 'sans-serif', textTransform: 'uppercase', letterSpacing: 1 }}>
+                            Expression:{' '}
+                        </span>
+                        {buildExpr(lastGate.id, gates)} ={' '}
+                        <span style={{ fontWeight: 800, color: values[lastGate.id] ? '#22c55e' : '#ef4444' }}>
+                            {values[lastGate.id] ? '1' : '0'}
+                        </span>
+                    </div>
+                )}
+
+                {/* ── Truth table ── */}
+                {lastGate && usedInputs.length > 0 && (
+                    <div style={{
+                        background: 'var(--bg-secondary)', border: '1px solid var(--border-warm)',
+                        borderRadius: 'var(--radius-sm)', padding: 12,
+                    }}>
+                        <div style={{ fontWeight: 700, marginBottom: 8, fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                            Truth Table — {lastGate.id} (final output)
+                        </div>
+                        <div style={{ overflowX: 'auto' }}>
+                            <table style={{ borderCollapse: 'collapse', fontFamily: 'monospace', fontSize: '0.8rem' }}>
+                                <thead>
+                                    <tr style={{ borderBottom: '2px solid var(--border-warm)' }}>
+                                        {usedInputs.map(n => <th key={n} style={thStyle}>{n}</th>)}
+                                        <th style={{ ...thStyle, color: GATE_COLORS[lastGate.type] }}>OUT</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {truthTable.map((row, i) => {
+                                        const isActive = usedInputs.every(n => row.ins[n] === inputs[n]);
+                                        return (
+                                            <tr key={i} style={{
+                                                borderBottom: '1px solid var(--border-warm)',
+                                                background: isActive ? `${GATE_COLORS[lastGate.type]}18` : 'transparent',
+                                            }}>
+                                                {usedInputs.map(n => (
+                                                    <td key={n} style={tdStyle}>
+                                                        <span style={bitStyle(row.ins[n])}>{row.ins[n] ? '1' : '0'}</span>
+                                                    </td>
+                                                ))}
+                                                <td style={tdStyle}>
+                                                    <span style={bitStyle(row.out, true)}>{row.out ? '1' : '0'}</span>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
 }
-
-const thStyle: React.CSSProperties = {
-    padding: '6px 12px', textAlign: 'center', fontWeight: 700, color: 'var(--text-dim)',
-};
-const tdStyle: React.CSSProperties = {
-    padding: '5px 12px', textAlign: 'center',
-};
-const bitStyle: React.CSSProperties = {
-    display: 'inline-block', width: 22, height: 22, lineHeight: '22px',
-    borderRadius: 4, color: '#fff', fontWeight: 600, textAlign: 'center', fontSize: '0.78rem',
-};
