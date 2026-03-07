@@ -10,6 +10,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
+          if (id.includes('katex')) return 'vendor-katex';
           if (id.includes('firebase')) return 'vendor-firebase';
           if (id.includes('mathjs')) return 'vendor-math';
           // plotly-gl3d.min.js — keep in its own long-lived cache chunk

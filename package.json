@@ -12,6 +12,7 @@
   "dependencies": {
     "firebase": "^12.10.0",
     "html2canvas": "^1.4.1",
+    "katex": "^0.16.37",
     "mathjs": "^15.1.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
