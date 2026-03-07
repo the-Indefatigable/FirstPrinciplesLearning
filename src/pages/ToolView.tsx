@@ -82,9 +82,7 @@ export default function ToolView() {
           </div>
 
           <div className="tool-view-content fade-in">
-            <div className="tool-grid tool-grid--1col">
-              <Component />
-            </div>
+            <Component />
           </div>
         </>
       )}
