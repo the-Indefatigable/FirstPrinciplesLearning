@@ -81,7 +81,7 @@ export default function ToolView() {
             <div className="tool-view-spacer" />
           </div>
 
-          <div className="tool-view-content fade-in">
+          <div className={`tool-view-content fade-in${tool.slug === 'circuit-builder' ? ' tool-view-content--fullbleed' : ''}`}>
             <Component />
           </div>
         </>

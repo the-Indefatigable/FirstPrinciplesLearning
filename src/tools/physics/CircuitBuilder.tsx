@@ -5,19 +5,23 @@ import { getPins, solveDC, solveTransient, detectNodes, formatVal } from './circ
 // ─── Constants ────────────────────────────────────────────────────────────────
 const GRID = 20; // px per grid unit
 
-// ─── Default circuit: simple resistor loop ───────────────────────────────────
-// V1(9V) + R1(1kΩ) in a closed loop with one ground symbol on the bottom rail.
-// Pin layout (rot=0): vsource neg=gx-2, pos=gx+2; resistor pin0=gx-2, pin1=gx+2
+// ─── Default circuit: RC Low-Pass Filter ─────────────────────────────────────
+// AC source (5V, 1kHz) → R1(1kΩ) → Node A → C1(10µF) → GND
+// Students can observe: input vs filtered output on the oscilloscope.
+// Pin layout (rot=0): acsource neg=gx-2, pos=gx+2; resistor pin0=gx-2, pin1=gx+2
+// Capacitor (rot=90): rotateOffset(-2,0,90)=[0,2] → pin0 at (gx,gy+2); pin1 at (gx,gy-2)
 const DEFAULT_COMPS: SchComponent[] = [
-  { id: 'v1', kind: 'vsource', gx: 7,  gy: 10, rotation: 0, value: 9,    label: 'V1',  selected: false },
-  { id: 'r1', kind: 'resistor', gx: 15, gy: 10, rotation: 0, value: 1000, label: 'R1',  selected: false },
-  { id: 'g1', kind: 'ground',   gx: 7,  gy: 14, rotation: 0, value: 0,    label: 'GND', selected: false },
+  { id: 'v1', kind: 'acsource', gx: 6,  gy: 9,  rotation: 0,  value: 5,     value2: 1000, label: 'V1',  selected: false },
+  { id: 'r1', kind: 'resistor', gx: 14, gy: 9,  rotation: 0,  value: 1000,  label: 'R1',  selected: false },
+  { id: 'c1', kind: 'capacitor', gx: 20, gy: 11, rotation: 90, value: 10e-6, label: 'C1',  selected: false },
+  { id: 'j1', kind: 'junction', gx: 20, gy: 9,  rotation: 0,  value: 0,     label: 'J',   selected: false },
+  { id: 'g1', kind: 'ground',   gx: 4,  gy: 13, rotation: 0,  value: 0,     label: 'GND', selected: false },
+  { id: 'g2', kind: 'ground',   gx: 20, gy: 13, rotation: 0,  value: 0,     label: 'GND', selected: false },
 ];
 const DEFAULT_WIRES: Wire[] = [
-  { id: 'w1', x1: 9,  y1: 10, x2: 13, y2: 10 }, // V1+ (9,10) → R1 pin0 (13,10)
-  { id: 'w2', x1: 5,  y1: 10, x2: 5,  y2: 14 }, // V1− (5,10) → bottom-left (5,14)
-  { id: 'w3', x1: 17, y1: 10, x2: 17, y2: 14 }, // R1 pin1 (17,10) → bottom-right (17,14)
-  { id: 'w4', x1: 5,  y1: 14, x2: 17, y2: 14 }, // bottom rail — GND symbol sits at (7,14)
+  { id: 'w1', x1: 8,  y1: 9,  x2: 12, y2: 9  }, // V1+ (8,9) → R1 pin0 (12,9)
+  { id: 'w2', x1: 16, y1: 9,  x2: 20, y2: 9  }, // R1 pin1 (16,9) → Node A / C1 top (20,9)
+  { id: 'w3', x1: 4,  y1: 9,  x2: 4,  y2: 13 }, // V1− (4,9) → GND1 (4,13)
 ];
 
 // ─── Component palette definition ────────────────────────────────────────────
@@ -472,17 +476,18 @@ export default function CircuitBuilder() {
   const [viewport, setViewport] = useState<Viewport>({ scale: 1, tx: 0, ty: 0 });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [simResults, setSimResults] = useState<SimResults | null>(null);
-  const [analysis, setAnalysis] = useState<AnalysisMode>('dc');
+  const [analysis, setAnalysis] = useState<AnalysisMode>('transient');
   const [probes, setProbes] = useState<Probe[]>([]);
-  const [tMax, setTMax] = useState(0.01);
-  const [dt] = useState(1e-6);
+  const [tMax, setTMax] = useState(0.003); // 3 ms — 3 full cycles of the 1 kHz default
+  const [dt] = useState(1e-5);
   const [isDark, setIsDark] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
   const [history, setHistory] = useState<{ components: SchComponent[]; wires: Wire[] }[]>([]);
   const [spaceDown, setSpaceDown] = useState(false);
   const panRef = useRef<{ startX: number; startY: number; tx: number; ty: number } | null>(null);
-  const labelCounters = useRef<Record<string, number>>({});
+  // Pre-seed counters to match the default circuit labels (V1, R1, C1, J1, GND×2)
+  const labelCounters = useRef<Record<string, number>>({ V: 1, R: 1, C: 1, J: 1, GND: 2 });
 
   // Track dark mode
   useEffect(() => {
@@ -493,7 +498,26 @@ export default function CircuitBuilder() {
     return () => obs.disconnect();
   }, []);
 
-  // Auto-run DC whenever circuit changes
+  // On mount: auto-run transient on the default circuit and add probes so
+  // the oscilloscope shows real waveforms immediately.
+  useEffect(() => {
+    const dc = solveDC(DEFAULT_COMPS, DEFAULT_WIRES);
+    if (!dc.ok) return;
+    const nodeKeys = Object.keys(dc.nodeVoltages)
+      .filter(nk => nk !== 'GND')
+      .slice(0, 4);
+    if (nodeKeys.length === 0) return;
+    const initProbes: Probe[] = nodeKeys.map((nk, i) => ({
+      nodeKey: nk,
+      color: PROBE_COLORS[i % PROBE_COLORS.length],
+      label: nk,
+    }));
+    setProbes(initProbes);
+    const r = solveTransient(DEFAULT_COMPS, DEFAULT_WIRES, 0.003, 1e-5, nodeKeys);
+    setSimResults(r);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-run DC whenever circuit changes (DC mode only)
   useEffect(() => {
     if (analysis !== 'dc') return;
     const r = solveDC(components, wires);
@@ -965,7 +989,7 @@ export default function CircuitBuilder() {
   // ─── Render ─────────────────────────────────────────────────────────────────
   return (
     <div style={{
-      display: 'flex', flexDirection: 'column', height: '100vh', maxHeight: 'calc(100vh - 80px)',
+      display: 'flex', flexDirection: 'column', height: '100%',
       background: isDark ? '#0f0e0c' : '#faf8f5',
       fontFamily: 'Sora, sans-serif',
     }}>
