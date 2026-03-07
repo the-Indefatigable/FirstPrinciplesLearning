@@ -27,7 +27,7 @@ export default function DoublePendulum() {
         const ctx = canvas.getContext('2d')!;
 
         canvas.width = canvas.parentElement!.clientWidth;
-        canvas.height = 450;
+        canvas.height = 300;
         const W = canvas.width;
         const H = canvas.height;
         const originX = W / 2;

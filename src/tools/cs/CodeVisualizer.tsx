@@ -372,7 +372,7 @@ function drawStep(
   if (r.width === 0) return;
   const dpr = window.devicePixelRatio || 1;
   canvas.width = r.width * dpr; canvas.height = r.height * dpr;
-  ctx.scale(dpr, dpr); canvas.style.width = `${r.width}px`; canvas.style.height = `${r.height}px`;
+  ctx.scale(dpr, dpr);
   const W = r.width, H = r.height, P = pal(dark);
 
   ctx.fillStyle = P.bg; ctx.fillRect(0, 0, W, H);
@@ -415,7 +415,7 @@ function drawLoading(canvas: HTMLCanvasElement, box: HTMLDivElement, t: number, 
   if (r.width === 0) return;
   const dpr = window.devicePixelRatio || 1;
   canvas.width = r.width * dpr; canvas.height = r.height * dpr;
-  ctx.scale(dpr, dpr); canvas.style.width = `${r.width}px`; canvas.style.height = `${r.height}px`;
+  ctx.scale(dpr, dpr);
   const W = r.width, H = r.height, P = pal(dark);
   ctx.fillStyle = P.bg; ctx.fillRect(0, 0, W, H);
   ctx.strokeStyle = P.grid; ctx.lineWidth = 0.5;

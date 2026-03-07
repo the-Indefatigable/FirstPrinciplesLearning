@@ -30,7 +30,7 @@ export default function OrbitalMechanics() {
         if (!canvas) return;
         const ctx = canvas.getContext('2d')!;
         canvas.width = 800;
-        canvas.height = 600;
+        canvas.height = 340;
         canvas.style.width = '100%';
         canvas.style.height = '100%';
 
@@ -220,7 +220,7 @@ export default function OrbitalMechanics() {
                 </div>
 
                 <div style={{
-                    width: '100%', aspectRatio: '8/6',
+                    width: '100%', aspectRatio: '8/6', maxHeight: 340,
                     background: 'var(--bg-secondary)', border: '1px solid var(--border-warm)',
                     borderRadius: 'var(--radius-md)', overflow: 'hidden',
                 }}>

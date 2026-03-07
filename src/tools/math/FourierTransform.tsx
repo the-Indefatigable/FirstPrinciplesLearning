@@ -60,8 +60,6 @@ export default function FourierTransform() {
         cvs.width = r.width * dpr;
         cvs.height = r.height * dpr;
         ctx.scale(dpr, dpr);
-        cvs.style.width = `${r.width}px`;
-        cvs.style.height = `${r.height}px`;
         const W = r.width, H = r.height;
 
         const dark = document.documentElement.getAttribute('data-theme') === 'dark';

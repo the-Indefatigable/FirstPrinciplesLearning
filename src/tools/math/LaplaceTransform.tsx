@@ -115,8 +115,6 @@ export default function LaplaceTransform() {
         cvs.width = r.width * dpr;
         cvs.height = r.height * dpr;
         ctx.scale(dpr, dpr);
-        cvs.style.width = `${r.width}px`;
-        cvs.style.height = `${r.height}px`;
         const W = r.width, H = r.height;
 
         const dark = document.documentElement.getAttribute('data-theme') === 'dark';
@@ -322,7 +320,7 @@ export default function LaplaceTransform() {
                     background: 'var(--bg-primary)', border: '1px solid var(--border-warm)',
                     borderRadius: 'var(--radius-md)', overflow: 'hidden',
                 }}>
-                    <canvas ref={canvasRef} style={{ display: 'block' }} />
+                    <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: '100%' }} />
                 </div>
 
                 <p style={{ fontSize: '0.78rem', color: 'var(--text-dim)', marginTop: 8 }}>

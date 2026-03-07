@@ -26,8 +26,6 @@ export default function BigOComparator() {
         canvas.width = rect.width * dpr;
         canvas.height = rect.height * dpr;
         ctx.scale(dpr, dpr);
-        canvas.style.width = `${rect.width}px`;
-        canvas.style.height = `${rect.height}px`;
 
         const W = rect.width, H = rect.height;
         const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
@@ -172,7 +170,7 @@ export default function BigOComparator() {
                 </div>
 
                 <div style={{ width: '100%', aspectRatio: '16/9', background: 'var(--bg-primary)', border: '1px solid var(--border-warm)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
-                    <canvas ref={canvasRef} style={{ display: 'block' }} />
+                    <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: '100%' }} />
                 </div>
             </div>
         </div>

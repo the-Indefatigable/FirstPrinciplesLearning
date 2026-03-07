@@ -1,9 +1,10 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 
-const W = 560, H = 320;
+const ASPECT = 560 / 320;
 
 export default function EMInduction() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
   const [magnetX, setMagnetX] = useState(50); // 0..100 % of canvas
   const [turns, setTurns] = useState(4);
   const [speed, setSpeed] = useState(2);
@@ -14,30 +15,41 @@ export default function EMInduction() {
   const rafRef = useRef<number>(0);
 
   // Coil center at x=70% of canvas
-  const coilX = W * 0.65;
-  const coilW = 80, coilH = 120;
-  const coilY = H / 2;
+  // Paint reads W/H from container so they're computed inside draw()
 
   // Compute flux: Gaussian based on magnet distance from coil center
-  const computeFlux = useCallback((pct: number) => {
+  const computeFluxFn = (pct: number, W: number) => {
+    const coilX = W * 0.65;
     const mx = (pct / 100) * W;
     const dist = mx - coilX;
-    const sigma = 80;
+    const sigma = W * 0.143; // proportional
     return Math.exp(-(dist * dist) / (2 * sigma * sigma));
-  }, [coilX]);
+  };
 
   const draw = useCallback(() => {
     const c = canvasRef.current;
-    if (!c) return;
+    const box = boxRef.current;
+    if (!c || !box) return;
     const ctx = c.getContext('2d')!;
+    const r = box.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    c.width = r.width * dpr;
+    c.height = r.height * dpr;
+    ctx.scale(dpr, dpr);
+    const W = r.width, H = r.height;
     const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
     ctx.clearRect(0, 0, W, H);
     ctx.fillStyle = isDark ? '#1a1612' : '#faf8f4';
     ctx.fillRect(0, 0, W, H);
 
+    const coilX = W * 0.65;
+    const coilW = W * 0.143;
+    const coilH = H * 0.375;
+    const coilY = H / 2;
+
     const mx = (magnetX / 100) * W;
-    const flux = computeFlux(magnetX);
+    const flux = computeFluxFn(magnetX, W);
 
     // Flux lines (emanating from magnet)
     const numLines = 7;
@@ -58,7 +70,7 @@ export default function EMInduction() {
     ctx.globalAlpha = 1;
 
     // Magnet body
-    const mw = 60, mh = 36;
+    const mw = W * 0.107, mh = H * 0.1125;
     // N pole (right)
     const gradient = ctx.createLinearGradient(mx - mw / 2, 0, mx + mw / 2, 0);
     gradient.addColorStop(0, '#3b82f6');
@@ -105,15 +117,15 @@ export default function EMInduction() {
 
     // dΦ/dt approximation: proportional to derivative
     const delta = 1;
-    const fluxPlus = computeFlux(magnetX + delta);
-    const fluxMinus = computeFlux(magnetX - delta);
+    const fluxPlus = computeFluxFn(magnetX + delta, W);
+    const fluxMinus = computeFluxFn(magnetX - delta, W);
     const dPhi = (fluxPlus - fluxMinus) / (2 * delta / 100 * W) * dirRef.current;
-    const emf = -turns * dPhi * speed * 50; // scale for display
+    const emf = -turns * dPhi * speed * 50;
 
     // EMF meter on the right
-    const meterX = coilX + coilW / 2 + 50;
+    const meterX = coilX + coilW / 2 + W * 0.089;
     const meterY = H / 2;
-    const meterR = 44;
+    const meterR = Math.min(W * 0.078, 44);
     ctx.strokeStyle = isDark ? '#3a3028' : '#ddd4c0';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
@@ -170,17 +182,10 @@ export default function EMInduction() {
     ctx.font = '10px monospace';
     ctx.fillText(`Flux Φ = ${flux.toFixed(3)} Wb`, 40, barY - 4);
     ctx.fillText(`ε = −N·dΦ/dt = ${emf.toFixed(2)} V   (N=${turns} turns)`, 40, H - 10);
-  }, [magnetX, turns, speed, coilX, coilW, coilH, coilY, computeFlux]);
+  }, [magnetX, turns, speed]);
 
-  useEffect(() => {
-    const c = canvasRef.current;
-    if (!c) return;
-    const dpr = window.devicePixelRatio || 1;
-    c.width = W * dpr; c.height = H * dpr;
-    c.style.width = `${W}px`; c.style.height = `${H}px`;
-    c.getContext('2d')!.scale(dpr, dpr);
-    draw();
-  }, [draw]);
+  useEffect(() => { draw(); }, [draw]);
+  useEffect(() => { window.addEventListener('resize', draw); return () => window.removeEventListener('resize', draw); }, [draw]);
 
   useEffect(() => {
     if (animate) {
@@ -225,7 +230,9 @@ export default function EMInduction() {
           {animate ? 'Stop' : 'Animate Magnet'}
         </button>
       </div>
-      <canvas ref={canvasRef} style={{ borderRadius: 8, border: '1px solid var(--border-warm)', width: '100%', display: 'block' }} />
+      <div ref={boxRef} style={{ width: '100%', aspectRatio: `${ASPECT}`, border: '1px solid var(--border-warm)', borderRadius: 8, overflow: 'hidden' }}>
+        <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: '100%' }} />
+      </div>
       <div style={{ marginTop: 10, fontSize: '0.78rem', color: 'var(--text-dim)', lineHeight: 1.8 }}>
         Faraday's Law: ε = −N · dΦ/dt — the induced EMF is proportional to the rate of change of magnetic flux.
         Drag the magnet through the coil (or animate) to see the needle deflect. Moving faster → larger EMF.

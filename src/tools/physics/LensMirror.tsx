@@ -1,10 +1,10 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 
-const W = 560, H = 360;
-const CX = W / 2, CY = H / 2;
+const ASPECT = 560 / 360;
 
 export default function LensMirror() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
   const [type, setType] = useState<'converging' | 'diverging' | 'concave' | 'convex'>('converging');
   const [f, setF] = useState(120); // focal length in px
   const [objDist, setObjDist] = useState(220); // object distance from lens
@@ -24,8 +24,16 @@ export default function LensMirror() {
 
   const draw = useCallback(() => {
     const c = canvasRef.current;
-    if (!c) return;
+    const box = boxRef.current;
+    if (!c || !box) return;
     const ctx = c.getContext('2d')!;
+    const rect = box.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    c.width = rect.width * dpr;
+    c.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+    const W = rect.width, H = rect.height;
+    const CX = W / 2, CY = H / 2;
     const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
     ctx.clearRect(0, 0, W, H);
@@ -189,15 +197,8 @@ export default function LensMirror() {
     lines.forEach((l, i) => ctx.fillText(l, 18, 30 + i * 16));
   }, [type, f, objDist, objH, fSigned, di, m, imgH, isReal, isVirtual]);
 
-  useEffect(() => {
-    const c = canvasRef.current;
-    if (!c) return;
-    const dpr = window.devicePixelRatio || 1;
-    c.width = W * dpr; c.height = H * dpr;
-    c.style.width = `${W}px`; c.style.height = `${H}px`;
-    c.getContext('2d')!.scale(dpr, dpr);
-    draw();
-  }, [draw]);
+  useEffect(() => { draw(); }, [draw]);
+  useEffect(() => { window.addEventListener('resize', draw); return () => window.removeEventListener('resize', draw); }, [draw]);
 
   return (
     <div className="tool-card">
@@ -235,7 +236,9 @@ export default function LensMirror() {
         </div>
       </div>
 
-      <canvas ref={canvasRef} style={{ borderRadius: 8, border: '1px solid var(--border-warm)', width: '100%', display: 'block', marginTop: 8 }} />
+      <div ref={boxRef} style={{ width: '100%', aspectRatio: `${ASPECT}`, border: '1px solid var(--border-warm)', borderRadius: 8, overflow: 'hidden', marginTop: 8 }}>
+        <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: '100%' }} />
+      </div>
 
       <div style={{ marginTop: 10, fontSize: '0.78rem', color: 'var(--text-dim)', lineHeight: 1.8 }}>
         <strong>Thin lens/mirror equation:</strong> 1/f = 1/dₒ + 1/dᵢ &nbsp;|&nbsp;

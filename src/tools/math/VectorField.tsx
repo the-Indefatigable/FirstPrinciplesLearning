@@ -341,7 +341,7 @@ export default function VectorField() {
                 )}
 
                 {/* Canvas */}
-                <div style={{ width: '100%', aspectRatio: '1/1', maxHeight: 500, background: 'var(--bg-primary)', border: '1px solid var(--border-warm)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
+                <div style={{ width: '100%', aspectRatio: '1/1', maxHeight: 340, background: 'var(--bg-primary)', border: '1px solid var(--border-warm)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
                     <canvas ref={canvasRef} style={{ display: 'block' }} />
                 </div>
             </div>

@@ -158,8 +158,6 @@ export default function QuantumWave() {
       const dpr = window.devicePixelRatio || 1;
       r.current.width = W * dpr;
       r.current.height = H * dpr;
-      r.current.style.width = `${W}px`;
-      r.current.style.height = `${H}px`;
       r.current.getContext('2d')!.scale(dpr, dpr);
     });
     draw(time);
@@ -211,12 +209,12 @@ export default function QuantumWave() {
 
       {showPsi && (
         <div style={{ marginTop: 12 }}>
-          <canvas ref={psiRef} style={{ borderRadius: 8, border: '1px solid var(--border-warm)', width: '100%', display: 'block' }} />
+          <canvas ref={psiRef} style={{ borderRadius: 8, border: '1px solid var(--border-warm)', width: '100%', height: 'auto', display: 'block' }} />
         </div>
       )}
       {showProb && (
         <div style={{ marginTop: 10 }}>
-          <canvas ref={probRef} style={{ borderRadius: 8, border: '1px solid var(--border-warm)', width: '100%', display: 'block' }} />
+          <canvas ref={probRef} style={{ borderRadius: 8, border: '1px solid var(--border-warm)', width: '100%', height: 'auto', display: 'block' }} />
         </div>
       )}
 

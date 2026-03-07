@@ -1,13 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 
-const W = 360, H = 360;
-const ORIGIN = { x: W / 2, y: H / 2 };
-const SCALE = 60; // px per unit
-
-function toScreen(gx: number, gy: number) {
-  return { x: ORIGIN.x + gx * SCALE, y: ORIGIN.y - gy * SCALE };
-}
-
 function applyMatrix(m: number[][], vx: number, vy: number) {
   return { x: m[0][0] * vx + m[0][1] * vy, y: m[1][0] * vx + m[1][1] * vy };
 }
@@ -24,6 +16,7 @@ function eigen2x2(a: number, b: number, c: number, d: number) {
 
 export default function LinearAlgebraViz() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
   const [mat, setMat] = useState([[2, 1], [0, 1]]);
   const [showGrid, setShowGrid] = useState(true);
   const [showEigen, setShowEigen] = useState(true);
@@ -31,10 +24,18 @@ export default function LinearAlgebraViz() {
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    const box = boxRef.current;
+    if (!canvas || !box) return;
     const ctx = canvas.getContext('2d')!;
+    const r = box.getBoundingClientRect();
     const dpr = window.devicePixelRatio || 1;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    canvas.width = r.width * dpr;
+    canvas.height = r.height * dpr;
+    ctx.scale(dpr, dpr);
+    const W = r.width, H = r.height;
+    const ORIGIN = { x: W / 2, y: H / 2 };
+    const SCALE = Math.min(W, H) / 6; // ~60px per unit at 360
+    const toScreen = (gx: number, gy: number) => ({ x: ORIGIN.x + gx * SCALE, y: ORIGIN.y - gy * SCALE });
 
     const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     const bg = isDark ? '#1a1612' : '#faf8f4';
@@ -43,7 +44,7 @@ export default function LinearAlgebraViz() {
     const textColor = isDark ? '#9c9488' : '#6b5f52';
 
     ctx.fillStyle = bg;
-    ctx.fillRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+    ctx.fillRect(0, 0, W, H);
 
     const interp = (orig: number, trans: number) => orig + (trans - orig) * t;
 
@@ -171,18 +172,8 @@ export default function LinearAlgebraViz() {
     }
   }, [mat, showGrid, showEigen, t]);
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = W * dpr;
-    canvas.height = H * dpr;
-    canvas.style.width = `${W}px`;
-    canvas.style.height = `${H}px`;
-    const ctx = canvas.getContext('2d')!;
-    ctx.scale(dpr, dpr);
-    draw();
-  }, [draw]);
+  useEffect(() => { draw(); }, [draw]);
+  useEffect(() => { window.addEventListener('resize', draw); return () => window.removeEventListener('resize', draw); }, [draw]);
 
   const setEntry = (r: number, c: number, v: number) => {
     setMat(prev => {
@@ -200,7 +191,9 @@ export default function LinearAlgebraViz() {
     <div className="tool-card">
       <div className="tool-layout-2col">
         <div>
-          <canvas ref={canvasRef} style={{ borderRadius: 8, border: '1px solid var(--border-warm)' }} />
+          <div ref={boxRef} style={{ width: '100%', aspectRatio: '1/1', maxHeight: 340, border: '1px solid var(--border-warm)', borderRadius: 8, overflow: 'hidden' }}>
+            <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: '100%' }} />
+          </div>
           <div style={{ marginTop: 8 }}>
             <label style={{ fontSize: '0.78rem', color: 'var(--text-dim)' }}>
               Interpolation t = {t.toFixed(2)}
