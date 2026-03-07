@@ -1390,12 +1390,6 @@ img {
   box-sizing: border-box;
 }
 
-/* Full-bleed tools (e.g. Circuit Builder) — no padding, edge-to-edge */
-.tool-view-content--fullbleed {
-  max-width: none;
-  padding: 0;
-  overflow: hidden;
-}
 
 @keyframes fade-in {
   from {

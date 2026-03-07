@@ -989,8 +989,12 @@ export default function CircuitBuilder() {
   // ─── Render ─────────────────────────────────────────────────────────────────
   return (
     <div style={{
-      display: 'flex', flexDirection: 'column', height: '100%',
+      display: 'flex', flexDirection: 'column',
+      height: 'calc(100vh - 200px)', minHeight: 580,
       background: isDark ? '#0f0e0c' : '#faf8f5',
+      borderRadius: 12, overflow: 'hidden',
+      border: `1px solid ${isDark ? '#2a2520' : '#e8e0d4'}`,
+      boxShadow: isDark ? '0 4px 32px rgba(0,0,0,0.4)' : '0 4px 32px rgba(26,22,18,0.08)',
       fontFamily: 'Sora, sans-serif',
     }}>
       {/* ── Top bar ── */}
