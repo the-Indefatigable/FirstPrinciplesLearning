@@ -59,6 +59,15 @@ export const toolLoaders: Record<string, () => Promise<{ default: ComponentType 
   'packet-simulator': () => import('../tools/cs/PacketSimulator'),
   'hash-table': () => import('../tools/cs/HashTableViz'),
   'logic-gates': () => import('../tools/cs/LogicGateSim'),
+  // New tools
+  'number-theory': () => import('../tools/math/NumberTheory'),
+  'linear-algebra-viz': () => import('../tools/math/LinearAlgebraViz'),
+  'quantum-wave': () => import('../tools/physics/QuantumWave'),
+  'em-induction': () => import('../tools/physics/EMInduction'),
+  'lens-mirror': () => import('../tools/physics/LensMirror'),
+  'cpu-pipeline': () => import('../tools/cs/CPUPipeline'),
+  'memory-allocator': () => import('../tools/cs/MemoryAllocator'),
+  'turing-machine': () => import('../tools/cs/TuringMachine'),
 };
 
 // ── Math Previews (amber) ────────────────────────────────────────────
@@ -994,6 +1003,168 @@ export const allTools: ToolMeta[] = [
     category: 'cs',
     gradient: 'linear-gradient(140deg, #fdf4f2 0%, #f0d5c8 55%, #e0baa8 100%)',
     Preview: PreviewLogicGate,
+  },
+
+  // ── New Math tools ────────────────────────────────────────────────
+  {
+    slug: 'number-theory', name: 'Number Theory Explorer', tag: 'Number Theory',
+    description: 'Visualize the Euclidean algorithm for GCD, prime factorization trees, and modular arithmetic on a clock.',
+    category: 'math',
+    gradient: 'linear-gradient(145deg, #fef9ee 0%, #fef3c7 55%, #fde68a 100%)',
+    Preview: () => (
+      <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+        <circle cx="40" cy="40" r="28" stroke="#d97706" strokeWidth="1.2" opacity="0.5" />
+        {Array.from({ length: 12 }, (_, i) => {
+          const a = (i / 12) * 2 * Math.PI - Math.PI / 2;
+          const x = 40 + 24 * Math.cos(a), y = 40 + 24 * Math.sin(a);
+          return <circle key={i} cx={x} cy={y} r={i % 3 === 0 ? 4 : 2.5} fill={i === 0 ? '#d97706' : '#fde68a'} opacity={0.7} />;
+        })}
+        <text x="40" y="44" textAnchor="middle" fontSize="10" fill="#d97706" fontWeight="bold" fontFamily="monospace">mod</text>
+      </svg>
+    ),
+  },
+  {
+    slug: 'linear-algebra-viz', name: 'Linear Algebra Visualizer', tag: 'Linear Algebra',
+    description: 'Animate 2×2 matrix transformations on a grid. See eigenvectors, determinant, and how matrices warp space.',
+    category: 'math',
+    gradient: 'linear-gradient(140deg, #fffbeb 0%, #fef3c7 55%, #fde68a 100%)',
+    Preview: () => (
+      <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+        <line x1="10" y1="40" x2="70" y2="40" stroke="#9c9488" strokeWidth="0.6" />
+        <line x1="40" y1="10" x2="40" y2="70" stroke="#9c9488" strokeWidth="0.6" />
+        <polygon points="40,40 62,40 62,18 40,18" fill="#d97706" opacity="0.18" stroke="#d97706" strokeWidth="1.5" />
+        <line x1="40" y1="40" x2="62" y2="40" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" />
+        <line x1="40" y1="40" x2="40" y2="18" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" />
+        <polygon points="62,40 57,37 57,43" fill="#3b82f6" />
+        <polygon points="40,18 37,23 43,23" fill="#22c55e" />
+      </svg>
+    ),
+  },
+
+  // ── New Physics tools ─────────────────────────────────────────────
+  {
+    slug: 'quantum-wave', name: 'Quantum Wave Function', tag: 'Quantum Mechanics',
+    description: 'Visualize ψₙ(x) and |ψ|² for a particle in a box. Animate the time-dependent phase and see quantized energy levels.',
+    category: 'physics',
+    gradient: 'linear-gradient(145deg, #eff6ff 0%, #bfdbfe 55%, #93c5fd 100%)',
+    Preview: () => (
+      <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+        <line x1="8" y1="40" x2="72" y2="40" stroke="#9c9488" strokeWidth="0.6" />
+        <path d="M8 40 Q20 16 32 40 Q44 64 56 40 Q64 24 72 40" stroke="#3b82f6" strokeWidth="2" fill="none" />
+        <path d="M8 40 Q20 52 32 60 Q44 52 56 60 Q64 52 72 60" stroke="#22c55e" strokeWidth="1.2" fill="none" opacity="0.6" />
+        <text x="40" y="14" textAnchor="middle" fontSize="8" fill="#3b82f6" fontFamily="monospace">ψ₂(x)</text>
+        <text x="40" y="74" textAnchor="middle" fontSize="7" fill="#22c55e" fontFamily="monospace">|ψ|²</text>
+      </svg>
+    ),
+  },
+  {
+    slug: 'em-induction', name: 'Electromagnetic Induction', tag: 'Electromagnetism',
+    description: "Move a bar magnet through a coil and watch Faraday's law in action — see induced EMF and flux change in real time.",
+    category: 'physics',
+    gradient: 'linear-gradient(145deg, #f0fdf4 0%, #dcfce7 55%, #86efac 100%)',
+    Preview: () => (
+      <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+        <rect x="8" y="34" width="24" height="12" rx="3" fill="none" stroke="#3b82f6" strokeWidth="1.5" />
+        <rect x="8" y="34" width="12" height="12" rx="2" fill="#3b82f6" opacity="0.3" />
+        <text x="14" y="43" textAnchor="middle" fontSize="6" fill="#3b82f6" fontWeight="bold">S N</text>
+        {[28, 36, 44, 52].map(x => (
+          <ellipse key={x} cx={x + 4} cy="40" rx="4" ry="14" stroke="#b45309" strokeWidth="1.5" fill="none" />
+        ))}
+        <circle cx="68" cy="40" r="10" fill="none" stroke="#9c9488" strokeWidth="1" />
+        <line x1="68" y1="40" x2="68" y2="36" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    ),
+  },
+  {
+    slug: 'lens-mirror', name: 'Lens & Mirror Calculator', tag: 'Optics',
+    description: 'Trace principal rays through converging/diverging lenses and concave/convex mirrors. See real and virtual images form.',
+    category: 'physics',
+    gradient: 'linear-gradient(140deg, #ecfdf5 0%, #d1fae5 55%, #6ee7b7 100%)',
+    Preview: () => (
+      <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+        <line x1="4" y1="40" x2="76" y2="40" stroke="#9c9488" strokeWidth="0.6" strokeDasharray="3 2" />
+        <path d="M40 16 Q52 28 52 40 Q52 52 40 64" stroke="#d97706" strokeWidth="2" fill="none" />
+        <path d="M40 16 Q28 28 28 40 Q28 52 40 64" stroke="#d97706" strokeWidth="2" fill="none" />
+        <line x1="16" y1="28" x2="40" y2="28" stroke="#f59e0b" strokeWidth="1.2" opacity="0.7" />
+        <line x1="40" y1="28" x2="60" y2="52" stroke="#f59e0b" strokeWidth="1.2" opacity="0.7" />
+        <line x1="16" y1="28" x2="40" y2="40" stroke="#3b82f6" strokeWidth="1.2" opacity="0.7" />
+        <line x1="40" y1="40" x2="60" y2="52" stroke="#3b82f6" strokeWidth="1.2" opacity="0.7" />
+        <line x1="60" y1="40" x2="60" y2="52" stroke="#f59e0b" strokeWidth="2.5" strokeLinecap="round" />
+        <polygon points="60,40 57,47 63,47" fill="#f59e0b" />
+      </svg>
+    ),
+  },
+
+  // ── New CS tools ──────────────────────────────────────────────────
+  {
+    slug: 'cpu-pipeline', name: 'CPU Pipeline Simulator', tag: 'Computer Architecture',
+    description: 'Step through IF→ID→EX→MEM→WB stages. See data hazards (RAW), control hazards, and how instructions overlap.',
+    category: 'cs',
+    gradient: 'linear-gradient(145deg, #faf0ec 0%, #f0d5c8 55%, #e0baa8 100%)',
+    Preview: () => (
+      <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+        {['IF','ID','EX','MEM','WB'].map((s, i) => (
+          <g key={s}>
+            <rect x={4 + i * 15} y={32} width={13} height={16} rx={2}
+              fill={['#3b82f6','#8b5cf6','#f59e0b','#22c55e','#ef4444'][i]} opacity={0.7} />
+            <text x={10 + i * 15} y={43} textAnchor="middle" fontSize={5}
+              fill="white" fontFamily="monospace" fontWeight="bold">{s}</text>
+          </g>
+        ))}
+        {[0,1,2,3].map(row => (
+          <g key={row}>
+            {Array.from({length: 5 - row}, (_, i) => (
+              <rect key={i} x={4 + (i + row) * 15} y={56 - row * 10} width={13} height={7} rx={1}
+                fill={['#3b82f6','#8b5cf6','#f59e0b','#22c55e','#ef4444'][i]} opacity={0.25} />
+            ))}
+          </g>
+        ))}
+      </svg>
+    ),
+  },
+  {
+    slug: 'memory-allocator', name: 'Memory Allocator', tag: 'Operating Systems',
+    description: 'malloc() and free() heap blocks. Compare first-fit, best-fit, worst-fit strategies and watch fragmentation form.',
+    category: 'cs',
+    gradient: 'linear-gradient(150deg, #fdf4f2 0%, #fce7e2 55%, #f9c8c0 100%)',
+    Preview: () => (
+      <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+        <rect x="8" y="28" width="64" height="24" rx="3" fill="none" stroke="#9c9488" strokeWidth="1" />
+        <rect x="8" y="28" width="20" height="24" rx="2" fill="#3b82f6" opacity="0.6" />
+        <rect x="30" y="28" width="10" height="24" fill="#9c9488" opacity="0.2" />
+        <rect x="42" y="28" width="16" height="24" fill="#22c55e" opacity="0.6" />
+        <rect x="60" y="28" width="12" height="24" rx="2" fill="#9c9488" opacity="0.2" />
+        <text x="18" y="43" textAnchor="middle" fontSize="6" fill="white" fontFamily="monospace">A</text>
+        <text x="35" y="43" textAnchor="middle" fontSize="5" fill="#9c9488" fontFamily="monospace">free</text>
+        <text x="50" y="43" textAnchor="middle" fontSize="6" fill="white" fontFamily="monospace">B</text>
+        <text x="66" y="43" textAnchor="middle" fontSize="5" fill="#9c9488" fontFamily="monospace">free</text>
+        <text x="40" y="18" textAnchor="middle" fontSize="7" fill="#9c9488" fontFamily="monospace">HEAP</text>
+        <text x="40" y="64" textAnchor="middle" fontSize="6" fill="#c2714f" fontFamily="monospace">malloc / free</text>
+      </svg>
+    ),
+  },
+  {
+    slug: 'turing-machine', name: 'Turing Machine', tag: 'Theory of Computation',
+    description: 'Run Turing machines step by step on a tape. Preloaded with 0ⁿ1ⁿ recognizer, binary increment, and string copy.',
+    category: 'cs',
+    gradient: 'linear-gradient(140deg, #fdf4f2 0%, #f0d5c8 55%, #c2714f30 100%)',
+    Preview: () => (
+      <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+        {['0','0','1','X','1','_','_'].map((c, i) => (
+          <g key={i}>
+            <rect x={4 + i * 10} y={30} width={9} height={12} rx={1}
+              fill={i === 3 ? '#d9770622' : 'none'}
+              stroke={i === 3 ? '#d97706' : '#9c9488'} strokeWidth={i === 3 ? 1.5 : 0.8} />
+            <text x={8.5 + i * 10} y={40} textAnchor="middle" fontSize={7}
+              fill={i === 3 ? '#d97706' : c === '_' ? '#6b5f52' : '#c2714f'}
+              fontFamily="monospace" fontWeight={i === 3 ? 700 : 400}>{c}</text>
+          </g>
+        ))}
+        <polygon points="38,44 35,50 41,50" fill="#d97706" />
+        <text x="38" y="58" textAnchor="middle" fontSize="6" fill="#d97706" fontFamily="monospace">q1</text>
+        <text x="40" y="22" textAnchor="middle" fontSize="6" fill="#9c9488" fontFamily="monospace">Tape</text>
+      </svg>
+    ),
   },
 ];
 

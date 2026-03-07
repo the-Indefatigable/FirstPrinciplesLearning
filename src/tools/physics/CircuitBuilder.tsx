@@ -5,22 +5,19 @@ import { getPins, solveDC, solveTransient, detectNodes, formatVal } from './circ
 // ─── Constants ────────────────────────────────────────────────────────────────
 const GRID = 20; // px per grid unit
 
-// ─── Default circuit: voltage divider ────────────────────────────────────────
+// ─── Default circuit: simple resistor loop ───────────────────────────────────
+// V1(9V) + R1(1kΩ) in a closed loop with one ground symbol on the bottom rail.
+// Pin layout (rot=0): vsource neg=gx-2, pos=gx+2; resistor pin0=gx-2, pin1=gx+2
 const DEFAULT_COMPS: SchComponent[] = [
-  { id: 'v1', kind: 'vsource', gx: 4, gy: 12, rotation: 0, value: 9, label: 'V1', selected: false },
-  { id: 'r1', kind: 'resistor', gx: 10, gy: 8, rotation: 0, value: 1000, label: 'R1', selected: false },
-  { id: 'r2', kind: 'resistor', gx: 10, gy: 12, rotation: 0, value: 1000, label: 'R2', selected: false },
-  { id: 'g1', kind: 'ground', gx: 4, gy: 16, rotation: 0, value: 0, label: 'GND1', selected: false },
-  { id: 'g2', kind: 'ground', gx: 10, gy: 16, rotation: 0, value: 0, label: 'GND2', selected: false },
+  { id: 'v1', kind: 'vsource', gx: 7,  gy: 10, rotation: 0, value: 9,    label: 'V1',  selected: false },
+  { id: 'r1', kind: 'resistor', gx: 15, gy: 10, rotation: 0, value: 1000, label: 'R1',  selected: false },
+  { id: 'g1', kind: 'ground',   gx: 7,  gy: 14, rotation: 0, value: 0,    label: 'GND', selected: false },
 ];
 const DEFAULT_WIRES: Wire[] = [
-  { id: 'w1', x1: 4, y1: 8, x2: 8, y2: 8 },   // V1+ → R1 left
-  { id: 'w2', x1: 4, y1: 8, x2: 4, y2: 10 },   // top rail vertical
-  { id: 'w3', x1: 4, y1: 10, x2: 4, y2: 10 },  // placeholder
-  { id: 'w4', x1: 12, y1: 8, x2: 12, y2: 10 }, // R1 right → R2 left (midpoint)
-  { id: 'w5', x1: 12, y1: 10, x2: 12, y2: 10 },
-  { id: 'w6', x1: 10, y1: 14, x2: 10, y2: 16 },// R2 right → GND2
-  { id: 'w7', x1: 4, y1: 14, x2: 4, y2: 16 },  // V1- → GND1
+  { id: 'w1', x1: 9,  y1: 10, x2: 13, y2: 10 }, // V1+ (9,10) → R1 pin0 (13,10)
+  { id: 'w2', x1: 5,  y1: 10, x2: 5,  y2: 14 }, // V1− (5,10) → bottom-left (5,14)
+  { id: 'w3', x1: 17, y1: 10, x2: 17, y2: 14 }, // R1 pin1 (17,10) → bottom-right (17,14)
+  { id: 'w4', x1: 5,  y1: 14, x2: 17, y2: 14 }, // bottom rail — GND symbol sits at (7,14)
 ];
 
 // ─── Component palette definition ────────────────────────────────────────────
@@ -891,17 +888,27 @@ export default function CircuitBuilder() {
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
-    const { sx, sy } = getCanvasPos(e as unknown as React.MouseEvent);
-    const delta = e.deltaY > 0 ? 0.9 : 1.1;
-    setViewport(v => {
-      const newScale = Math.max(0.2, Math.min(5, v.scale * delta));
-      const ratio = newScale / v.scale;
-      return {
-        scale: newScale,
-        tx: sx - ratio * (sx - v.tx),
-        ty: sy - ratio * (sy - v.ty),
-      };
-    });
+    if (e.ctrlKey || e.metaKey) {
+      // Ctrl/Cmd + scroll → zoom (centred on cursor)
+      const { sx, sy } = getCanvasPos(e as unknown as React.MouseEvent);
+      const delta = e.deltaY > 0 ? 0.95 : 1.05;
+      setViewport(v => {
+        const newScale = Math.max(0.2, Math.min(5, v.scale * delta));
+        const ratio = newScale / v.scale;
+        return {
+          scale: newScale,
+          tx: sx - ratio * (sx - v.tx),
+          ty: sy - ratio * (sy - v.ty),
+        };
+      });
+    } else {
+      // Plain scroll → pan
+      setViewport(v => ({
+        ...v,
+        tx: v.tx - e.deltaX,
+        ty: v.ty - e.deltaY,
+      }));
+    }
   }, [getCanvasPos]);
 
   // Keyboard shortcuts
@@ -1030,7 +1037,7 @@ export default function CircuitBuilder() {
         </button>
 
         <div style={{ marginLeft: 'auto', fontSize: '0.7rem', color: isDark ? '#6b6560' : '#9c9488' }}>
-          R=rotate · Del=delete · W=wire · Space+drag=pan · Scroll=zoom
+          R=rotate · Del=delete · W=wire · Space+drag=pan · Scroll=pan · Ctrl+Scroll=zoom
         </div>
       </div>
 

@@ -136,13 +136,19 @@ export function detectNodes(
     });
   }
 
-  // Find GND root: any pin of a 'ground' component, or negative terminal of vsource attached to GND
+  // Find GND root: union ALL ground components together so multiple GND symbols
+  // in the schematic are treated as the same net (just like real schematics).
   let gndRoot: string | null = null;
   for (const c of components) {
     if (c.kind === 'ground') {
       const pins = getPins(c);
-      gndRoot = uf.find(gkey(pins[0].gx, pins[0].gy));
-      break;
+      const gk = gkey(pins[0].gx, pins[0].gy);
+      if (gndRoot === null) {
+        gndRoot = uf.find(gk);
+      } else {
+        uf.union(gk, gndRoot);
+        gndRoot = uf.find(gndRoot);
+      }
     }
   }
 

@@ -1,12 +1,15 @@
+import { lazy, Suspense } from 'react';
 import SEOHead from '../components/SEOHead';
 import Hero from '../components/Hero';
 import Philosophy from '../components/Philosophy';
 import Subjects from '../components/Subjects';
 import HowItWorks from '../components/HowItWorks';
-import Testimonials from '../components/Testimonials';
 import Pricing from '../components/Pricing';
 import FinalCTA from '../components/FinalCTA';
 import Footer from '../components/Footer';
+
+// Lazy-load Testimonials to keep Firebase out of the initial JS bundle
+const Testimonials = lazy(() => import('../components/Testimonials'));
 
 export default function Landing() {
     return (
@@ -20,7 +23,9 @@ export default function Landing() {
             <Philosophy />
             <Subjects />
             <HowItWorks />
-            <Testimonials />
+            <Suspense fallback={<div style={{ height: 200 }} />}>
+                <Testimonials />
+            </Suspense>
             <Pricing />
             <FinalCTA />
             <Footer />
