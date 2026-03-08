@@ -12,6 +12,8 @@ import ToolView from './pages/ToolView';
 // Lazy-loaded pages (not on critical path)
 const Reviews = lazy(() => import('./pages/Reviews'));
 const Admin = lazy(() => import('./pages/Admin'));
+const Blog = lazy(() => import('./pages/Blog'));
+const BlogPost = lazy(() => import('./pages/BlogPost'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 const Loader = () => (
@@ -38,6 +40,8 @@ export default function App() {
                 <Route path="/math/:toolId" element={<ToolView />} />
                 <Route path="/physics/:toolId" element={<ToolView />} />
                 <Route path="/cs/:toolId" element={<ToolView />} />
+                <Route path="/blog" element={<Blog />} />
+                <Route path="/blog/:slug" element={<BlogPost />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>

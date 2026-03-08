@@ -40,6 +40,7 @@ export default function Navbar() {
             <li><Link to="/math" className={location.pathname.startsWith('/math') ? 'active' : ''}>Math</Link></li>
             <li><Link to="/physics" className={location.pathname.startsWith('/physics') ? 'active' : ''}>Physics</Link></li>
             <li><Link to="/cs" className={location.pathname.startsWith('/cs') ? 'active' : ''}>CS</Link></li>
+            <li><Link to="/blog" className={location.pathname.startsWith('/blog') ? 'active' : ''}>Blog</Link></li>
           </ul>
 
           {isLanding ? (
@@ -72,6 +73,7 @@ export default function Navbar() {
         <Link to="/math" onClick={closeMenu}>Math Tools</Link>
         <Link to="/physics" onClick={closeMenu}>Physics Tools</Link>
         <Link to="/cs" onClick={closeMenu}>CS Tools</Link>
+        <Link to="/blog" onClick={closeMenu}>Blog</Link>
         {isLanding ? (
           <a className="navbar-cta" href={bookingLink} onClick={closeMenu}>Book a Session</a>
         ) : (
