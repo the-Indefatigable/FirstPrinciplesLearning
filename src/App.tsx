@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { Analytics } from '@vercel/analytics/react';
 import { lazy, Suspense } from 'react';
 import { ThemeProvider } from './hooks/useTheme';
 import { SettingsProvider } from './hooks/SettingsProvider';
@@ -43,6 +44,7 @@ export default function App() {
           </div>
         </SettingsProvider>
       </BrowserRouter>
+      <Analytics />
     </ThemeProvider>
   );
 }
