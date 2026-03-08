@@ -3,14 +3,14 @@
     "rewrites": [
         {
             "source": "/blog",
-            "destination": "/index.html"
+            "destination": "https://firstprinciple-blog-2a4hqlejm-mohammad-alams-projects-7d0b1090.vercel.app/blog"
         },
         {
             "source": "/blog/:path*",
-            "destination": "/index.html"
+            "destination": "https://firstprinciple-blog-2a4hqlejm-mohammad-alams-projects-7d0b1090.vercel.app/blog/:path*"
         },
         {
-            "source": "/(.*)",
+            "source": "/((?!assets/|blog).*)",
             "destination": "/index.html"
         }
     ],
