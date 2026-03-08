@@ -29,11 +29,12 @@ export async function fetchAllPosts(): Promise<BlogPost[]> {
 export async function fetchPublishedPosts(): Promise<BlogPost[]> {
     const q = query(
         collection(db, COL),
-        where('published', '==', true),
         orderBy('createdAt', 'desc')
     );
     const snap = await getDocs(q);
-    return snap.docs.map(d => ({ id: d.id, ...d.data() } as BlogPost));
+    return snap.docs
+        .map(d => ({ id: d.id, ...d.data() } as BlogPost))
+        .filter(p => p.published);
 }
 
 /* ── Fetch single post by slug ── */
