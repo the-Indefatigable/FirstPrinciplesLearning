@@ -2,11 +2,7 @@
     "cleanUrls": true,
     "rewrites": [
         {
-            "source": "/blog/:path*",
-            "destination": "https://firstprinciple-blog.vercel.app/blog/:path*"
-        },
-        {
-            "source": "/((?!assets/|blog).*)",
+            "source": "/((?!assets/).*)",
             "destination": "/index.html"
         }
     ],
