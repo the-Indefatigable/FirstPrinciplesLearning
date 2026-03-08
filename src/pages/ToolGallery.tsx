@@ -9,7 +9,7 @@ const CATEGORY_META = {
     subtitle: 'Calculus, linear algebra, and graphing — built to make abstract ideas click.',
     unit: 'interactive tools',
     seoTitle: 'Free Math Tools — Interactive Calculators & Visualizers | FirstPrinciple',
-    seoDesc: 'Explore 12+ free interactive math tools: graphing calculator, unit circle, Fourier transform visualizer, equation solver, matrix tools, and more.',
+    seoDesc: 'Explore 20 free interactive math tools: graphing calculator, unit circle, Fourier transform visualizer, equation solver, matrix tools, and more. No login required.',
   },
   physics: {
     title: 'Physics Simulations',

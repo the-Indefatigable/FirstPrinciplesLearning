@@ -1,67 +1,67 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <!-- Core pages -->
-  <url><loc>https://www.firstprincipleslearningg.com/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/reviews</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/math</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/physics</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/cs</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/</loc><lastmod>2026-03-07</lastmod><changefreq>weekly</changefreq><priority>1.0</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/reviews</loc><lastmod>2026-03-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/math</loc><lastmod>2026-03-07</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/physics</loc><lastmod>2026-03-07</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/cs</loc><lastmod>2026-03-07</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>
 
-  <!-- Math tools -->
-  <url><loc>https://www.firstprincipleslearningg.com/math/unit-circle</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/math/plotter-3d</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/math/slope-field</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/math/derivative-integral</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/math/graphing-calculator</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/math/diff-eq-solver</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/math/matrix-calculator</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/math/integration-visualizer</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/math/probability-sim</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/math/taylor-series</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/math/complex-plotter</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/math/equation-solver</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/math/fourier-series</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/math/fourier-transform</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/math/laplace-transform</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/math/vector-field</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/math/monte-carlo</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/math/statistics-calc</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/math/number-theory</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/math/linear-algebra-viz</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <!-- Math tools (20) -->
+  <url><loc>https://www.firstprincipleslearningg.com/math/unit-circle</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/math/plotter-3d</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/math/slope-field</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/math/derivative-integral</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/math/graphing-calculator</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/math/diff-eq-solver</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/math/matrix-calculator</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/math/integration-visualizer</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/math/probability-sim</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/math/taylor-series</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/math/complex-plotter</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/math/equation-solver</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/math/fourier-series</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/math/fourier-transform</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/math/laplace-transform</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/math/vector-field</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/math/monte-carlo</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/math/statistics-calc</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/math/number-theory</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/math/linear-algebra-viz</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
 
-  <!-- Physics tools -->
-  <url><loc>https://www.firstprincipleslearningg.com/physics/circuit-builder</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/physics/orbital-mechanics</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/physics/ray-optics</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/physics/double-pendulum</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/physics/spring-mass</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/physics/momentum-conservation</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/physics/projectile-motion</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/physics/electric-field</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/physics/wave-superposition</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/physics/free-body-diagram</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/physics/thermo-pv</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/physics/quantum-wave</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/physics/em-induction</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/physics/lens-mirror</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <!-- Physics tools (14) -->
+  <url><loc>https://www.firstprincipleslearningg.com/physics/circuit-builder</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/physics/orbital-mechanics</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/physics/ray-optics</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/physics/double-pendulum</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/physics/spring-mass</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/physics/momentum-conservation</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/physics/projectile-motion</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/physics/electric-field</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/physics/wave-superposition</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/physics/free-body-diagram</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/physics/thermo-pv</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/physics/quantum-wave</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/physics/em-induction</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/physics/lens-mirror</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
 
-  <!-- CS tools -->
-  <url><loc>https://www.firstprincipleslearningg.com/cs/pathfinding</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/cs/sql-visualizer</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/cs/sorting-visualizer</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/cs/graph-traversal</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/cs/recursion-visualizer</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/cs/binary-tree</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/cs/stack-queue</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/cs/linked-list</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/cs/bigo-comparator</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/cs/regex-tester</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/cs/fsm-builder</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/cs/code-visualizer</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/cs/packet-simulator</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/cs/hash-table</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/cs/logic-gates</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/cs/cpu-pipeline</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/cs/memory-allocator</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/cs/turing-machine</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <!-- CS tools (18) -->
+  <url><loc>https://www.firstprincipleslearningg.com/cs/pathfinding</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/cs/sql-visualizer</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/cs/sorting-visualizer</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/cs/graph-traversal</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/cs/recursion-visualizer</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/cs/binary-tree</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/cs/stack-queue</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/cs/linked-list</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/cs/bigo-comparator</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/cs/regex-tester</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/cs/fsm-builder</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/cs/code-visualizer</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/cs/packet-simulator</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/cs/hash-table</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/cs/logic-gates</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/cs/cpu-pipeline</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/cs/memory-allocator</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/cs/turing-machine</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
 </urlset>
