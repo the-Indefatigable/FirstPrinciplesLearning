@@ -7,14 +7,20 @@ import './Blog.css';
 export default function Blog() {
     const [posts, setPosts] = useState<BlogPost[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
 
     useEffect(() => {
-        fetchPublishedPosts().then(p => { setPosts(p); setLoading(false); });
+        let mounted = true;
+        fetchPublishedPosts()
+            .then(p => { if (mounted) setPosts(p); })
+            .catch(() => { if (mounted) setError('Failed to load articles. Please try again.'); })
+            .finally(() => { if (mounted) setLoading(false); });
+        return () => { mounted = false; };
     }, []);
 
-    const formatDate = (ts: any) => {
+    const formatDate = (ts: { toDate?: () => Date } | Date | number | null) => {
         if (!ts) return '';
-        const d = ts.toDate ? ts.toDate() : new Date(ts);
+        const d = ts instanceof Date ? ts : (typeof ts === 'object' && 'toDate' in ts && ts.toDate) ? ts.toDate() : new Date(ts as number);
         return d.toLocaleDateString('en-CA', { year: 'numeric', month: 'short', day: 'numeric' });
     };
 
@@ -40,6 +46,10 @@ export default function Blog() {
 
                 {loading ? (
                     <p style={{ textAlign: 'center', color: 'var(--text-dim)' }}>Loading articles…</p>
+                ) : error ? (
+                    <div className="blog-empty">
+                        <p>{error}</p>
+                    </div>
                 ) : posts.length === 0 ? (
                     <div className="blog-empty">
                         <p>No articles yet. Check back soon!</p>

@@ -11,8 +11,8 @@ import SEOHead from '../components/SEOHead';
 interface Review { id: string; name: string; grade: string; stars: number; text: string; }
 
 /* ── Login Gate ───────────────────────────────────────────────────────── */
-const ADMIN_USER = 'alam';
-const ADMIN_PASS = 'alam@5621';
+const ADMIN_USER = import.meta.env.VITE_ADMIN_USER || '';
+const ADMIN_PASS = import.meta.env.VITE_ADMIN_PASS || '';
 
 function LoginGate({ onAuth }: { onAuth: () => void }) {
     const [user, setUser] = useState('');

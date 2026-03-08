@@ -18,7 +18,7 @@ const DEFAULT_BODIES: Body[] = [
 export default function OrbitalMechanics() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const animRef = useRef(0);
-    const bodiesRef = useRef<Body[]>(JSON.parse(JSON.stringify(DEFAULT_BODIES)));
+    const bodiesRef = useRef<Body[]>(structuredClone(DEFAULT_BODIES));
     const dragRef = useRef<{ active: boolean; sx: number; sy: number; cx: number; cy: number }>({
         active: false, sx: 0, sy: 0, cx: 0, cy: 0,
     });
@@ -200,7 +200,7 @@ export default function OrbitalMechanics() {
     };
 
     const resetSim = () => {
-        bodiesRef.current = JSON.parse(JSON.stringify(DEFAULT_BODIES));
+        bodiesRef.current = structuredClone(DEFAULT_BODIES);
         forceRender(n => n + 1);
     };
 

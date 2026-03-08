@@ -10,15 +10,21 @@ export default function BlogPostPage() {
     const { slug } = useParams<{ slug: string }>();
     const [post, setPost] = useState<BlogPost | null>(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(false);
 
     useEffect(() => {
         if (!slug) return;
-        fetchPostBySlug(slug).then(p => { setPost(p); setLoading(false); });
+        let mounted = true;
+        fetchPostBySlug(slug)
+            .then(p => { if (mounted) setPost(p); })
+            .catch(() => { if (mounted) setError(true); })
+            .finally(() => { if (mounted) setLoading(false); });
+        return () => { mounted = false; };
     }, [slug]);
 
-    const formatDate = (ts: any) => {
+    const formatDate = (ts: { toDate?: () => Date } | Date | number | null) => {
         if (!ts) return '';
-        const d = ts.toDate ? ts.toDate() : new Date(ts);
+        const d = ts instanceof Date ? ts : (typeof ts === 'object' && 'toDate' in ts && ts.toDate) ? ts.toDate() : new Date(ts as number);
         return d.toLocaleDateString('en-CA', { year: 'numeric', month: 'short', day: 'numeric' });
     };
 
@@ -30,11 +36,13 @@ export default function BlogPostPage() {
         );
     }
 
-    if (!post) {
+    if (error || !post) {
         return (
             <main className="blog-container">
                 <div className="blog-empty">
-                    <h1 style={{ fontFamily: 'var(--font-serif)', marginBottom: 16 }}>Post not found</h1>
+                    <h1 style={{ fontFamily: 'var(--font-serif)', marginBottom: 16 }}>
+                        {error ? 'Failed to load post' : 'Post not found'}
+                    </h1>
                     <Link to="/blog" style={{ color: 'var(--amber)' }}>← Back to blog</Link>
                 </div>
             </main>

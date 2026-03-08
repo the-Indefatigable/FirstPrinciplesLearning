@@ -14,7 +14,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     const [settings, setSettings] = useState<SiteSettings>(DEFAULTS);
 
     useEffect(() => {
-        fetchSettings().then(setSettings);
+        let mounted = true;
+        fetchSettings()
+            .then(s => { if (mounted) setSettings(s); })
+            .catch(err => console.error('Failed to load settings:', err));
+        return () => { mounted = false; };
     }, []);
 
     return <Ctx.Provider value={settings}>{children}</Ctx.Provider>;

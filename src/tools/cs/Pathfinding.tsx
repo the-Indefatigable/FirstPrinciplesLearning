@@ -94,7 +94,7 @@ export default function Pathfinding() {
         const sleep = (ms: number) => new Promise(res => setTimeout(res, ms));
 
         // Use a ref-like approach to get latest grid state inside async loop without re-triggering closures
-        let currentGrid = JSON.parse(JSON.stringify(grid)) as NodeData[][];
+        let currentGrid = structuredClone(grid) as NodeData[][];
 
         const openSet: NodeData[] = [];
         const closedSet = new Set<string>();

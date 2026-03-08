@@ -28,6 +28,8 @@ export default function ToolView() {
 
   useEffect(() => {
     if (!loader) return;
+    let cancelled = false;
+    let fadeTimer: ReturnType<typeof setTimeout>;
     setPhase('booting');
     setComponent(null);
 
@@ -35,11 +37,14 @@ export default function ToolView() {
       loader(),
       new Promise<void>(r => setTimeout(r, 500)),
     ]).then(([mod]) => {
+      if (cancelled) return;
       setComponent(() => (mod as { default: ComponentType }).default);
       setPhase('fading');
-      setTimeout(() => setPhase('ready'), 280);
+      fadeTimer = setTimeout(() => { if (!cancelled) setPhase('ready'); }, 280);
     });
-  }, [toolId]);
+
+    return () => { cancelled = true; clearTimeout(fadeTimer); };
+  }, [toolId, loader]);
 
   if (!tool || !loader) {
     return <Navigate to={`/${category}`} replace />;
