@@ -4,6 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { fetchPostBySlug, readingTime, type BlogPost } from '../lib/blog';
 import SEOHead from '../components/SEOHead';
+import RelatedPosts from '../components/RelatedPosts';
 import './Blog.css';
 
 export default function BlogPostPage() {
@@ -86,12 +87,14 @@ export default function BlogPostPage() {
                     </div>
 
                     <div className="post-cta" style={{ marginTop: 56 }}>
-                        <h3>📚 Need help understanding {post.tag.toLowerCase()}?</h3>
+                        <h3>Need help understanding {post.tag.toLowerCase()}?</h3>
                         <p>Book a free 30-minute consultation with a FirstPrinciple tutor.</p>
                         <a href="https://www.firstprincipleslearningg.com" className="cta-btn">
                             Book Free Consultation →
                         </a>
                     </div>
+
+                    <RelatedPosts currentSlug={post.slug} currentTag={post.tag} />
                 </article>
             </main>
         </>

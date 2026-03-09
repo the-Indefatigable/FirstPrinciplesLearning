@@ -2,6 +2,8 @@ import { useState, useEffect, type ComponentType } from 'react';
 import { useParams, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import BootScreen from '../components/BootScreen';
 import SEOHead from '../components/SEOHead';
+import EmailCapture from '../components/EmailCapture';
+import '../components/EmailCapture.css';
 import { getBySlug, toolLoaders } from '../config/tools';
 
 type Phase = 'booting' | 'fading' | 'ready';
@@ -63,7 +65,18 @@ export default function ToolView() {
 
   return (
     <div className="tool-view-page">
-      <SEOHead title={seoTitle} description={seoDesc} canonical={canonical} breadcrumbs={breadcrumbs} />
+      <SEOHead
+        title={seoTitle}
+        description={seoDesc}
+        canonical={canonical}
+        breadcrumbs={breadcrumbs}
+        learningResource={{
+          name: tool.name,
+          description: tool.description,
+          url: canonical,
+          category: catLabel,
+        }}
+      />
 
       {phase !== 'ready' && (
         <BootScreen tool={tool} categoryLabel={category} fading={phase === 'fading'} />
@@ -89,6 +102,8 @@ export default function ToolView() {
           <div className="tool-view-content fade-in">
             <Component />
           </div>
+
+          <EmailCapture context={tool.slug} />
         </>
       )}
     </div>

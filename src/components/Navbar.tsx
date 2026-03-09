@@ -62,14 +62,15 @@ export default function Navbar() {
           <button
             className={`hamburger ${menuOpen ? 'open' : ''}`}
             onClick={() => setMenuOpen(!menuOpen)}
-            aria-label="Toggle menu"
+            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={menuOpen}
           >
             <span /><span /><span />
           </button>
         </div>
       </nav>
 
-      <div className={`mobile-menu ${menuOpen ? 'open' : ''}`}>
+      <div className={`mobile-menu ${menuOpen ? 'open' : ''}`} role="dialog" aria-label="Navigation menu" aria-hidden={!menuOpen}>
         {isLanding && (
           <>
             <a href="#approach" onClick={closeMenu}>Approach</a>

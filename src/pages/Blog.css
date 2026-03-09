@@ -299,6 +299,27 @@
     font-size: 1rem;
 }
 
+/* ── Related Posts ── */
+.related-posts {
+    margin-top: 56px;
+    padding-top: 40px;
+    border-top: 1px solid var(--border-light);
+}
+
+.related-posts h3 {
+    font-family: var(--font-serif);
+    font-size: 1.4rem;
+    font-weight: 400;
+    margin-bottom: 20px;
+    color: var(--text-primary);
+}
+
+.related-posts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+}
+
 /* ── Responsive ── */
 @media (max-width: 640px) {
     .blog-container {

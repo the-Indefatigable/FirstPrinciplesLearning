@@ -44,6 +44,8 @@ export default function Reviews() {
     const [sending, setSending] = useState(false);
     const [showForm, setShowForm] = useState(false);
     const [toast, setToast] = useState('');
+    const [honeypot, setHoneypot] = useState('');
+    const [lastSubmit, setLastSubmit] = useState(0);
 
     const fetchAll = async () => {
         try {
@@ -61,8 +63,18 @@ export default function Reviews() {
 
     const submit = async () => {
         if (!name.trim() || !text.trim()) return;
+        // Spam protection: honeypot
+        if (honeypot) return;
+        // Spam protection: rate limit (60s cooldown)
+        const now = Date.now();
+        if (now - lastSubmit < 60_000) {
+            setToast('Please wait a minute before submitting again.');
+            setTimeout(() => setToast(''), 4000);
+            return;
+        }
         setSending(true);
         try {
+            setLastSubmit(now);
             await addDoc(collection(db, 'reviews'), {
                 name: name.trim(),
                 grade: grade.trim(),
@@ -141,6 +153,16 @@ export default function Reviews() {
                                     <label style={{ fontSize: '0.82rem', color: 'var(--text-dim)', marginBottom: 4, display: 'block' }}>Rating</label>
                                     <StarPicker value={stars} onChange={setStars} />
                                 </div>
+                                {/* Honeypot — hidden from real users, catches bots */}
+                                <input
+                                    type="text"
+                                    value={honeypot}
+                                    onChange={e => setHoneypot(e.target.value)}
+                                    tabIndex={-1}
+                                    autoComplete="off"
+                                    aria-hidden="true"
+                                    style={{ position: 'absolute', left: '-9999px', opacity: 0, height: 0, width: 0 }}
+                                />
                                 <textarea placeholder="Write your review... *" value={text} onChange={e => setText(e.target.value)}
                                     rows={3}
                                     style={{ padding: '10px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-warm)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '0.9rem', resize: 'vertical', fontFamily: 'inherit' }} />

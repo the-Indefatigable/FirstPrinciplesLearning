@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { collection, query, orderBy, getDocs, deleteDoc, doc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { signInWithEmailAndPassword, onAuthStateChanged, type User } from 'firebase/auth';
+import { db, auth } from '../lib/firebase';
 import type { SiteSettings } from '../lib/siteSettings';
 import { fetchSettings, saveSettings } from '../lib/siteSettings';
 import { fetchAllPosts, savePost, deletePost as deleteBlogPost, slugify, readingTime, type BlogPost } from '../lib/blog';
@@ -10,20 +11,25 @@ import SEOHead from '../components/SEOHead';
 
 interface Review { id: string; name: string; grade: string; stars: number; text: string; }
 
-/* ── Login Gate ───────────────────────────────────────────────────────── */
-const ADMIN_USER = import.meta.env.VITE_ADMIN_USER || '';
-const ADMIN_PASS = import.meta.env.VITE_ADMIN_PASS || '';
-
+/* ── Login Gate (Firebase Auth) ─────────────────────────────────────── */
 function LoginGate({ onAuth }: { onAuth: () => void }) {
-    const [user, setUser] = useState('');
+    const [email, setEmail] = useState('');
     const [pass, setPass] = useState('');
     const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
 
-    const handleLogin = () => {
-        if (user === ADMIN_USER && pass === ADMIN_PASS) {
-            sessionStorage.setItem('fp-admin', '1');
+    const handleLogin = async () => {
+        if (!email.trim() || !pass) return;
+        setLoading(true);
+        setError('');
+        try {
+            await signInWithEmailAndPassword(auth, email.trim(), pass);
             onAuth();
-        } else setError('Invalid credentials');
+        } catch {
+            setError('Invalid email or password');
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -36,9 +42,9 @@ function LoginGate({ onAuth }: { onAuth: () => void }) {
                     <p>Enter your credentials to continue.</p>
                     <div className="admin-form-stack">
                         <div className="admin-field">
-                            <label>Username</label>
-                            <input value={user} onChange={e => setUser(e.target.value)}
-                                placeholder="Username" autoFocus
+                            <label>Email</label>
+                            <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+                                placeholder="admin@example.com" autoFocus
                                 onKeyDown={e => e.key === 'Enter' && handleLogin()} />
                         </div>
                         <div className="admin-field">
@@ -48,7 +54,9 @@ function LoginGate({ onAuth }: { onAuth: () => void }) {
                                 onKeyDown={e => e.key === 'Enter' && handleLogin()} />
                         </div>
                         {error && <p className="admin-error">{error}</p>}
-                        <button className="admin-btn-primary full" onClick={handleLogin}>Log In</button>
+                        <button className="admin-btn-primary full" onClick={handleLogin} disabled={loading}>
+                            {loading ? 'Signing in...' : 'Log In'}
+                        </button>
                     </div>
                 </div>
             </main>
@@ -107,8 +115,22 @@ function MdToolbar({ textareaRef, onChange }: { textareaRef: React.RefObject<HTM
 
 /* ── Admin Dashboard ──────────────────────────────────────────────────── */
 export default function Admin() {
-    const [authed, setAuthed] = useState(() => sessionStorage.getItem('fp-admin') === '1');
-    if (!authed) return <LoginGate onAuth={() => setAuthed(true)} />;
+    const [user, setUser] = useState<User | null>(null);
+    const [checking, setChecking] = useState(true);
+
+    useEffect(() => {
+        const unsub = onAuthStateChanged(auth, (u) => {
+            setUser(u);
+            setChecking(false);
+        });
+        return unsub;
+    }, []);
+
+    if (checking) {
+        return <main className="admin-login"><p style={{ textAlign: 'center', color: 'var(--text-dim)', paddingTop: 140 }}>Checking auth...</p></main>;
+    }
+
+    if (!user) return <LoginGate onAuth={() => { /* onAuthStateChanged handles it */ }} />;
     return <AdminDashboard />;
 }
 
@@ -224,7 +246,7 @@ function AdminDashboard() {
         }
     }, [editingPost]);
 
-    const logout = () => { sessionStorage.removeItem('fp-admin'); window.location.reload(); };
+    const logout = () => { auth.signOut().then(() => window.location.reload()); };
 
     useEffect(() => { fetchReviews(); loadSettings(); loadPosts(); }, []);
 

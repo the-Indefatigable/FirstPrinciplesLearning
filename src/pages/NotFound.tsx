@@ -1,7 +1,21 @@
-import { Link } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import SEOHead from '../components/SEOHead';
 
+declare global {
+    interface Window { gtag?: (...args: unknown[]) => void; }
+}
+
 export default function NotFound() {
+    const location = useLocation();
+
+    useEffect(() => {
+        window.gtag?.('event', 'page_not_found', {
+            page_path: location.pathname + location.search,
+            page_referrer: document.referrer,
+        });
+    }, [location]);
+
     return (
         <>
             <SEOHead title="404 — Page Not Found | FirstPrinciple" description="The page you're looking for doesn't exist. Explore our free interactive math, physics, and CS tools." />

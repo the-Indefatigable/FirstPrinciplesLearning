@@ -1,17 +1,26 @@
 import { useEffect } from 'react';
 
+interface LearningResourceData {
+    name: string;
+    description: string;
+    url: string;
+    category: string;
+    educationalLevel?: string;
+}
+
 interface SEOProps {
     title: string;
     description: string;
     canonical?: string;
     type?: string;
     breadcrumbs?: { name: string; url: string }[];
+    learningResource?: LearningResourceData;
 }
 
 /**
  * Sets per-page <title>, <meta> description, OG, Twitter, canonical, and breadcrumb schema.
  */
-export default function SEOHead({ title, description, canonical, type = 'website', breadcrumbs }: SEOProps) {
+export default function SEOHead({ title, description, canonical, type = 'website', breadcrumbs, learningResource }: SEOProps) {
     useEffect(() => {
         // Title
         document.title = title;
@@ -81,12 +90,45 @@ export default function SEOHead({ title, description, canonical, type = 'website
             document.head.appendChild(script);
         }
 
+        // LearningResource JSON-LD
+        const lrId = 'seo-learning-resource-ld';
+        const oldLr = document.getElementById(lrId);
+        if (oldLr) oldLr.remove();
+
+        if (learningResource) {
+            const script = document.createElement('script');
+            script.id = lrId;
+            script.type = 'application/ld+json';
+            script.textContent = JSON.stringify({
+                '@context': 'https://schema.org',
+                '@type': 'LearningResource',
+                name: learningResource.name,
+                description: learningResource.description,
+                url: learningResource.url,
+                provider: {
+                    '@type': 'EducationalOrganization',
+                    name: 'FirstPrinciple Tutoring',
+                    url: 'https://www.firstprincipleslearningg.com',
+                },
+                educationalLevel: learningResource.educationalLevel || 'High School / University',
+                isAccessibleForFree: true,
+                learningResourceType: 'Interactive Tool',
+                about: {
+                    '@type': 'Thing',
+                    name: learningResource.category,
+                },
+            });
+            document.head.appendChild(script);
+        }
+
         return () => {
-            // Clean up breadcrumb on unmount
+            // Clean up on unmount
             const el = document.getElementById(bcId);
             if (el) el.remove();
+            const lr = document.getElementById(lrId);
+            if (lr) lr.remove();
         };
-    }, [title, description, canonical, type, breadcrumbs]);
+    }, [title, description, canonical, type, breadcrumbs, learningResource]);
 
     return null;
 }

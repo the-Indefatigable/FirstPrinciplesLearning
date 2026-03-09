@@ -1,5 +1,6 @@
 import './FinalCTA.css';
 import { useSettings } from '../hooks/SettingsProvider';
+import CalendlyEmbed from './CalendlyEmbed';
 
 export default function FinalCTA() {
     const { bookingLink } = useSettings();
@@ -15,6 +16,7 @@ export default function FinalCTA() {
                 <a className="btn-cta-light" href={bookingLink}>
                     Book Your Free Session →
                 </a>
+                <CalendlyEmbed url={bookingLink} />
             </div>
         </section>
     );
