@@ -260,8 +260,8 @@ export default function Navbar() {
 
       {/* Search Overlay */}
       {searchOpen && (
-        <div className="search-overlay" ref={searchRef}>
-          <div className="search-modal">
+        <div className="search-overlay">
+          <div className="search-modal" ref={searchRef}>
             <div className="search-input-row">
               <svg width="18" height="18" viewBox="0 0 18 18" fill="none" className="search-icon">
                 <circle cx="7.5" cy="7.5" r="5.5" stroke="currentColor" strokeWidth="1.6" />
