@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState } from 'react';
+import { drawBackground, drawGlowDot, MANIM } from '../../utils/manimCanvas';
 
 interface ComplexNum { re: number; im: number; }
 
@@ -34,44 +35,52 @@ export default function ComplexPlotter() {
         canvas.style.height = `${rect.height}px`;
 
         const W = rect.width, H = rect.height;
-        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
         const cx = W / 2, cy = H / 2;
         const scale = Math.min(W, H) / 14;
 
         const toX = (re: number) => cx + re * scale;
         const toY = (im: number) => cy - im * scale;
 
-        ctx.clearRect(0, 0, W, H);
+        drawBackground(ctx, W, H);
 
         // Grid
-        ctx.strokeStyle = isDark ? '#2e2a24' : '#e8e0d4';
+        ctx.strokeStyle = 'rgba(88, 196, 221, 0.07)';
         ctx.lineWidth = 0.5;
         for (let i = -7; i <= 7; i++) {
             ctx.beginPath(); ctx.moveTo(toX(i), 0); ctx.lineTo(toX(i), H); ctx.stroke();
             ctx.beginPath(); ctx.moveTo(0, toY(i)); ctx.lineTo(W, toY(i)); ctx.stroke();
         }
 
-        // Axes
-        ctx.strokeStyle = isDark ? '#6b6358' : '#9c9488';
-        ctx.lineWidth = 1.5;
+        // Axes with glow
+        ctx.save(); ctx.strokeStyle = 'rgba(200, 210, 225, 0.08)'; ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(W, cy); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, H); ctx.stroke();
+        ctx.restore();
+        ctx.strokeStyle = 'rgba(200, 210, 225, 0.35)';
+        ctx.lineWidth = 1;
         ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(W, cy); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, H); ctx.stroke();
 
         // Axis labels
-        ctx.font = '11px Sora, sans-serif';
-        ctx.fillStyle = isDark ? '#6b6358' : '#9c9488';
+        ctx.font = '11px "JetBrains Mono", monospace';
+        ctx.fillStyle = 'rgba(200, 210, 225, 0.45)';
         ctx.textAlign = 'center';
         ctx.fillText('Re', W - 16, cy - 8);
         ctx.fillText('Im', cx + 14, 16);
 
-        // Helper: draw vector
         const drawVec = (z: ComplexNum, color: string, label: string) => {
+            // Glow pass
+            ctx.save();
+            ctx.globalAlpha = 0.15;
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 6;
+            ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(toX(z.re), toY(z.im)); ctx.stroke();
+            ctx.restore();
+
+            // Core line
             ctx.strokeStyle = color;
             ctx.lineWidth = 2.5;
-            ctx.beginPath();
-            ctx.moveTo(cx, cy);
-            ctx.lineTo(toX(z.re), toY(z.im));
-            ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(toX(z.re), toY(z.im)); ctx.stroke();
 
             // Arrow head
             const len = Math.sqrt(z.re * z.re + z.im * z.im);
@@ -86,27 +95,24 @@ export default function ComplexPlotter() {
                 ctx.fill();
             }
 
-            // Point
-            ctx.fillStyle = color;
-            ctx.beginPath();
-            ctx.arc(toX(z.re), toY(z.im), 5, 0, Math.PI * 2);
-            ctx.fill();
+            // Point (glow dot)
+            drawGlowDot(ctx, toX(z.re), toY(z.im), color, { radius: 5 });
 
             // Label
-            ctx.font = 'bold 12px Sora, sans-serif';
+            ctx.font = 'bold 11px "JetBrains Mono", monospace';
             ctx.fillStyle = color;
             ctx.textAlign = 'left';
             ctx.fillText(label, toX(z.re) + 10, toY(z.im) - 8);
         };
 
-        drawVec(zA, '#3b82f6', `z₁ = ${zA.re}${zA.im >= 0 ? '+' : ''}${zA.im}i`);
-        drawVec(zB, '#86efac', `z₂ = ${zB.re}${zB.im >= 0 ? '+' : ''}${zB.im}i`);
+        drawVec(zA, MANIM.blue, `z₁ = ${zA.re}${zA.im >= 0 ? '+' : ''}${zA.im}i`);
+        drawVec(zB, MANIM.green, `z₂ = ${zB.re}${zB.im >= 0 ? '+' : ''}${zB.im}i`);
 
         // Result
         if (op === 'add') {
             // Parallelogram
             ctx.setLineDash([4, 4]);
-            ctx.strokeStyle = isDark ? '#4a443c' : '#b8b0a4';
+            ctx.strokeStyle = 'rgba(200, 210, 225, 0.2)';
             ctx.lineWidth = 1;
             ctx.beginPath();
             ctx.moveTo(toX(zA.re), toY(zA.im));
@@ -116,10 +122,10 @@ export default function ComplexPlotter() {
             ctx.setLineDash([]);
         }
 
-        drawVec(result, '#f59e0b', `${op === 'add' ? 'z₁+z₂' : 'z₁×z₂'} = ${result.re.toFixed(2)}${result.im >= 0 ? '+' : ''}${result.im.toFixed(2)}i`);
+        drawVec(result, MANIM.yellow, `${op === 'add' ? 'z₁+z₂' : 'z₁×z₂'} = ${result.re.toFixed(2)}${result.im >= 0 ? '+' : ''}${result.im.toFixed(2)}i`);
 
         // Unit circle (faint)
-        ctx.strokeStyle = isDark ? '#2e2a24' : '#e8e0d4';
+        ctx.strokeStyle = 'rgba(88, 196, 221, 0.15)';
         ctx.lineWidth = 1;
         ctx.setLineDash([3, 3]);
         ctx.beginPath();
@@ -163,12 +169,12 @@ export default function ComplexPlotter() {
                 </div>
 
                 <div style={{ display: 'flex', gap: 16, marginBottom: 16, flexWrap: 'wrap' }}>
-                    <div style={{ fontSize: '0.82rem', color: '#3b82f6' }}>z₁: {fmt(zA)}</div>
-                    <div style={{ fontSize: '0.82rem', color: '#86efac' }}>z₂: {fmt(zB)}</div>
-                    <div style={{ fontSize: '0.82rem', color: 'var(--amber)', fontWeight: 600 }}>Result: {fmt(result)}</div>
+                    <div style={{ fontSize: '0.82rem', color: MANIM.blue }}>z₁: {fmt(zA)}</div>
+                    <div style={{ fontSize: '0.82rem', color: MANIM.green }}>z₂: {fmt(zB)}</div>
+                    <div style={{ fontSize: '0.82rem', color: MANIM.yellow, fontWeight: 600 }}>Result: {fmt(result)}</div>
                 </div>
 
-                <div style={{ width: '100%', aspectRatio: '4/3', background: 'var(--bg-primary)', border: '1px solid var(--border-warm)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
+                <div style={{ width: '100%', aspectRatio: '4/3', background: '#0f1117', border: '1px solid rgba(88, 196, 221, 0.1)', borderRadius: 'var(--radius-md)', overflow: 'hidden', boxShadow: '0 0 40px rgba(88, 196, 221, 0.03), inset 0 0 60px rgba(15, 17, 23, 0.5)' }}>
                     <canvas ref={canvasRef} style={{ display: 'block' }} />
                 </div>
             </div>

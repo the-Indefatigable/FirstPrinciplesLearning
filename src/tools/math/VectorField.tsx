@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
+import { drawBackground } from '../../utils/manimCanvas';
 
 /* ═══════════════════════════════════════════════════════════════════════
    PRESETS — Common vector fields with interesting features
@@ -85,7 +86,6 @@ export default function VectorField() {
             const rect = canvas.parentElement?.getBoundingClientRect();
             if (!rect) { animRef.current = requestAnimationFrame(draw); return; }
             const W = rect.width, H = rect.height;
-            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
 
             // Coordinate system: center of canvas is (0,0), range [-4,4]
             const RANGE = 4;
@@ -95,6 +95,7 @@ export default function VectorField() {
                 [(sx / W) * 2 * RANGE - RANGE, RANGE - (sy / H) * 2 * RANGE];
 
             ctx.clearRect(0, 0, W, H);
+            drawBackground(ctx, W, H);
 
             // ── Background: divergence / curl heatmap ──
             if (showDiv || showCurl) {
@@ -133,7 +134,7 @@ export default function VectorField() {
             }
 
             // ── Grid lines ──
-            ctx.strokeStyle = isDark ? 'rgba(62,56,48,0.4)' : 'rgba(200,192,180,0.4)';
+            ctx.strokeStyle = 'rgba(88, 196, 221, 0.07)';
             ctx.lineWidth = 0.5;
             for (let i = -RANGE; i <= RANGE; i++) {
                 const [sx] = toScreen(i, 0);
@@ -142,10 +143,13 @@ export default function VectorField() {
                 ctx.beginPath(); ctx.moveTo(0, sy); ctx.lineTo(W, sy); ctx.stroke();
             }
 
-            // Axes darker
-            ctx.strokeStyle = isDark ? '#4a4540' : '#9c9488';
-            ctx.lineWidth = 1;
+            // Axes with glow
             const [ox, oy] = toScreen(0, 0);
+            ctx.save(); ctx.strokeStyle = 'rgba(200, 210, 225, 0.08)'; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.moveTo(0, oy); ctx.lineTo(W, oy); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(ox, 0); ctx.lineTo(ox, H); ctx.stroke();
+            ctx.restore();
+            ctx.strokeStyle = 'rgba(200, 210, 225, 0.35)'; ctx.lineWidth = 1;
             ctx.beginPath(); ctx.moveTo(0, oy); ctx.lineTo(W, oy); ctx.stroke();
             ctx.beginPath(); ctx.moveTo(ox, 0); ctx.lineTo(ox, H); ctx.stroke();
 
@@ -166,9 +170,7 @@ export default function VectorField() {
                         const dy = -q * scale; // flip y
 
                         const strength = Math.min(mag * 0.5, 1);
-                        ctx.strokeStyle = isDark
-                            ? `rgba(217,119,6,${0.3 + strength * 0.6})`
-                            : `rgba(180,83,9,${0.3 + strength * 0.6})`;
+                        ctx.strokeStyle = `rgba(88, 196, 221, ${0.3 + strength * 0.6})`;
                         ctx.lineWidth = 1.2 + strength;
 
                         // Line
@@ -227,17 +229,15 @@ export default function VectorField() {
                     const alpha = Math.min(pt.age / 10, 1) * Math.max(1 - pt.age / MAX_AGE, 0);
                     ctx.beginPath();
                     ctx.arc(pt.x, pt.y, 1.5, 0, Math.PI * 2);
-                    ctx.fillStyle = isDark
-                        ? `rgba(251,191,36,${alpha * 0.7})`
-                        : `rgba(217,119,6,${alpha * 0.7})`;
+                    ctx.fillStyle = `rgba(88, 196, 221, ${alpha * 0.7})`;
                     ctx.fill();
                 }
                 particlesRef.current = alive;
             }
 
             // ── Axis labels ──
-            ctx.font = 'bold 10px Sora, sans-serif';
-            ctx.fillStyle = isDark ? '#6b6560' : '#9c9488';
+            ctx.font = 'bold 10px "JetBrains Mono", monospace';
+            ctx.fillStyle = 'rgba(200, 210, 225, 0.45)';
             ctx.textAlign = 'center';
             ctx.fillText('x', W - 10, oy + 14);
             ctx.fillText('y', ox + 12, 14);
@@ -341,7 +341,7 @@ export default function VectorField() {
                 )}
 
                 {/* Canvas */}
-                <div style={{ width: '100%', aspectRatio: '1/1', maxHeight: 260, background: 'var(--bg-primary)', border: '1px solid var(--border-warm)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
+                <div style={{ width: '100%', aspectRatio: '1/1', maxHeight: 260, background: '#0f1117', border: '1px solid rgba(88, 196, 221, 0.1)', borderRadius: 'var(--radius-md)', overflow: 'hidden', boxShadow: '0 0 40px rgba(88, 196, 221, 0.03), inset 0 0 60px rgba(15, 17, 23, 0.5)' }}>
                     <canvas ref={canvasRef} style={{ display: 'block' }} />
                 </div>
             </div>
