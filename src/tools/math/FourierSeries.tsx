@@ -36,7 +36,7 @@ export default function FourierSeries() {
     const [terms, setTerms] = useState(5);
     const [showTarget, setShowTarget] = useState(true);
     const [showHarmonics, setShowHarmonics] = useState(true);
-    const [playing, setPlaying] = useState(true);
+    const [playing, setPlaying] = useState(false);
 
     const paint = useCallback(() => {
         const cvs = canvasRef.current;

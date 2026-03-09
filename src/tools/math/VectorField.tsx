@@ -48,7 +48,7 @@ export default function VectorField() {
     const [pExpr, setPExpr] = useState(PRESETS[0].pExpr);
     const [qExpr, setQExpr] = useState(PRESETS[0].qExpr);
     const [showArrows, setShowArrows] = useState(true);
-    const [showParticles, setShowParticles] = useState(true);
+    const [showParticles, setShowParticles] = useState(false);
     const [showDiv, setShowDiv] = useState(false);
     const [showCurl, setShowCurl] = useState(false);
     const [density, setDensity] = useState(12);

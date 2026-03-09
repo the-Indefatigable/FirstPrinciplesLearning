@@ -1,32 +1,48 @@
-import { useState, useMemo, useEffect, lazy, Suspense } from 'react';
+import { useState, useMemo, lazy, Suspense } from 'react';
 import * as math from 'mathjs';
 
 // PlotGL3D uses plotly-gl3d partial bundle (~1.7 MB vs 4.8 MB for full plotly)
 // and is lazy-loaded so it only downloads when this component actually renders
 const Plot = lazy(() => import('./PlotGL3D'));
 
+/* ─── Manim-inspired colorscale (dark teal → cyan → gold) ─── */
+const MANIM_COLORSCALE: [number, string][] = [
+    [0, '#1a0533'],
+    [0.15, '#2d1b69'],
+    [0.3, '#1b4f72'],
+    [0.45, '#2196a4'],
+    [0.6, '#58C4DD'],
+    [0.75, '#83C167'],
+    [0.9, '#F4D03F'],
+    [1, '#FF6F61'],
+];
+
+/* ─── Manim scene axis config ─── */
+const manimAxis = (label: string) => ({
+    title: { text: label, font: { family: '"JetBrains Mono", monospace', size: 12, color: 'rgba(200,210,225,0.6)' } },
+    showgrid: true,
+    zeroline: true,
+    gridcolor: 'rgba(88,196,221,0.08)',
+    zerolinecolor: 'rgba(200,210,225,0.2)',
+    linecolor: 'rgba(200,210,225,0.15)',
+    tickfont: { family: '"JetBrains Mono", monospace', size: 10, color: 'rgba(200,210,225,0.4)' },
+    backgroundcolor: '#0d0f14',
+    showbackground: true,
+    gridwidth: 1,
+});
+
 export default function Plotter3D() {
     const [equation, setEquation] = useState('sin(x) * cos(y)');
     const [bounds, setBounds] = useState(5);
-    const [resolution, setResolution] = useState(40);
+    const [resolution, setResolution] = useState(50);
     const [error, setError] = useState<string | null>(null);
-    const [isDarkMode, setIsDarkMode] = useState(false);
-
-    // Watch for dark mode changes
-    useEffect(() => {
-        const el = document.documentElement;
-        setIsDarkMode(el.getAttribute('data-theme') === 'dark');
-        const obs = new MutationObserver(() => setIsDarkMode(el.getAttribute('data-theme') === 'dark'));
-        obs.observe(el, { attributes: true, attributeFilter: ['data-theme'] });
-        return () => obs.disconnect();
-    }, []);
 
     const plotData = useMemo(() => {
         try {
             setError(null);
             const compiled = math.compile(equation);
-            const xVal = [];
-            const yVal = [];
+            const xVal: number[] = [];
+            const yVal: number[] = [];
 
             const step = (bounds * 2) / resolution;
             for (let i = 0; i <= resolution; i++) {
@@ -36,7 +52,7 @@ export default function Plotter3D() {
 
             const zVal: number[][] = [];
             for (let j = 0; j <= resolution; j++) {
-                const zRow = [];
+                const zRow: number[] = [];
                 for (let i = 0; i <= resolution; i++) {
                     const result = compiled.evaluate({ x: xVal[i], y: yVal[j], e: Math.E, pi: Math.PI });
                     zRow.push(Number(result));
@@ -49,8 +65,20 @@ export default function Plotter3D() {
                 y: yVal,
                 z: zVal,
                 type: 'surface' as const,
-                colorscale: 'Viridis',
-                showscale: false
+                colorscale: MANIM_COLORSCALE,
+                showscale: false,
+                opacity: 0.92,
+                lighting: {
+                    ambient: 0.6,
+                    diffuse: 0.7,
+                    specular: 0.4,
+                    roughness: 0.3,
+                    fresnel: 0.8,
+                },
+                lightposition: { x: 1000, y: 1000, z: 2000 },
+                contours: {
+                    z: { show: true, usecolormap: true, highlightcolor: '#58C4DD', project: { z: false } },
+                },
             }];
         } catch (err: any) {
             setError(err.message || 'Invalid equation');
@@ -107,20 +135,21 @@ export default function Plotter3D() {
                     className="plot-container"
                     style={{
                         width: '100%',
-                        height: '260px',
-                        background: 'var(--bg-secondary)',
+                        height: '400px',
+                        background: '#0f1117',
                         borderRadius: 'var(--radius-md)',
                         overflow: 'hidden',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        border: '1px solid var(--border-warm)'
+                        border: '1px solid rgba(88, 196, 221, 0.1)',
+                        boxShadow: '0 0 40px rgba(88, 196, 221, 0.03), inset 0 0 60px rgba(15, 17, 23, 0.5)',
                     }}
                 >
                     {plotData ? (
                         <Suspense fallback={
-                            <div style={{ color: 'var(--text-dim)', display: 'flex', alignItems: 'center', gap: 10 }}>
-                                <div className="animate-spin" style={{ width: 18, height: 18, border: '2px solid var(--border-warm)', borderTopColor: 'var(--amber)', borderRadius: '50%' }} />
+                            <div style={{ color: 'rgba(200,210,225,0.5)', display: 'flex', alignItems: 'center', gap: 10, fontFamily: '"JetBrains Mono", monospace', fontSize: '0.85rem' }}>
+                                <div style={{ width: 18, height: 18, border: '2px solid rgba(88,196,221,0.2)', borderTopColor: '#58C4DD', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
                                 Loading 3D renderer…
                             </div>
                         }>
@@ -131,28 +160,34 @@ export default function Plotter3D() {
                                     height: undefined,
                                     autosize: true,
                                     margin: { l: 0, r: 0, b: 0, t: 0 },
-                                    paper_bgcolor: 'transparent',
-                                    plot_bgcolor: 'transparent',
+                                    paper_bgcolor: '#0f1117',
+                                    plot_bgcolor: '#0f1117',
                                     scene: {
-                                        xaxis: { title: { text: 'X' }, showgrid: true, zeroline: true, gridcolor: isDarkMode ? '#242018' : '#e8e0d2' },
-                                        yaxis: { title: { text: 'Y' }, showgrid: true, zeroline: true, gridcolor: isDarkMode ? '#242018' : '#e8e0d2' },
-                                        zaxis: { title: { text: 'Z' }, showgrid: true, zeroline: true, gridcolor: isDarkMode ? '#242018' : '#e8e0d2' },
-                                        camera: { eye: { x: 1.5, y: 1.5, z: 1.5 } }
+                                        xaxis: manimAxis('X'),
+                                        yaxis: manimAxis('Y'),
+                                        zaxis: manimAxis('Z'),
+                                        camera: { eye: { x: 1.6, y: 1.6, z: 1.4 } },
+                                        bgcolor: '#0f1117',
+                                        aspectmode: 'cube',
                                     },
                                     font: {
-                                        family: 'Sora, sans-serif',
-                                        color: isDarkMode ? '#e8e4de' : '#1a1612'
-                                    }
-                                }}
+                                        family: '"JetBrains Mono", monospace',
+                                        color: 'rgba(200,210,225,0.6)',
+                                    },
+                                } as any}
                                 useResizeHandler={true}
                                 style={{ width: '100%', height: '100%' }}
                                 config={{ displayModeBar: false, responsive: true }}
                             />
                         </Suspense>
                     ) : (
-                        <div style={{ color: 'var(--text-dim)' }}>Waiting for valid equation...</div>
+                        <div style={{ color: 'rgba(200,210,225,0.4)', fontFamily: '"JetBrains Mono", monospace', fontSize: '0.85rem' }}>Waiting for valid equation...</div>
                     )}
                 </div>
+
+                <p style={{ margin: '8px 0 0', fontSize: '0.78rem', color: 'var(--text-dim)', fontFamily: '"JetBrains Mono", monospace' }}>
+                    Click and drag to rotate. Scroll to zoom. Double-click to reset view.
+                </p>
             </div>
         </div>
     );
