@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
+import { drawBackground, drawGlowCurve, drawGlowDot, MANIM, type CurvePoint } from '../../utils/manimCanvas';
 
 /* ═══════════════════════════════════════════════════════════════════════
    FOURIER SERIES VISUALIZER
@@ -51,16 +52,8 @@ export default function FourierSeries() {
         ctx.scale(dpr, dpr);
         const W = r.width, H = r.height;
 
-        const dark = document.documentElement.getAttribute('data-theme') === 'dark';
-        const bg = dark ? '#1a1612' : '#faf8f5';
-        const grid = dark ? '#242018' : '#ece6da';
-        const dim = dark ? '#6b6358' : '#9c9488';
-        const primary = '#d97706';
-        const target = dark ? 'rgba(217,119,6,0.25)' : 'rgba(217,119,6,0.15)';
-
         // Background
-        ctx.fillStyle = bg;
-        ctx.fillRect(0, 0, W, H);
+        drawBackground(ctx, W, H);
 
         // Layout: left = circle epicycles, right = waveform graph
         const circleR = Math.min(H * 0.35, 100);
@@ -71,7 +64,7 @@ export default function FourierSeries() {
         const graphW = graphRight - graphLeft;
 
         // Grid lines for graph
-        ctx.strokeStyle = grid;
+        ctx.strokeStyle = 'rgba(88, 196, 221, 0.07)';
         ctx.lineWidth = 0.5;
         for (let x = graphLeft; x <= graphRight; x += 40) {
             ctx.beginPath(); ctx.moveTo(x, 20); ctx.lineTo(x, H - 20); ctx.stroke();
@@ -79,8 +72,8 @@ export default function FourierSeries() {
         ctx.beginPath(); ctx.moveTo(graphLeft, cy); ctx.lineTo(graphRight, cy); ctx.stroke();
 
         // Axis labels
-        ctx.font = '10px Sora, sans-serif';
-        ctx.fillStyle = dim;
+        ctx.font = '10px "JetBrains Mono", monospace';
+        ctx.fillStyle = 'rgba(200, 210, 225, 0.45)';
         ctx.textAlign = 'right';
         ctx.textBaseline = 'middle';
         ctx.fillText('1', graphLeft - 6, cy - circleR);
@@ -91,59 +84,47 @@ export default function FourierSeries() {
 
         // ── Draw target waveform (the ideal function) ──
         if (showTarget) {
-            ctx.strokeStyle = target;
-            ctx.lineWidth = 2;
-            ctx.setLineDash([6, 4]);
-            ctx.beginPath();
+            const targetPoints: CurvePoint[] = [];
             for (let px = 0; px <= graphW; px++) {
                 const phase = (px / graphW) * 4 * Math.PI + t;
                 let val = 0;
-                // Compute with lots of terms for "ideal"
                 for (let n = 1; n <= 200; n++) {
                     val += coefficient(wave, n) * Math.sin(n * phase);
                 }
-                const y = cy - val * circleR;
-                px === 0 ? ctx.moveTo(graphLeft + px, y) : ctx.lineTo(graphLeft + px, y);
+                targetPoints.push({ x: graphLeft + px, y: cy - val * circleR });
             }
-            ctx.stroke();
-            ctx.setLineDash([]);
+            drawGlowCurve(ctx, targetPoints, '#F4D03F', { dashed: true, glowIntensity: 0.5 });
         }
 
         // ── Draw each harmonic individually ──
-        const harmonicColors = ['#ef4444', '#f59e0b', '#22c55e', '#3b82f6', '#a855f7', '#ec4899', '#14b8a6', '#f97316'];
         if (showHarmonics) {
             for (let n = 1; n <= terms; n++) {
                 const bn = coefficient(wave, n);
                 if (Math.abs(bn) < 1e-10) continue;
-                ctx.strokeStyle = harmonicColors[(n - 1) % harmonicColors.length];
-                ctx.lineWidth = 1;
-                ctx.globalAlpha = 0.35;
-                ctx.beginPath();
+                const hPoints: CurvePoint[] = [];
                 for (let px = 0; px <= graphW; px++) {
                     const phase = (px / graphW) * 4 * Math.PI + t;
                     const val = bn * Math.sin(n * phase);
-                    const y = cy - val * circleR;
-                    px === 0 ? ctx.moveTo(graphLeft + px, y) : ctx.lineTo(graphLeft + px, y);
+                    hPoints.push({ x: graphLeft + px, y: cy - val * circleR });
                 }
-                ctx.stroke();
-                ctx.globalAlpha = 1;
+                ctx.save();
+                ctx.globalAlpha = 0.3;
+                drawGlowCurve(ctx, hPoints, MANIM.palette[(n - 1) % MANIM.palette.length], { glowIntensity: 0.3 });
+                ctx.restore();
             }
         }
 
-        // ── Draw partial sum (the approximation) ──
-        ctx.strokeStyle = primary;
-        ctx.lineWidth = 2.5;
-        ctx.beginPath();
+        // ── Draw partial sum (the approximation — glowing) ──
+        const approxPoints: CurvePoint[] = [];
         for (let px = 0; px <= graphW; px++) {
             const phase = (px / graphW) * 4 * Math.PI + t;
             let val = 0;
             for (let n = 1; n <= terms; n++) {
                 val += coefficient(wave, n) * Math.sin(n * phase);
             }
-            const y = cy - val * circleR;
-            px === 0 ? ctx.moveTo(graphLeft + px, y) : ctx.lineTo(graphLeft + px, y);
+            approxPoints.push({ x: graphLeft + px, y: cy - val * circleR });
         }
-        ctx.stroke();
+        drawGlowCurve(ctx, approxPoints, '#58C4DD');
 
         // ── Draw epicycle circles on the left ──
         let ex = cx, ey = cy;
@@ -153,20 +134,18 @@ export default function FourierSeries() {
             const radius = Math.abs(bn) * circleR;
 
             // Circle outline
-            ctx.strokeStyle = dim;
+            ctx.strokeStyle = 'rgba(200, 210, 225, 0.15)';
             ctx.lineWidth = 0.8;
-            ctx.globalAlpha = 0.4;
             ctx.beginPath();
             ctx.arc(ex, ey, radius, 0, Math.PI * 2);
             ctx.stroke();
-            ctx.globalAlpha = 1;
 
             // Rotating arm
             const angle = n * t;
             const nx = ex + radius * Math.cos(angle - Math.PI / 2);
             const ny = ey - radius * Math.sin(angle - Math.PI / 2);
 
-            ctx.strokeStyle = harmonicColors[(n - 1) % harmonicColors.length];
+            ctx.strokeStyle = MANIM.palette[(n - 1) % MANIM.palette.length];
             ctx.lineWidth = 1.5;
             ctx.beginPath();
             ctx.moveTo(ex, ey);
@@ -174,17 +153,14 @@ export default function FourierSeries() {
             ctx.stroke();
 
             // Small dot at the tip
-            ctx.fillStyle = harmonicColors[(n - 1) % harmonicColors.length];
-            ctx.beginPath();
-            ctx.arc(nx, ny, 2.5, 0, Math.PI * 2);
-            ctx.fill();
+            drawGlowDot(ctx, nx, ny, MANIM.palette[(n - 1) % MANIM.palette.length], { radius: 2.5 });
 
             ex = nx;
             ey = ny;
         }
 
         // Connecting line from epicycle tip to waveform start
-        ctx.strokeStyle = primary;
+        ctx.strokeStyle = '#58C4DD';
         ctx.lineWidth = 1;
         ctx.setLineDash([3, 3]);
         ctx.beginPath();
@@ -194,14 +170,11 @@ export default function FourierSeries() {
         ctx.setLineDash([]);
 
         // Dot on waveform at t=0
-        ctx.fillStyle = primary;
-        ctx.beginPath();
-        ctx.arc(graphLeft, ey, 4, 0, Math.PI * 2);
-        ctx.fill();
+        drawGlowDot(ctx, graphLeft, ey, '#58C4DD', { radius: 4 });
 
         // ── Info ──
-        ctx.font = 'bold 12px Sora, sans-serif';
-        ctx.fillStyle = dark ? '#e8e4de' : '#1a1612';
+        ctx.font = 'bold 11px "JetBrains Mono", monospace';
+        ctx.fillStyle = MANIM.white;
         ctx.textAlign = 'left';
         ctx.textBaseline = 'top';
         ctx.fillText(`${wave.charAt(0).toUpperCase() + wave.slice(1)} wave — ${terms} term${terms > 1 ? 's' : ''}`, 14, 14);
@@ -256,8 +229,9 @@ export default function FourierSeries() {
 
                 <div ref={boxRef} style={{
                     width: '100%', aspectRatio: '16/9',
-                    background: 'var(--bg-primary)', border: '1px solid var(--border-warm)',
+                    background: '#0f1117', border: '1px solid rgba(88, 196, 221, 0.1)',
                     borderRadius: 'var(--radius-md)', overflow: 'hidden',
+                    boxShadow: '0 0 40px rgba(88, 196, 221, 0.03), inset 0 0 60px rgba(15, 17, 23, 0.5)',
                 }}>
                     <canvas ref={canvasRef} style={{ display: 'block' }} />
                 </div>

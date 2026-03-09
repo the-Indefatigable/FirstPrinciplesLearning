@@ -2,6 +2,7 @@ import { useRef, useEffect, useState, useCallback } from 'react';
 import * as math from 'mathjs';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
+import { drawBackground, drawGlowCurve, drawGlowDot, type CurvePoint } from '../../utils/manimCanvas';
 
 type Method = 'left' | 'right' | 'midpoint' | 'trapezoid' | 'simpson';
 
@@ -134,7 +135,6 @@ export default function IntegrationVisualizer() {
         canvas.style.height = `${rect.height}px`;
 
         const W = rect.width, H = rect.height;
-        const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
         let compiled: math.EvalFunction;
         try {
@@ -142,10 +142,9 @@ export default function IntegrationVisualizer() {
             setError(null);
         } catch {
             setError('Invalid function expression');
-            ctx.fillStyle = isDark ? '#1a1612' : '#faf8f5';
-            ctx.fillRect(0, 0, W, H);
-            ctx.fillStyle = isDark ? '#9c9488' : '#5c544a';
-            ctx.font = '14px Sora, sans-serif';
+            drawBackground(ctx, W, H);
+            ctx.fillStyle = 'rgba(200, 210, 225, 0.4)';
+            ctx.font = '14px "JetBrains Mono", monospace';
             ctx.textAlign = 'center';
             ctx.fillText('Enter a valid function', W / 2, H / 2);
             return;
@@ -173,11 +172,10 @@ export default function IntegrationVisualizer() {
         const toY = (y: number) => H - ((y - yMin) / (yMax - yMin)) * H;
 
         // Background
-        ctx.fillStyle = isDark ? '#1a1612' : '#faf8f5';
-        ctx.fillRect(0, 0, W, H);
+        drawBackground(ctx, W, H);
 
         // Grid
-        ctx.strokeStyle = isDark ? '#2e2a24' : '#e8e0d4';
+        ctx.strokeStyle = 'rgba(88, 196, 221, 0.07)';
         ctx.lineWidth = 0.5;
         for (let x = Math.ceil(xMin); x <= xMax; x++) {
             ctx.beginPath(); ctx.moveTo(toX(x), 0); ctx.lineTo(toX(x), H); ctx.stroke();
@@ -187,8 +185,8 @@ export default function IntegrationVisualizer() {
         }
 
         // Axis labels
-        ctx.fillStyle = isDark ? '#6b6358' : '#9c9488';
-        ctx.font = '10px Sora, sans-serif';
+        ctx.fillStyle = 'rgba(200, 210, 225, 0.45)';
+        ctx.font = '10px "JetBrains Mono", monospace';
         ctx.textAlign = 'center';
         for (let x = Math.ceil(xMin); x <= Math.floor(xMax); x++) {
             if (x === 0) continue;
@@ -202,13 +200,17 @@ export default function IntegrationVisualizer() {
             ctx.fillText(String(y), px, toY(y) + 4);
         }
 
-        // Axes
-        ctx.strokeStyle = isDark ? '#6b6358' : '#9c9488';
-        ctx.lineWidth = 1.2;
+        // Axes with glow
         if (yMin <= 0 && yMax >= 0) {
+            ctx.save(); ctx.strokeStyle = 'rgba(200, 210, 225, 0.08)'; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.moveTo(0, toY(0)); ctx.lineTo(W, toY(0)); ctx.stroke(); ctx.restore();
+            ctx.strokeStyle = 'rgba(200, 210, 225, 0.35)'; ctx.lineWidth = 1;
             ctx.beginPath(); ctx.moveTo(0, toY(0)); ctx.lineTo(W, toY(0)); ctx.stroke();
         }
         if (xMin <= 0 && xMax >= 0) {
+            ctx.save(); ctx.strokeStyle = 'rgba(200, 210, 225, 0.08)'; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.moveTo(toX(0), 0); ctx.lineTo(toX(0), H); ctx.stroke(); ctx.restore();
+            ctx.strokeStyle = 'rgba(200, 210, 225, 0.35)'; ctx.lineWidth = 1;
             ctx.beginPath(); ctx.moveTo(toX(0), 0); ctx.lineTo(toX(0), H); ctx.stroke();
         }
 
@@ -216,14 +218,14 @@ export default function IntegrationVisualizer() {
         const dx = (b - a) / n;
         let totalArea = 0;
 
-        const fillColor = isDark ? 'rgba(245,158,11,0.18)' : 'rgba(217,119,6,0.12)';
-        const strokeColor = isDark ? 'rgba(245,158,11,0.45)' : 'rgba(217,119,6,0.35)';
+        const fillColor = 'rgba(88, 196, 221, 0.12)';
+        const strokeColor = 'rgba(88, 196, 221, 0.35)';
         ctx.lineWidth = 1;
 
         if (method === 'simpson' && n % 2 !== 0) {
             // Simpson needs even n — draw nothing, show warning
-            ctx.fillStyle = isDark ? '#9c9488' : '#5c544a';
-            ctx.font = '13px Sora, sans-serif';
+            ctx.fillStyle = 'rgba(200, 210, 225, 0.4)';
+            ctx.font = '13px "JetBrains Mono", monospace';
             ctx.textAlign = 'center';
             ctx.fillText("Simpson's rule requires even N", W / 2, 30);
         } else if (method === 'simpson') {
@@ -287,43 +289,35 @@ export default function IntegrationVisualizer() {
                     ctx.fillRect(toX(x0), top, toX(x1) - toX(x0), height);
                     ctx.strokeRect(toX(x0), top, toX(x1) - toX(x0), height);
 
-                    // Midpoint dot
                     if (method === 'midpoint') {
-                        ctx.fillStyle = isDark ? '#f59e0b' : '#d97706';
-                        ctx.beginPath();
-                        ctx.arc(toX(sampleX), toY(h), 3, 0, Math.PI * 2);
-                        ctx.fill();
+                        drawGlowDot(ctx, toX(sampleX), toY(h), '#58C4DD', { radius: 3 });
                     }
                 }
             }
         }
         setApproxArea(Math.round(totalArea * 100000) / 100000);
 
-        // Function curve
-        ctx.strokeStyle = isDark ? '#f59e0b' : '#d97706';
-        ctx.lineWidth = 2.5;
-        ctx.beginPath();
-        let started = false;
-        for (let i = 0; i <= 400; i++) {
-            const x = xMin + (xMax - xMin) * (i / 400);
+        // Function curve (glow)
+        const curvePoints: CurvePoint[] = [];
+        for (let i = 0; i <= 600; i++) {
+            const x = xMin + (xMax - xMin) * (i / 600);
             const y = f(x);
-            if (!isFinite(y) || Math.abs(y) > 1e6) { started = false; continue; }
-            if (!started) { ctx.moveTo(toX(x), toY(y)); started = true; }
-            else ctx.lineTo(toX(x), toY(y));
+            if (!isFinite(y) || Math.abs(y) > 1e6) { curvePoints.push({ x: toX(x), y: NaN }); continue; }
+            curvePoints.push({ x: toX(x), y: toY(y) });
         }
-        ctx.stroke();
+        drawGlowCurve(ctx, curvePoints, '#58C4DD');
 
         // Bound markers
         ctx.setLineDash([5, 4]);
-        ctx.strokeStyle = isDark ? '#86efac' : '#6b8f71';
+        ctx.strokeStyle = '#83C167';
         ctx.lineWidth = 1.5;
         ctx.beginPath(); ctx.moveTo(toX(a), 0); ctx.lineTo(toX(a), H); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(toX(b), 0); ctx.lineTo(toX(b), H); ctx.stroke();
         ctx.setLineDash([]);
 
         // Bound labels
-        ctx.font = 'bold 12px Sora, sans-serif';
-        ctx.fillStyle = isDark ? '#86efac' : '#6b8f71';
+        ctx.font = 'bold 11px "JetBrains Mono", monospace';
+        ctx.fillStyle = '#83C167';
         ctx.textAlign = 'center';
         ctx.fillText(`a = ${a}`, toX(a), H - 8);
         ctx.fillText(`b = ${b}`, toX(b), H - 8);
@@ -548,8 +542,9 @@ export default function IntegrationVisualizer() {
                 {/* ── Canvas ── */}
                 <div style={{
                     width: '100%', aspectRatio: '16/9', minHeight: 250,
-                    background: 'var(--bg-primary)', border: '1px solid var(--border-warm)',
+                    background: '#0f1117', border: '1px solid rgba(88, 196, 221, 0.1)',
                     borderRadius: 'var(--radius-md)', overflow: 'hidden',
+                    boxShadow: '0 0 40px rgba(88, 196, 221, 0.03), inset 0 0 60px rgba(15, 17, 23, 0.5)',
                 }}>
                     <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: '100%' }} />
                 </div>

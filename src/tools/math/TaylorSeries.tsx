@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState } from 'react';
 import * as math from 'mathjs';
+import { drawBackground, drawGlowCurve, drawGlowDot, MANIM, type CurvePoint } from '../../utils/manimCanvas';
 
 export default function TaylorSeries() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -24,7 +25,6 @@ export default function TaylorSeries() {
         canvas.style.height = `${rect.height}px`;
 
         const W = rect.width, H = rect.height;
-        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
 
         let compiled: math.EvalFunction;
         try {
@@ -69,11 +69,11 @@ export default function TaylorSeries() {
         const toX = (x: number) => ((x - xMin) / (xMax - xMin)) * W;
         const toY = (y: number) => H - ((y - yMin) / (yMax - yMin)) * H;
 
-        // Clear
-        ctx.clearRect(0, 0, W, H);
+        // Clear + Manim background
+        drawBackground(ctx, W, H);
 
         // Grid
-        ctx.strokeStyle = isDark ? '#2e2a24' : '#e8e0d4';
+        ctx.strokeStyle = 'rgba(88, 196, 221, 0.07)';
         ctx.lineWidth = 0.5;
         for (let x = Math.ceil(xMin); x <= xMax; x++) {
             ctx.beginPath(); ctx.moveTo(toX(x), 0); ctx.lineTo(toX(x), H); ctx.stroke();
@@ -82,14 +82,16 @@ export default function TaylorSeries() {
             ctx.beginPath(); ctx.moveTo(0, toY(y)); ctx.lineTo(W, toY(y)); ctx.stroke();
         }
 
-        // Axes
-        ctx.strokeStyle = isDark ? '#6b6358' : '#9c9488';
-        ctx.lineWidth = 1;
+        // Axes with glow
+        ctx.save(); ctx.strokeStyle = 'rgba(200, 210, 225, 0.08)'; ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.moveTo(0, toY(0)); ctx.lineTo(W, toY(0)); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(toX(0), 0); ctx.lineTo(toX(0), H); ctx.stroke();
+        ctx.restore();
+        ctx.strokeStyle = 'rgba(200, 210, 225, 0.35)'; ctx.lineWidth = 1;
         ctx.beginPath(); ctx.moveTo(0, toY(0)); ctx.lineTo(W, toY(0)); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(toX(0), 0); ctx.lineTo(toX(0), H); ctx.stroke();
 
-        // Draw partial sums from 0 to N (faded)
-        const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6'];
+        // Draw partial sums with glow
         for (let order = 0; order <= terms; order++) {
             const partialTaylor = (x: number) => {
                 let sum = 0, fact = 1;
@@ -100,50 +102,45 @@ export default function TaylorSeries() {
                 return sum;
             };
 
-            ctx.strokeStyle = colors[order % colors.length];
-            ctx.lineWidth = order === terms ? 2.5 : 1;
-            ctx.globalAlpha = order === terms ? 1 : 0.3;
-            ctx.beginPath();
-            let started = false;
-            for (let i = 0; i <= 400; i++) {
-                const x = xMin + (xMax - xMin) * (i / 400);
+            const points: CurvePoint[] = [];
+            for (let i = 0; i <= 600; i++) {
+                const x = xMin + (xMax - xMin) * (i / 600);
                 const y = partialTaylor(x);
-                if (!isFinite(y) || y < yMin - 5 || y > yMax + 5) { started = false; continue; }
-                if (!started) { ctx.moveTo(toX(x), toY(y)); started = true; }
-                else ctx.lineTo(toX(x), toY(y));
+                if (!isFinite(y) || y < yMin - 5 || y > yMax + 5) { points.push({ x: toX(x), y: NaN }); continue; }
+                points.push({ x: toX(x), y: toY(y) });
             }
-            ctx.stroke();
-        }
-        ctx.globalAlpha = 1;
 
-        // Original function
-        ctx.strokeStyle = isDark ? '#f59e0b' : '#d97706';
-        ctx.lineWidth = 2.5;
-        ctx.setLineDash([6, 4]);
-        ctx.beginPath();
-        let started = false;
-        for (let i = 0; i <= 400; i++) {
-            const x = xMin + (xMax - xMin) * (i / 400);
+            const color = MANIM.palette[order % MANIM.palette.length];
+            if (order === terms) {
+                drawGlowCurve(ctx, points, color);
+            } else {
+                // Faded older terms
+                ctx.save();
+                ctx.globalAlpha = 0.25;
+                drawGlowCurve(ctx, points, color, { glowIntensity: 0.3 });
+                ctx.restore();
+            }
+        }
+
+        // Original function (dashed glow)
+        const origPoints: CurvePoint[] = [];
+        for (let i = 0; i <= 600; i++) {
+            const x = xMin + (xMax - xMin) * (i / 600);
             const y = f(x);
-            if (!isFinite(y)) { started = false; continue; }
-            if (!started) { ctx.moveTo(toX(x), toY(y)); started = true; }
-            else ctx.lineTo(toX(x), toY(y));
+            if (!isFinite(y)) { origPoints.push({ x: toX(x), y: NaN }); continue; }
+            origPoints.push({ x: toX(x), y: toY(y) });
         }
-        ctx.stroke();
-        ctx.setLineDash([]);
+        drawGlowCurve(ctx, origPoints, '#F4D03F', { dashed: true });
 
-        // Center point
-        ctx.fillStyle = isDark ? '#86efac' : '#6b8f71';
-        ctx.beginPath();
-        ctx.arc(toX(center), toY(f(center)), 5, 0, Math.PI * 2);
-        ctx.fill();
+        // Center point (glowing dot)
+        drawGlowDot(ctx, toX(center), toY(f(center)), '#83C167', { radius: 5 });
 
         // Legend
-        ctx.font = '11px Sora, sans-serif';
-        ctx.fillStyle = isDark ? '#e8e4de' : '#1a1612';
+        ctx.font = '11px "JetBrains Mono", monospace';
         ctx.textAlign = 'left';
+        ctx.fillStyle = '#F4D03F';
         ctx.fillText(`f(x) = ${fn}`, 12, 20);
-        ctx.fillStyle = colors[terms % colors.length];
+        ctx.fillStyle = MANIM.palette[terms % MANIM.palette.length];
         ctx.fillText(`T${terms}(x) — ${terms + 1} terms`, 12, 36);
 
     }, [fn, center, terms]);
@@ -172,7 +169,7 @@ export default function TaylorSeries() {
                     </div>
                 </div>
 
-                <div style={{ width: '100%', aspectRatio: '16/9', background: 'var(--bg-primary)', border: '1px solid var(--border-warm)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
+                <div style={{ width: '100%', aspectRatio: '16/9', background: '#0f1117', border: '1px solid rgba(88, 196, 221, 0.1)', borderRadius: 'var(--radius-md)', overflow: 'hidden', boxShadow: '0 0 40px rgba(88, 196, 221, 0.03), inset 0 0 60px rgba(15, 17, 23, 0.5)' }}>
                     <canvas ref={canvasRef} style={{ display: 'block' }} />
                 </div>
 

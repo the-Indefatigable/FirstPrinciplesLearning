@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import * as math from 'mathjs';
+import { drawBackground, drawGlowCurve, drawGlowDot, MANIM, type CurvePoint } from '../../utils/manimCanvas';
 
 interface Particle {
     x: number;
@@ -8,7 +9,7 @@ interface Particle {
     color: string;
 }
 
-const COLORS = ['#f59e0b', '#86efac', '#e8956f', '#3b82f6', '#ec4899'];
+const COLORS = MANIM.palette;
 
 export default function SlopeField() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -17,15 +18,7 @@ export default function SlopeField() {
     const [density, setDensity] = useState(20); // Grid points
     const [particles, setParticles] = useState<Particle[]>([]);
     const [error, setError] = useState<string | null>(null);
-    const [isDarkMode, setIsDarkMode] = useState(false);
-
-    useEffect(() => {
-        const el = document.documentElement;
-        setIsDarkMode(el.getAttribute('data-theme') === 'dark');
-        const obs = new MutationObserver(() => setIsDarkMode(el.getAttribute('data-theme') === 'dark'));
-        obs.observe(el, { attributes: true, attributeFilter: ['data-theme'] });
-        return () => obs.disconnect();
-    }, []);
+    const [isDarkMode] = useState(false); // kept for API compat but always manim dark
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -46,11 +39,11 @@ export default function SlopeField() {
         const width = rect.width;
         const height = rect.height;
 
-        // Clear
-        ctx.clearRect(0, 0, width, height);
+        // Clear + Manim background
+        drawBackground(ctx, width, height);
 
-        const axisColor = isDarkMode ? '#4a443c' : '#a09888';
-        const arrowColor = isDarkMode ? 'rgba(232, 228, 222, 0.4)' : 'rgba(26, 22, 18, 0.3)';
+        const axisColor = 'rgba(200, 210, 225, 0.35)';
+        const arrowColor = 'rgba(88, 196, 221, 0.35)';
 
         // Math prep
         let compiled: math.EvalFunction;
@@ -66,15 +59,15 @@ export default function SlopeField() {
         const toScreenX = (x: number) => (x + bounds) / (2 * bounds) * width;
         const toScreenY = (y: number) => height - (y + bounds) / (2 * bounds) * height;
 
-        // Draw Axes
+        // Draw Axes with glow
+        ctx.save(); ctx.strokeStyle = 'rgba(200, 210, 225, 0.08)'; ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.moveTo(toScreenX(0), 0); ctx.lineTo(toScreenX(0), height); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, toScreenY(0)); ctx.lineTo(width, toScreenY(0)); ctx.stroke();
+        ctx.restore();
         ctx.strokeStyle = axisColor;
         ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(toScreenX(0), 0);
-        ctx.lineTo(toScreenX(0), height);
-        ctx.moveTo(0, toScreenY(0));
-        ctx.lineTo(width, toScreenY(0));
-        ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(toScreenX(0), 0); ctx.lineTo(toScreenX(0), height); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, toScreenY(0)); ctx.lineTo(width, toScreenY(0)); ctx.stroke();
 
         // Draw Slope Field
         const step = (2 * bounds) / density;
@@ -118,23 +111,14 @@ export default function SlopeField() {
             }
         }
 
-        // Draw Particles (Traces)
+        // Draw Particles (Traces) with glow
         particles.forEach(p => {
             if (p.path.length < 2) return;
-            ctx.strokeStyle = p.color;
-            ctx.lineWidth = 2.5;
-            ctx.beginPath();
-            ctx.moveTo(toScreenX(p.path[0].x), toScreenY(p.path[0].y));
-            for (let i = 1; i < p.path.length; i++) {
-                ctx.lineTo(toScreenX(p.path[i].x), toScreenY(p.path[i].y));
-            }
-            ctx.stroke();
+            const tracePoints: CurvePoint[] = p.path.map(pt => ({ x: toScreenX(pt.x), y: toScreenY(pt.y) }));
+            drawGlowCurve(ctx, tracePoints, p.color);
 
             // Draw dot at origin
-            ctx.fillStyle = p.color;
-            ctx.beginPath();
-            ctx.arc(toScreenX(p.x), toScreenY(p.y), 4, 0, Math.PI * 2);
-            ctx.fill();
+            drawGlowDot(ctx, toScreenX(p.x), toScreenY(p.y), p.color, { radius: 4 });
         });
 
     }, [equation, bounds, density, particles, isDarkMode]);
@@ -244,10 +228,11 @@ export default function SlopeField() {
                     style={{
                         width: '100%',
                         position: 'relative',
-                        background: 'var(--bg-primary)',
-                        border: '1px solid var(--border-warm)',
+                        background: '#0f1117',
+                        border: '1px solid rgba(88, 196, 221, 0.1)',
                         borderRadius: 'var(--radius-md)',
-                        overflow: 'hidden'
+                        overflow: 'hidden',
+                        boxShadow: '0 0 40px rgba(88, 196, 221, 0.03), inset 0 0 60px rgba(15, 17, 23, 0.5)',
                     }}
                 >
                     <div style={{ position: 'absolute', top: 12, left: 16, zIndex: 10, pointerEvents: 'none' }}>

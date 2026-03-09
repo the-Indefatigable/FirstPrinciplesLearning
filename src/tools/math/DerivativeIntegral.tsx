@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { derivative, parse, simplify, compile, type MathNode, type EvalFunction } from 'mathjs';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
+import { drawBackground, drawGlowCurve } from '../../utils/manimCanvas';
 
 /* ─── Types ─── */
 type Tab = 'derivative' | 'integral';
@@ -198,7 +199,7 @@ function integrationSteps(expr: string, variable: string): StepEntry[] {
     return steps;
 }
 
-/* ─── Graph component ─── */
+/* ─── Graph component (Manim-grade) ─── */
 function Graph({ expr, derivExpr, variable }: { expr: string; derivExpr: string | null; variable: string }) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -220,7 +221,6 @@ function Graph({ expr, derivExpr, variable }: { expr: string; derivExpr: string 
 
         const W = rect.width;
         const H = rect.height;
-        const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
         let fCompiled: EvalFunction;
         let dCompiled: EvalFunction | null = null;
@@ -229,8 +229,10 @@ function Graph({ expr, derivExpr, variable }: { expr: string; derivExpr: string 
             fCompiled = compile(expr);
             if (derivExpr) dCompiled = compile(derivExpr);
         } catch {
-            ctx.fillStyle = isDark ? '#9c9488' : '#5c544a';
-            ctx.font = '14px Sora, sans-serif';
+            // Manim-style empty state
+            drawBackground(ctx, W, H);
+            ctx.fillStyle = 'rgba(200, 210, 225, 0.4)';
+            ctx.font = '14px "JetBrains Mono", monospace';
             ctx.textAlign = 'center';
             ctx.fillText('Enter a valid expression to see the graph', W / 2, H / 2);
             return;
@@ -245,7 +247,7 @@ function Graph({ expr, derivExpr, variable }: { expr: string; derivExpr: string 
         // Auto-range
         const xMin = -6, xMax = 6;
         let yMin = Infinity, yMax = -Infinity;
-        const N = 400;
+        const N = 600;
         for (let i = 0; i <= N; i++) {
             const x = xMin + (xMax - xMin) * (i / N);
             const y = evalFn(fCompiled, x);
@@ -263,12 +265,11 @@ function Graph({ expr, derivExpr, variable }: { expr: string; derivExpr: string 
         const toX = (x: number) => ((x - xMin) / (xMax - xMin)) * W;
         const toY = (y: number) => H - ((y - yMin) / (yMax - yMin)) * H;
 
-        // Background
-        ctx.fillStyle = isDark ? '#1a1612' : '#faf8f5';
-        ctx.fillRect(0, 0, W, H);
+        // ── Manim Background ──
+        drawBackground(ctx, W, H);
 
-        // Grid
-        ctx.strokeStyle = isDark ? '#2e2a24' : '#e8e0d4';
+        // ── Grid ──
+        ctx.strokeStyle = 'rgba(88, 196, 221, 0.07)';
         ctx.lineWidth = 0.5;
         for (let x = Math.ceil(xMin); x <= Math.floor(xMax); x++) {
             ctx.beginPath(); ctx.moveTo(toX(x), 0); ctx.lineTo(toX(x), H); ctx.stroke();
@@ -277,19 +278,27 @@ function Graph({ expr, derivExpr, variable }: { expr: string; derivExpr: string 
             ctx.beginPath(); ctx.moveTo(0, toY(y)); ctx.lineTo(W, toY(y)); ctx.stroke();
         }
 
-        // Axes
-        ctx.strokeStyle = isDark ? '#6b6358' : '#9c9488';
-        ctx.lineWidth = 1.2;
+        // ── Axes with glow ──
         if (yMin <= 0 && yMax >= 0) {
+            ctx.save();
+            ctx.strokeStyle = 'rgba(200, 210, 225, 0.08)'; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.moveTo(0, toY(0)); ctx.lineTo(W, toY(0)); ctx.stroke();
+            ctx.restore();
+            ctx.strokeStyle = 'rgba(200, 210, 225, 0.35)'; ctx.lineWidth = 1;
             ctx.beginPath(); ctx.moveTo(0, toY(0)); ctx.lineTo(W, toY(0)); ctx.stroke();
         }
         if (xMin <= 0 && xMax >= 0) {
+            ctx.save();
+            ctx.strokeStyle = 'rgba(200, 210, 225, 0.08)'; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.moveTo(toX(0), 0); ctx.lineTo(toX(0), H); ctx.stroke();
+            ctx.restore();
+            ctx.strokeStyle = 'rgba(200, 210, 225, 0.35)'; ctx.lineWidth = 1;
             ctx.beginPath(); ctx.moveTo(toX(0), 0); ctx.lineTo(toX(0), H); ctx.stroke();
         }
 
-        // Axis labels
-        ctx.fillStyle = isDark ? '#6b6358' : '#9c9488';
-        ctx.font = '10px Sora, sans-serif';
+        // ── Axis Labels ──
+        ctx.fillStyle = 'rgba(200, 210, 225, 0.45)';
+        ctx.font = '10px "JetBrains Mono", monospace';
         ctx.textAlign = 'center';
         for (let x = Math.ceil(xMin); x <= Math.floor(xMax); x++) {
             if (x === 0) continue;
@@ -304,49 +313,48 @@ function Graph({ expr, derivExpr, variable }: { expr: string; derivExpr: string 
             ctx.fillText(String(y), px, toY(y) + 4);
         }
 
-        // Draw curve helper
-        const drawCurve = (compiled: EvalFunction, color: string, width: number, dashed = false) => {
-            ctx.strokeStyle = color;
-            ctx.lineWidth = width;
-            ctx.setLineDash(dashed ? [6, 4] : []);
-            ctx.beginPath();
-            let started = false;
+        // ── Glow curve helper ──
+        const drawCurveGlow = (compiled: EvalFunction, color: string, dashed = false) => {
+            const points: { x: number; y: number }[] = [];
             for (let i = 0; i <= N; i++) {
                 const x = xMin + (xMax - xMin) * (i / N);
                 const y = evalFn(compiled, x);
-                if (!isFinite(y) || Math.abs(y) > 1e6) { started = false; continue; }
-                if (!started) { ctx.moveTo(toX(x), toY(y)); started = true; }
-                else ctx.lineTo(toX(x), toY(y));
+                if (!isFinite(y) || Math.abs(y) > 1e6) { points.push({ x: toX(x), y: NaN }); continue; }
+                points.push({ x: toX(x), y: toY(y) });
             }
-            ctx.stroke();
-            ctx.setLineDash([]);
+            drawGlowCurve(ctx, points, color, { dashed });
         };
 
-        // f(x)
-        drawCurve(fCompiled, isDark ? '#f59e0b' : '#d97706', 2.5);
+        // f(x) — amber/blue glow
+        drawCurveGlow(fCompiled, '#58C4DD');
 
-        // f'(x)
+        // f'(x) — green glow dashed
         if (dCompiled) {
-            drawCurve(dCompiled, isDark ? '#86efac' : '#6b8f71', 2, true);
+            drawCurveGlow(dCompiled, '#83C167', true);
         }
 
-        // Legend
+        // ── Legend ──
         const legendY = 16;
-        ctx.font = '12px Sora, sans-serif';
-        ctx.textAlign = 'left';
         // f(x)
-        ctx.fillStyle = isDark ? '#f59e0b' : '#d97706';
-        ctx.fillRect(8, legendY - 6, 16, 3);
-        ctx.fillText('f(x)', 28, legendY);
+        ctx.save();
+        ctx.globalAlpha = 0.3; ctx.fillStyle = '#58C4DD';
+        ctx.fillRect(8, legendY - 6, 20, 3);
+        ctx.restore();
+        ctx.fillStyle = '#58C4DD';
+        ctx.fillRect(10, legendY - 5, 16, 2);
+        ctx.font = '11px "JetBrains Mono", monospace';
+        ctx.textAlign = 'left';
+        ctx.fillText('f(x)', 32, legendY);
         // f'(x)
         if (dCompiled) {
-            ctx.fillStyle = isDark ? '#86efac' : '#6b8f71';
+            ctx.save();
+            ctx.strokeStyle = '#83C167'; ctx.lineWidth = 2;
             ctx.setLineDash([4, 3]);
-            ctx.strokeStyle = isDark ? '#86efac' : '#6b8f71';
-            ctx.lineWidth = 2;
-            ctx.beginPath(); ctx.moveTo(8, legendY + 16); ctx.lineTo(24, legendY + 16); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(10, legendY + 16); ctx.lineTo(26, legendY + 16); ctx.stroke();
             ctx.setLineDash([]);
-            ctx.fillText("f'(x)", 28, legendY + 20);
+            ctx.restore();
+            ctx.fillStyle = '#83C167';
+            ctx.fillText("f'(x)", 32, legendY + 20);
         }
     }, [expr, derivExpr, variable]);
 
@@ -355,15 +363,17 @@ function Graph({ expr, derivExpr, variable }: { expr: string; derivExpr: string 
             width: '100%',
             aspectRatio: '2 / 1',
             minHeight: 220,
-            background: 'var(--bg-primary)',
-            border: '1px solid var(--border-warm)',
+            background: '#0f1117',
+            border: '1px solid rgba(88, 196, 221, 0.1)',
             borderRadius: 'var(--radius-md)',
             overflow: 'hidden',
+            boxShadow: '0 0 40px rgba(88, 196, 221, 0.03), inset 0 0 60px rgba(15, 17, 23, 0.5)',
         }}>
             <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: '100%' }} />
         </div>
     );
 }
+
 
 /* ─── Main Component ─── */
 export default function DerivativeIntegral() {
