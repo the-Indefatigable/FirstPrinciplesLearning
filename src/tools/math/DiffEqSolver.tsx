@@ -51,7 +51,7 @@ export default function DiffEqSolver() {
         if (!ctx) return;
 
         canvas.width = canvas.parentElement!.clientWidth;
-        canvas.height = 280;
+        canvas.height = Math.min(canvas.parentElement!.clientWidth, 500);
         const W = canvas.width;
         const H = canvas.height;
         const pad = 48;

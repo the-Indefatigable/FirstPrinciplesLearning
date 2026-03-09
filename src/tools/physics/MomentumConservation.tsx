@@ -48,7 +48,7 @@ export default function MomentumConservation() {
         if (!canvas) return;
         const ctx = canvas.getContext('2d')!;
         canvas.width = canvas.parentElement!.clientWidth;
-        canvas.height = 220;
+        canvas.height = Math.min(canvas.parentElement!.clientWidth, 500);
         const W = canvas.width;
         const H = canvas.height;
         const groundY = H * 0.7;

@@ -30,7 +30,7 @@ export default function OrbitalMechanics() {
         if (!canvas) return;
         const ctx = canvas.getContext('2d')!;
         canvas.width = 800;
-        canvas.height = 260;
+        canvas.height = Math.min(canvas.parentElement!.clientWidth, 500);
         canvas.style.width = '100%';
         canvas.style.height = '100%';
 

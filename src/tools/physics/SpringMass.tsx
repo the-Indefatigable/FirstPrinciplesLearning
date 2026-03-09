@@ -31,7 +31,7 @@ export default function SpringMass() {
 
         const resize = () => {
             canvas.width = canvas.parentElement!.clientWidth;
-            canvas.height = 260;
+            canvas.height = Math.min(canvas.parentElement!.clientWidth, 500);
         };
         resize();
         window.addEventListener('resize', resize);
