@@ -2,8 +2,7 @@ import { useState, useEffect, type ComponentType } from 'react';
 import { useParams, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import BootScreen from '../components/BootScreen';
 import SEOHead from '../components/SEOHead';
-import EmailCapture from '../components/EmailCapture';
-import '../components/EmailCapture.css';
+
 import { getBySlug, toolLoaders } from '../config/tools';
 
 type Phase = 'booting' | 'fading' | 'ready';
@@ -103,7 +102,7 @@ export default function ToolView() {
             <Component />
           </div>
 
-          <EmailCapture context={tool.slug} />
+
         </>
       )}
     </div>
