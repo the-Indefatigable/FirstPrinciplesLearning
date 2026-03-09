@@ -86,8 +86,12 @@ export default function Navbar() {
         setSearchQuery('');
       }
     };
-    document.addEventListener('click', onClick);
-    return () => document.removeEventListener('click', onClick);
+    // Defer so the opening click doesn't immediately close the overlay
+    const timer = setTimeout(() => document.addEventListener('click', onClick), 0);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('click', onClick);
+    };
   }, [searchOpen]);
 
   // Swipe gestures for mobile
