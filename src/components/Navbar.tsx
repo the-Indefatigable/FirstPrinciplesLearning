@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import ThemeToggle from './ThemeToggle';
 import { useSettings } from '../hooks/SettingsProvider';
@@ -10,6 +10,10 @@ export default function Navbar() {
   const location = useLocation();
   const isLanding = location.pathname === '/';
   const { bookingLink } = useSettings();
+
+  // Swipe gesture tracking
+  const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -23,6 +27,41 @@ export default function Navbar() {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuOpen(false); };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
+  }, [menuOpen]);
+
+  // Close menu on route change
+  useEffect(() => { setMenuOpen(false); }, [location.pathname]);
+
+  // Swipe gestures: right to open, left to close
+  const handleTouchStart = useCallback((e: TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  }, []);
+
+  const handleTouchEnd = useCallback((e: TouchEvent) => {
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    const dy = e.changedTouches[0].clientY - touchStartY.current;
+
+    // Only trigger if horizontal swipe is dominant and > 60px
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      if (dx > 0 && !menuOpen) setMenuOpen(true);   // swipe right → open
+      if (dx < 0 && menuOpen) setMenuOpen(false);    // swipe left → close
+    }
+  }, [menuOpen]);
+
+  useEffect(() => {
+    document.addEventListener('touchstart', handleTouchStart, { passive: true });
+    document.addEventListener('touchend', handleTouchEnd, { passive: true });
+    return () => {
+      document.removeEventListener('touchstart', handleTouchStart);
+      document.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [handleTouchStart, handleTouchEnd]);
+
+  // Lock body scroll when menu is open
+  useEffect(() => {
+    document.body.style.overflow = menuOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
   }, [menuOpen]);
 
   const closeMenu = () => setMenuOpen(false);
@@ -52,12 +91,14 @@ export default function Navbar() {
           </ul>
 
           {isLanding ? (
-            <a className="navbar-cta" href={bookingLink}>Book a Session</a>
+            <a className="navbar-cta desktop-only" href={bookingLink}>Book a Session</a>
           ) : (
-            <Link className="navbar-cta" to="/">← Back to Home</Link>
+            <Link className="navbar-cta desktop-only" to="/">← Home</Link>
           )}
 
-          <ThemeToggle />
+          <div className="desktop-only">
+            <ThemeToggle />
+          </div>
 
           <button
             className={`hamburger ${menuOpen ? 'open' : ''}`}
@@ -69,6 +110,9 @@ export default function Navbar() {
           </button>
         </div>
       </nav>
+
+      {/* Backdrop overlay */}
+      {menuOpen && <div className="mobile-backdrop" onClick={closeMenu} />}
 
       <div className={`mobile-menu ${menuOpen ? 'open' : ''}`} role="dialog" aria-label="Navigation menu" aria-hidden={!menuOpen}>
         {isLanding && (
@@ -84,10 +128,13 @@ export default function Navbar() {
         <Link to="/cs" onClick={closeMenu}>CS Tools</Link>
         <Link to="/blog" onClick={closeMenu}>Blog</Link>
         {isLanding ? (
-          <a className="navbar-cta" href={bookingLink} onClick={closeMenu}>Book a Session</a>
+          <a className="mobile-menu-cta" href={bookingLink} onClick={closeMenu}>Book a Session</a>
         ) : (
-          <Link className="navbar-cta" to="/" onClick={closeMenu}>← Back to Home</Link>
+          <Link className="mobile-menu-cta" to="/" onClick={closeMenu}>← Back to Home</Link>
         )}
+        <div className="mobile-menu-footer">
+          <ThemeToggle />
+        </div>
       </div>
     </>
   );
