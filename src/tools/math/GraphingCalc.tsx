@@ -1,9 +1,14 @@
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect, useState, useCallback, lazy, Suspense } from 'react';
 import { compile } from 'mathjs';
 import {
     MANIM, drawScene, drawGlowCurve, drawCrosshair, drawLabel,
     drawGlowDot, type CurvePoint
 } from '../../utils/manimCanvas';
+import ImmersiveToggle from '../../components/ImmersiveToggle';
+import '../../components/ImmersiveToggle.css';
+
+// Lazy-load the WebGL immersive renderer — only downloaded when user activates it
+const GraphingCalcImmersive = lazy(() => import('./GraphingCalcImmersive'));
 
 interface FnEntry { expr: string; color: string; enabled: boolean; }
 
@@ -18,7 +23,27 @@ export default function GraphingCalc() {
     const [scale, setScale] = useState(50);
     const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
 
+    // Immersive mode state
+    const [immersive, setImmersive] = useState(false);
+    const [immersiveLoading, setImmersiveLoading] = useState(false);
+
+    const handleToggleImmersive = useCallback(() => {
+        if (!immersive) {
+            setImmersiveLoading(true);
+            // The lazy import will resolve, then we switch
+            setImmersive(true);
+        } else {
+            setImmersive(false);
+        }
+    }, [immersive]);
+
+    const handleImmersiveLoaded = useCallback(() => {
+        setImmersiveLoading(false);
+    }, []);
+
+    // ── Canvas 2D Drawing (standard mode) ──
     const draw = useCallback(() => {
+        if (immersive) return; // Skip when in immersive mode
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
@@ -33,10 +58,8 @@ export default function GraphingCalc() {
         ctx.save();
         ctx.scale(dpr, dpr);
 
-        // ── Manim background + grid + axes ──
         drawScene(ctx, W, H, cx, cy, scale);
 
-        // ── Plot each function with glow ──
         for (const fn of functions) {
             if (!fn.enabled || !fn.expr.trim()) continue;
             try {
@@ -59,7 +82,6 @@ export default function GraphingCalc() {
             } catch { /* invalid expression */ }
         }
 
-        // ── Mouse trace ──
         if (mousePos) {
             const mx = (mousePos.x - cx) / scale;
             const my = (cy - mousePos.y) / scale;
@@ -70,7 +92,6 @@ export default function GraphingCalc() {
                 color: MANIM.white, fontSize: 11, bg: true,
             });
 
-            // Show function values at cursor
             let labelY = mousePos.y - 28;
             for (const fn of functions) {
                 if (!fn.enabled || !fn.expr.trim()) continue;
@@ -90,10 +111,11 @@ export default function GraphingCalc() {
         }
 
         ctx.restore();
-    }, [functions, center, scale, mousePos]);
+    }, [functions, center, scale, mousePos, immersive]);
 
-    // ── Canvas resize ──
+    // ── Canvas resize (standard mode) ──
     useEffect(() => {
+        if (immersive) return;
         const canvas = canvasRef.current;
         const container = containerRef.current;
         if (!canvas || !container) return;
@@ -112,19 +134,22 @@ export default function GraphingCalc() {
         const obs = new ResizeObserver(resize);
         obs.observe(container);
         return () => obs.disconnect();
-    }, [draw]);
+    }, [draw, immersive]);
 
-    // ── Mouse movement for trace ──
+    // ── Mouse + Zoom handlers ──
     const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
         const rect = canvasRef.current?.getBoundingClientRect();
         if (!rect) return;
         setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
     }, []);
 
-    // ── Zoom ──
     const handleWheel = useCallback((e: React.WheelEvent) => {
         e.preventDefault();
         setScale(prev => Math.max(10, Math.min(500, prev * (e.deltaY > 0 ? 0.9 : 1.1))));
+    }, []);
+
+    const handleImmersiveZoom = useCallback((deltaY: number) => {
+        setScale(prev => Math.max(10, Math.min(500, prev * (deltaY > 0 ? 0.9 : 1.1))));
     }, []);
 
     const addFunction = () => {
@@ -186,7 +211,7 @@ export default function GraphingCalc() {
                     )}
                 </div>
 
-                {/* Canvas */}
+                {/* Canvas / Immersive container */}
                 <div
                     ref={containerRef}
                     style={{
@@ -194,15 +219,51 @@ export default function GraphingCalc() {
                         borderRadius: 'var(--radius-md)', overflow: 'hidden',
                         border: '1px solid rgba(88, 196, 221, 0.1)',
                         boxShadow: '0 0 40px rgba(88, 196, 221, 0.03), inset 0 0 60px rgba(15, 17, 23, 0.5)',
+                        position: 'relative',
                     }}
                 >
-                    <canvas
-                        ref={canvasRef}
-                        onMouseMove={handleMouseMove}
-                        onMouseLeave={() => setMousePos(null)}
-                        onWheel={handleWheel}
-                        style={{ display: 'block', cursor: 'crosshair' }}
+                    {/* Immersive Mode Toggle */}
+                    <ImmersiveToggle
+                        active={immersive}
+                        onToggle={handleToggleImmersive}
+                        loading={immersiveLoading}
                     />
+
+                    {/* Standard Canvas 2D renderer */}
+                    {!immersive && (
+                        <canvas
+                            ref={canvasRef}
+                            onMouseMove={handleMouseMove}
+                            onMouseLeave={() => setMousePos(null)}
+                            onWheel={handleWheel}
+                            style={{ display: 'block', cursor: 'crosshair' }}
+                        />
+                    )}
+
+                    {/* Immersive WebGL renderer (lazy loaded) */}
+                    {immersive && (
+                        <Suspense fallback={
+                            <div style={{
+                                width: '100%', height: '100%',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                background: '#0f1117', color: '#58C4DD',
+                                fontSize: '0.9rem', fontFamily: 'var(--font-sans)',
+                            }}>
+                                Loading Immersive Mode...
+                            </div>
+                        }>
+                            <ImmersiveLoadWrapper onLoaded={handleImmersiveLoaded}>
+                                <GraphingCalcImmersive
+                                    functions={functions}
+                                    scale={scale}
+                                    center={center}
+                                    mousePos={mousePos}
+                                    onMouseMove={setMousePos}
+                                    onZoom={handleImmersiveZoom}
+                                />
+                            </ImmersiveLoadWrapper>
+                        </Suspense>
+                    )}
                 </div>
 
                 {/* Legend */}
@@ -217,4 +278,10 @@ export default function GraphingCalc() {
             </div>
         </div>
     );
+}
+
+/** Tiny wrapper that calls onLoaded when the lazy component mounts */
+function ImmersiveLoadWrapper({ children, onLoaded }: { children: React.ReactNode; onLoaded: () => void }) {
+    useEffect(() => { onLoaded(); }, [onLoaded]);
+    return <>{children}</>;
 }
