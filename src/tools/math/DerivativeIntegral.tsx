@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect, useMemo, Suspense } from 'react';
+import React, { useState, useCallback, useRef, useEffect, Suspense } from 'react';
 import { derivative, parse, simplify, compile, type MathNode, type EvalFunction } from 'mathjs';
 
 /* ─── Shared UI Library ─── */
@@ -7,7 +7,7 @@ import SmartMathInput from '../../components/tool/SmartMathInput';
 import MathKeyboard from '../../components/tool/MathKeyboard';
 import ToolLayoutSplit from '../../components/tool/ToolLayoutSplit';
 import { useIsDark } from '../../hooks/useTheme';
-import { toLatex, gridStep, fmtAxis, evalSafe, numDeriv, exprToLatex } from '../../utils/mathHelpers';
+import { toLatex, gridStep, fmtAxis, evalSafe, numDeriv } from '../../utils/mathHelpers';
 
 const Immersive3D = React.lazy(() => import('./Immersive3DMode'));
 

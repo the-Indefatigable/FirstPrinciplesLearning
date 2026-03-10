@@ -1,44 +1,17 @@
-import { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useState, useCallback, useMemo, Suspense } from 'react';
 import * as math from 'mathjs';
-import katex from 'katex';
-import 'katex/dist/katex.min.css';
+
+const Integration3D = React.lazy(() => import('../../components/tool/Integration3DMode'));
+
+/* ─── Shared UI Library ─── */
+import Tex from '../../components/tool/Tex';
+import SmartMathInput from '../../components/tool/SmartMathInput';
+import MathKeyboard from '../../components/tool/MathKeyboard';
+import ToolLayoutSplit from '../../components/tool/ToolLayoutSplit';
+import { useIsDark } from '../../hooks/useTheme';
+import { gridStep, fmtAxis, exprToLatex } from '../../utils/mathHelpers';
 
 type Method = 'left' | 'right' | 'midpoint' | 'trapezoid' | 'simpson';
-
-/* ─── KaTeX renderer ── */
-function Tex({ math: tex, display = false }: { math: string; display?: boolean }) {
-    const ref = useRef<HTMLSpanElement>(null);
-    useEffect(() => {
-        if (!ref.current) return;
-        try { katex.render(tex, ref.current, { displayMode: display, throwOnError: false, trust: true }); }
-        catch { ref.current.textContent = tex; }
-    }, [tex, display]);
-    return <span ref={ref} />;
-}
-
-/* ─── Math keyboard ─── */
-const KB_KEYS = [
-    [
-        { label: 'x', insert: 'x' },
-        { label: '^', insert: '^' },
-        { label: 'sin', insert: 'sin(' },
-        { label: 'cos', insert: 'cos(' },
-        { label: 'tan', insert: 'tan(' },
-        { label: 'ln', insert: 'log(' },
-        { label: 'sqrt', insert: 'sqrt(' },
-    ],
-    [
-        { label: '0', insert: '0' }, { label: '1', insert: '1' }, { label: '2', insert: '2' },
-        { label: '3', insert: '3' }, { label: '4', insert: '4' }, { label: '5', insert: '5' },
-        { label: '6', insert: '6' }, { label: '7', insert: '7' }, { label: '8', insert: '8' },
-        { label: '9', insert: '9' },
-    ],
-    [
-        { label: '+', insert: '+' }, { label: '-', insert: '-' }, { label: '*', insert: '*' },
-        { label: '/', insert: '/' }, { label: '(', insert: '(' }, { label: ')', insert: ')' },
-        { label: '.', insert: '.' }, { label: 'pi', insert: 'pi' },
-    ],
-];
 
 const METHOD_INFO: Record<Method, { name: string; description: string; formula: string }> = {
     left: {
@@ -68,21 +41,309 @@ const METHOD_INFO: Record<Method, { name: string; description: string; formula: 
     },
 };
 
-/* ─── Helpers (matching GraphingCalc) ─── */
-const gridStep = (scale: number): number => {
-    const raw = 60 / scale;
-    const mag = Math.pow(10, Math.floor(Math.log10(raw)));
-    const n = raw / mag;
-    return (n < 2 ? 1 : n < 5 ? 2 : 5) * mag;
-};
-
-const formatAxisValue = (val: number): string => {
-    if (Math.abs(val) < 1e-10) return '0';
-    return Number.isInteger(val) ? String(val) : val.toFixed(1);
-};
-
-export default function IntegrationVisualizer() {
+/* ─── Interactive Canvas Graph (transplanted from DerivativeIntegral) ─── */
+function IntegrationGraph({ fn, a, b, n, method, setApproxArea }: {
+    fn: string; a: number; b: number; n: number; method: Method;
+    setApproxArea: (v: number) => void;
+}) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const viewRef = useRef({ cx: 0, cy: 0, scale: 60 });
+    const isDark = useIsDark();
+
+    // Auto-fit viewport to bounds on mount or when a/b changes
+    useEffect(() => {
+        const pad = (b - a) * 0.4 || 2;
+        const midX = (a + b) / 2;
+        const container = containerRef.current;
+        if (!container) return;
+        const W = container.clientWidth || 600;
+        const newScale = W / ((b - a) + 2 * pad);
+        viewRef.current = { cx: midX, cy: 0, scale: Math.max(10, Math.min(newScale, 200)) };
+    }, [a, b]);
+
+    useEffect(() => {
+        const container = containerRef.current;
+        const canvas = canvasRef.current;
+        if (!container || !canvas) return;
+
+        const paint = () => {
+            const W = container.clientWidth;
+            const H = container.clientHeight;
+            if (W === 0 || H === 0) return;
+            const dpr = window.devicePixelRatio || 1;
+
+            const bw = Math.round(W * dpr), bh = Math.round(H * dpr);
+            if (canvas.width !== bw || canvas.height !== bh) {
+                canvas.width = bw; canvas.height = bh;
+            }
+            const ctx = canvas.getContext('2d')!;
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+            const BG = isDark ? '#0a0a0c' : '#f4f4f5';
+            ctx.fillStyle = BG;
+            ctx.fillRect(0, 0, bw + 2, bh + 2);
+            ctx.scale(dpr, dpr);
+
+            // ── Viewport camera (same as DerivativeIntegral) ──
+            const { cx, cy, scale } = viewRef.current;
+            const xMin = cx - (W / 2) / scale;
+            const xMax = cx + (W / 2) / scale;
+            const yMin = cy - (H / 2) / scale;
+            const yMax = cy + (H / 2) / scale;
+
+            const toSx = (x: number) => (x - xMin) * scale;
+            const toSy = (y: number) => (yMax - y) * scale;
+            const sx = (x: number) => Math.round(toSx(x));
+            const sy = (y: number) => Math.round(toSy(y));
+
+            // ── Compile function ──
+            let compiled: math.EvalFunction;
+            try {
+                compiled = math.compile(fn);
+            } catch {
+                ctx.fillStyle = isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)';
+                ctx.font = '14px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText('Enter a valid expression', W / 2, H / 2);
+                return;
+            }
+
+            const f = (x: number) => {
+                try { return Number(compiled.evaluate({ x, e: Math.E, pi: Math.PI })); }
+                catch { return NaN; }
+            };
+
+            // ── Theme colors ──
+            const GRID = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.08)';
+            const AXIS = isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.3)';
+            const LBL = isDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.5)';
+            const FC = isDark ? '#3b82f6' : '#2563eb';
+            const FILL = isDark ? 'rgba(59,130,246,0.15)' : 'rgba(37,99,235,0.1)';
+            const STROKE = isDark ? 'rgba(59,130,246,0.4)' : 'rgba(37,99,235,0.3)';
+            const BOUND = isDark ? '#10b981' : '#059669';
+
+            // ── Grid ──
+            const step = gridStep(scale);
+            ctx.strokeStyle = GRID; ctx.lineWidth = 1; ctx.setLineDash([]);
+            ctx.beginPath();
+            for (let gx = Math.ceil(xMin / step) * step; gx <= xMax; gx += step) {
+                const px = sx(gx); ctx.moveTo(px, 0); ctx.lineTo(px, H);
+            }
+            for (let gy = Math.ceil(yMin / step) * step; gy <= yMax; gy += step) {
+                const py = sy(gy); ctx.moveTo(0, py); ctx.lineTo(W, py);
+            }
+            ctx.stroke();
+
+            // ── Axes ──
+            ctx.strokeStyle = AXIS; ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            if (yMin <= 0 && yMax >= 0) { const ay = sy(0); ctx.moveTo(0, ay); ctx.lineTo(W, ay); }
+            if (xMin <= 0 && xMax >= 0) { const ax = sx(0); ctx.moveTo(ax, 0); ctx.lineTo(ax, H); }
+            ctx.stroke();
+
+            // ── Axis labels ──
+            ctx.font = '12px system-ui, sans-serif'; ctx.fillStyle = LBL;
+            ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+            for (let gx = Math.ceil(xMin / step) * step; gx <= xMax; gx += step) {
+                if (Math.abs(gx) < 1e-9) continue;
+                const px = toSx(gx); if (px < 22 || px > W - 22) continue;
+                const lblY = (yMin <= 0 && yMax >= 0) ? Math.max(5, Math.min(toSy(0) + 5, H - 20)) : H - 20;
+                ctx.fillText(fmtAxis(gx), px, lblY);
+            }
+            ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+            for (let gy = Math.ceil(yMin / step) * step; gy <= yMax; gy += step) {
+                if (Math.abs(gy) < 1e-9) continue;
+                const py = toSy(gy); if (py < 10 || py > H - 10) continue;
+                const lblX = (xMin <= 0 && xMax >= 0) ? Math.max(25, Math.min(toSx(0) - 6, W - 5)) : 30;
+                ctx.fillText(fmtAxis(gy), lblX, py);
+            }
+
+            // ══════════════════════════════════════════════════════
+            // ══ Integration Shapes (Riemann / Trapezoid / Simpson)
+            // ══════════════════════════════════════════════════════
+            const dx = (b - a) / n;
+            let totalArea = 0;
+            ctx.lineWidth = 1;
+
+            if (method === 'simpson' && n % 2 !== 0) {
+                ctx.fillStyle = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
+                ctx.font = '13px system-ui, sans-serif'; ctx.textAlign = 'center';
+                ctx.fillText("Simpson's rule requires even N", W / 2, 30);
+            } else if (method === 'simpson') {
+                const h = dx;
+                for (let i = 0; i < n; i += 2) {
+                    const x0 = a + i * h;
+                    const x1 = x0 + h;
+                    const x2 = x0 + 2 * h;
+                    const y0 = f(x0), y1 = f(x1), y2 = f(x2);
+                    totalArea += (h / 3) * (y0 + 4 * y1 + y2);
+
+                    ctx.fillStyle = FILL;
+                    ctx.strokeStyle = STROKE;
+                    ctx.beginPath();
+                    ctx.moveTo(toSx(x0), toSy(0));
+                    const steps = 30;
+                    for (let s = 0; s <= steps; s++) {
+                        const t = s / steps;
+                        const xp = x0 + t * 2 * h;
+                        const L0 = ((xp - x1) * (xp - x2)) / ((x0 - x1) * (x0 - x2));
+                        const L1 = ((xp - x0) * (xp - x2)) / ((x1 - x0) * (x1 - x2));
+                        const L2 = ((xp - x0) * (xp - x1)) / ((x2 - x0) * (x2 - x1));
+                        const yp = y0 * L0 + y1 * L1 + y2 * L2;
+                        ctx.lineTo(toSx(xp), toSy(yp));
+                    }
+                    ctx.lineTo(toSx(x2), toSy(0));
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.stroke();
+                }
+            } else {
+                for (let i = 0; i < n; i++) {
+                    const x0 = a + i * dx;
+                    const x1 = x0 + dx;
+
+                    ctx.fillStyle = FILL;
+                    ctx.strokeStyle = STROKE;
+
+                    if (method === 'trapezoid') {
+                        const y0 = f(x0), y1f = f(x1);
+                        totalArea += (y0 + y1f) * dx / 2;
+                        ctx.beginPath();
+                        ctx.moveTo(toSx(x0), toSy(0));
+                        ctx.lineTo(toSx(x0), toSy(y0));
+                        ctx.lineTo(toSx(x1), toSy(y1f));
+                        ctx.lineTo(toSx(x1), toSy(0));
+                        ctx.closePath();
+                        ctx.fill(); ctx.stroke();
+                    } else {
+                        let sampleX = x0;
+                        if (method === 'right') sampleX = x1;
+                        else if (method === 'midpoint') sampleX = (x0 + x1) / 2;
+                        const hv = f(sampleX);
+                        totalArea += hv * dx;
+
+                        const top = Math.min(toSy(hv), toSy(0));
+                        const height = Math.abs(toSy(hv) - toSy(0));
+                        ctx.fillRect(toSx(x0), top, toSx(x1) - toSx(x0), height);
+                        ctx.strokeRect(toSx(x0), top, toSx(x1) - toSx(x0), height);
+
+                        if (method === 'midpoint') {
+                            ctx.beginPath(); ctx.arc(toSx(sampleX), toSy(hv), 3, 0, Math.PI * 2);
+                            ctx.fillStyle = FC; ctx.fill();
+                        }
+                    }
+                }
+            }
+            setApproxArea(Math.round(totalArea * 100000) / 100000);
+
+            // ── Function curve ──
+            ctx.strokeStyle = FC; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.setLineDash([]);
+            ctx.beginPath();
+            let drawing = false;
+            for (let px = 0; px <= W; px++) {
+                const x = xMin + (xMax - xMin) * (px / W);
+                const y = f(x);
+                if (!isFinite(y) || Math.abs(y) > 1e6) { if (drawing) { ctx.stroke(); ctx.beginPath(); } drawing = false; continue; }
+                const py = toSy(y);
+                if (py < -H * 4 || py > H * 5) { if (drawing) { ctx.stroke(); ctx.beginPath(); } drawing = false; continue; }
+                drawing ? ctx.lineTo(px, py) : ctx.moveTo(px, py); drawing = true;
+            }
+            if (drawing) ctx.stroke();
+
+            // ── Bound markers ──
+            ctx.setLineDash([5, 4]);
+            ctx.strokeStyle = BOUND; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.moveTo(toSx(a), 0); ctx.lineTo(toSx(a), H); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(toSx(b), 0); ctx.lineTo(toSx(b), H); ctx.stroke();
+            ctx.setLineDash([]);
+
+            // ── Bound labels ──
+            ctx.font = 'bold 11px system-ui, sans-serif';
+            ctx.fillStyle = BOUND; ctx.textAlign = 'center';
+            ctx.fillText(`a = ${a}`, toSx(a), H - 8);
+            ctx.fillText(`b = ${b}`, toSx(b), H - 8);
+        };
+
+        paint();
+
+        // ── Resize observer ──
+        const ro = new ResizeObserver(() => paint());
+        ro.observe(container);
+
+        // ── Pan & Zoom events (transplanted from DerivativeIntegral) ──
+        const onWheel = (e: WheelEvent) => {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            const { cx, cy, scale } = viewRef.current;
+            const mathX = cx + (mouseX - rect.width / 2) / scale;
+            const mathY = cy - (mouseY - rect.height / 2) / scale;
+
+            const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+            const newScale = Math.max(0.001, Math.min(scale * zoomFactor, 10000));
+
+            const newCx = mathX - (mouseX - rect.width / 2) / newScale;
+            const newCy = mathY + (mouseY - rect.height / 2) / newScale;
+
+            viewRef.current = { cx: newCx, cy: newCy, scale: newScale };
+            paint();
+        };
+
+        let isDragging = false;
+        let lastPan = { x: 0, y: 0 };
+        const onPointerDown = (e: PointerEvent) => {
+            isDragging = true;
+            lastPan = { x: e.clientX, y: e.clientY };
+            canvas.style.cursor = 'grabbing';
+            canvas.setPointerCapture(e.pointerId);
+        };
+        const onPointerMove = (e: PointerEvent) => {
+            if (!isDragging) return;
+            const ddx = e.clientX - lastPan.x;
+            const ddy = e.clientY - lastPan.y;
+            lastPan = { x: e.clientX, y: e.clientY };
+
+            viewRef.current.cx -= ddx / viewRef.current.scale;
+            viewRef.current.cy += ddy / viewRef.current.scale;
+            paint();
+        };
+        const onPointerUp = (e: PointerEvent) => {
+            isDragging = false;
+            canvas.style.cursor = 'grab';
+            canvas.releasePointerCapture(e.pointerId);
+        };
+
+        canvas.addEventListener('wheel', onWheel, { passive: false });
+        canvas.addEventListener('pointerdown', onPointerDown);
+        canvas.addEventListener('pointermove', onPointerMove);
+        canvas.addEventListener('pointerup', onPointerUp);
+        canvas.addEventListener('pointercancel', onPointerUp);
+        canvas.style.cursor = 'grab';
+
+        return () => {
+            ro.disconnect();
+            canvas.removeEventListener('wheel', onWheel);
+            canvas.removeEventListener('pointerdown', onPointerDown);
+            canvas.removeEventListener('pointermove', onPointerMove);
+            canvas.removeEventListener('pointerup', onPointerUp);
+            canvas.removeEventListener('pointercancel', onPointerUp);
+        };
+    }, [fn, a, b, n, method, isDark, setApproxArea]);
+
+    return (
+        <div ref={containerRef} style={{ position: 'relative', width: '100%', height: '100%' }}>
+            <canvas
+                ref={canvasRef}
+                style={{ display: 'block', width: '100%', height: '100%', touchAction: 'none' }}
+            />
+        </div>
+    );
+}
+
+/* ─── Main Component ─── */
+export default function IntegrationVisualizer() {
     const inputRef = useRef<HTMLInputElement>(null);
     const [fn, setFn] = useState('x^2');
     const [a, setA] = useState(0);
@@ -92,16 +353,9 @@ export default function IntegrationVisualizer() {
     const [showKeyboard, setShowKeyboard] = useState(false);
     const [approxArea, setApproxArea] = useState(0);
     const [exactArea, setExactArea] = useState<number | null>(null);
-    const [error, setError] = useState<string | null>(null);
+    const [show3D, setShow3D] = useState(false);
 
-    // Detect theme
-    const [isDark, setIsDark] = useState(() => document.documentElement.getAttribute('data-theme') === 'dark');
-    useEffect(() => {
-        const el = document.documentElement;
-        const obs = new MutationObserver(() => setIsDark(el.getAttribute('data-theme') === 'dark'));
-        obs.observe(el, { attributes: true, attributeFilter: ['data-theme'] });
-        return () => obs.disconnect();
-    }, []);
+    const isDark = useIsDark();
 
     const insertAtCursor = useCallback((text: string) => {
         const input = inputRef.current;
@@ -110,6 +364,17 @@ export default function IntegrationVisualizer() {
         const end = input.selectionEnd ?? fn.length;
         setFn(fn.slice(0, start) + text + fn.slice(end));
         requestAnimationFrame(() => { input.focus(); const pos = start + text.length; input.setSelectionRange(pos, pos); });
+    }, [fn]);
+
+    const handleBackspace = useCallback(() => {
+        const i = inputRef.current;
+        if (i) {
+            const s = i.selectionStart ?? fn.length;
+            if (s > 0) {
+                setFn(fn.slice(0, s - 1) + fn.slice(s));
+                requestAnimationFrame(() => { i.focus(); i.setSelectionRange(s - 1, s - 1); });
+            }
+        }
     }, [fn]);
 
     // Compute exact integral via high-N Simpson's for comparison
@@ -132,478 +397,222 @@ export default function IntegrationVisualizer() {
         }
     }, [fn, a, b]);
 
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-
-        const rect = canvas.parentElement?.getBoundingClientRect();
-        if (!rect) return;
-        const dpr = window.devicePixelRatio || 1;
-        canvas.width = rect.width * dpr;
-        canvas.height = rect.height * dpr;
-        ctx.scale(dpr, dpr);
-        canvas.style.width = `${rect.width}px`;
-        canvas.style.height = `${rect.height}px`;
-
-        const W = rect.width, H = rect.height;
-
-        let compiled: math.EvalFunction;
-        try {
-            compiled = math.compile(fn);
-            setError(null);
-        } catch {
-            setError('Invalid function expression');
-            ctx.fillStyle = isDark ? '#1a1a2e' : '#ffffff';
-            ctx.fillRect(0, 0, W, H);
-            ctx.fillStyle = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
-            ctx.font = '14px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText('Enter a valid function', W / 2, H / 2);
-            return;
-        }
-
-        const f = (x: number) => {
-            try { return Number(compiled.evaluate({ x, e: Math.E, pi: Math.PI })); }
-            catch { return 0; }
-        };
-
-        // Range
-        const pad = (b - a) * 0.3 || 1;
-        const xMin = a - pad, xMax = b + pad;
-        let yMin = Infinity, yMax = -Infinity;
-        for (let i = 0; i <= 300; i++) {
-            const x = xMin + (xMax - xMin) * (i / 300);
-            const y = f(x);
-            if (isFinite(y)) { yMin = Math.min(yMin, y); yMax = Math.max(yMax, y); }
-        }
-        const yPad = (yMax - yMin) * 0.2 || 1;
-        yMin -= yPad; yMax += yPad;
-        if (yMin > 0) yMin = -0.5;
-
-        const toX = (x: number) => ((x - xMin) / (xMax - xMin)) * W;
-        const toY = (y: number) => H - ((y - yMin) / (yMax - yMin)) * H;
-        const scale = W / (xMax - xMin);
-
-        // Theme colors (matching GraphingCalc Lite)
-        const bgColor = isDark ? '#1a1a2e' : '#ffffff';
-        const gridColor = isDark ? '#2a2a3e' : '#e0e0e0';
-        const axisColor = isDark ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.85)';
-        const labelColor = isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.55)';
-        const curveColor = isDark ? '#5b9bd5' : '#2d70b3';
-        const fillColor = isDark ? 'rgba(91,155,213,0.15)' : 'rgba(45,112,179,0.10)';
-        const strokeColor = isDark ? 'rgba(91,155,213,0.4)' : 'rgba(45,112,179,0.3)';
-        const boundColor = isDark ? '#6abf69' : '#388c46';
-
-        // Background
-        ctx.fillStyle = bgColor;
-        ctx.fillRect(0, 0, W, H);
-
-        // Grid
-        const step = gridStep(scale);
-        ctx.strokeStyle = gridColor; ctx.lineWidth = 1;
-        ctx.beginPath();
-        for (let x = Math.ceil(xMin / step) * step; x <= xMax; x += step) {
-            if (Math.abs(x) < 1e-10) continue;
-            const px = Math.round(toX(x)) + 0.5;
-            ctx.moveTo(px, 0); ctx.lineTo(px, H);
-        }
-        for (let y = Math.ceil(yMin / step) * step; y <= yMax; y += step) {
-            if (Math.abs(y) < 1e-10) continue;
-            const py = Math.round(toY(y)) + 0.5;
-            ctx.moveTo(0, py); ctx.lineTo(W, py);
-        }
-        ctx.stroke();
-
-        // Axes
-        ctx.strokeStyle = axisColor; ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        if (yMin <= 0 && yMax >= 0) {
-            const ay = Math.round(toY(0)) + 0.5; ctx.moveTo(0, ay); ctx.lineTo(W, ay);
-        }
-        if (xMin <= 0 && xMax >= 0) {
-            const ax = Math.round(toX(0)) + 0.5; ctx.moveTo(ax, 0); ctx.lineTo(ax, H);
-        }
-        ctx.stroke();
-
-        // Tick marks
-        ctx.strokeStyle = axisColor; ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        const ayPx = yMin <= 0 && yMax >= 0 ? Math.round(toY(0)) + 0.5 : H - 0.5;
-        const axPx = xMin <= 0 && xMax >= 0 ? Math.round(toX(0)) + 0.5 : 0.5;
-        for (let x = Math.ceil(xMin / step) * step; x <= xMax; x += step) {
-            if (Math.abs(x) < 1e-10) continue;
-            const px = Math.round(toX(x)) + 0.5;
-            ctx.moveTo(px, ayPx - 4); ctx.lineTo(px, ayPx + 4);
-        }
-        for (let y = Math.ceil(yMin / step) * step; y <= yMax; y += step) {
-            if (Math.abs(y) < 1e-10) continue;
-            const py = Math.round(toY(y)) + 0.5;
-            ctx.moveTo(axPx - 4, py); ctx.lineTo(axPx + 4, py);
-        }
-        ctx.stroke();
-
-        // Axis labels
-        ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-        ctx.fillStyle = labelColor;
-        ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-        for (let x = Math.ceil(xMin / step) * step; x <= xMax; x += step) {
-            if (Math.abs(x) < 1e-10) continue;
-            const px = toX(x);
-            if (px < 25 || px > W - 25) continue;
-            ctx.fillText(formatAxisValue(x), px, ayPx + 8);
-        }
-        ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
-        for (let y = Math.ceil(yMin / step) * step; y <= yMax; y += step) {
-            if (Math.abs(y) < 1e-10) continue;
-            const py = toY(y);
-            if (py < 12 || py > H - 12) continue;
-            ctx.fillText(formatAxisValue(y), axPx - 8, py);
-        }
-
-        // Shapes
-        const dx = (b - a) / n;
-        let totalArea = 0;
-        ctx.lineWidth = 1;
-
-        if (method === 'simpson' && n % 2 !== 0) {
-            ctx.fillStyle = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
-            ctx.font = '13px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText("Simpson's rule requires even N", W / 2, 30);
-        } else if (method === 'simpson') {
-            const h = dx;
-            for (let i = 0; i < n; i += 2) {
-                const x0 = a + i * h;
-                const x1 = x0 + h;
-                const x2 = x0 + 2 * h;
-                const y0 = f(x0), y1 = f(x1), y2 = f(x2);
-                totalArea += (h / 3) * (y0 + 4 * y1 + y2);
-
-                ctx.fillStyle = fillColor;
-                ctx.strokeStyle = strokeColor;
-                ctx.beginPath();
-                ctx.moveTo(toX(x0), toY(0));
-                const steps = 30;
-                for (let s = 0; s <= steps; s++) {
-                    const t = s / steps;
-                    const xp = x0 + t * 2 * h;
-                    const L0 = ((xp - x1) * (xp - x2)) / ((x0 - x1) * (x0 - x2));
-                    const L1 = ((xp - x0) * (xp - x2)) / ((x1 - x0) * (x1 - x2));
-                    const L2 = ((xp - x0) * (xp - x1)) / ((x2 - x0) * (x2 - x1));
-                    const yp = y0 * L0 + y1 * L1 + y2 * L2;
-                    ctx.lineTo(toX(xp), toY(yp));
-                }
-                ctx.lineTo(toX(x2), toY(0));
-                ctx.closePath();
-                ctx.fill();
-                ctx.stroke();
-            }
-        } else {
-            for (let i = 0; i < n; i++) {
-                const x0 = a + i * dx;
-                const x1 = x0 + dx;
-
-                ctx.fillStyle = fillColor;
-                ctx.strokeStyle = strokeColor;
-
-                if (method === 'trapezoid') {
-                    const y0 = f(x0), y1 = f(x1);
-                    totalArea += (y0 + y1) * dx / 2;
-                    ctx.beginPath();
-                    ctx.moveTo(toX(x0), toY(0));
-                    ctx.lineTo(toX(x0), toY(y0));
-                    ctx.lineTo(toX(x1), toY(y1));
-                    ctx.lineTo(toX(x1), toY(0));
-                    ctx.closePath();
-                    ctx.fill(); ctx.stroke();
-                } else {
-                    let sampleX = x0;
-                    if (method === 'right') sampleX = x1;
-                    else if (method === 'midpoint') sampleX = (x0 + x1) / 2;
-                    const h = f(sampleX);
-                    totalArea += h * dx;
-
-                    const top = Math.min(toY(h), toY(0));
-                    const height = Math.abs(toY(h) - toY(0));
-                    ctx.fillRect(toX(x0), top, toX(x1) - toX(x0), height);
-                    ctx.strokeRect(toX(x0), top, toX(x1) - toX(x0), height);
-
-                    if (method === 'midpoint') {
-                        ctx.beginPath(); ctx.arc(toX(sampleX), toY(h), 3, 0, Math.PI * 2);
-                        ctx.fillStyle = curveColor; ctx.fill();
-                    }
-                }
-            }
-        }
-        setApproxArea(Math.round(totalArea * 100000) / 100000);
-
-        // Function curve — solid clean line
-        ctx.strokeStyle = curveColor; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-        ctx.beginPath();
-        let drawing = false;
-        for (let i = 0; i <= 600; i++) {
-            const x = xMin + (xMax - xMin) * (i / 600);
-            const y = f(x);
-            if (!isFinite(y) || Math.abs(y) > 1e6) { if (drawing) { ctx.stroke(); ctx.beginPath(); } drawing = false; continue; }
-            const px = toX(x), py = toY(y);
-            if (!drawing) { ctx.moveTo(px, py); drawing = true; } else ctx.lineTo(px, py);
-        }
-        if (drawing) ctx.stroke();
-
-        // Bound markers
-        ctx.setLineDash([5, 4]);
-        ctx.strokeStyle = boundColor;
-        ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.moveTo(toX(a), 0); ctx.lineTo(toX(a), H); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(toX(b), 0); ctx.lineTo(toX(b), H); ctx.stroke();
-        ctx.setLineDash([]);
-
-        // Bound labels
-        ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-        ctx.fillStyle = boundColor;
-        ctx.textAlign = 'center';
-        ctx.fillText(`a = ${a}`, toX(a), H - 8);
-        ctx.fillText(`b = ${b}`, toX(b), H - 8);
-
-    }, [fn, a, b, n, method, isDark]);
-
     const errorPct = exactArea && exactArea !== 0
         ? Math.abs(((approxArea - exactArea) / exactArea) * 100).toFixed(2)
         : null;
 
-    const fnLatex = (() => {
-        try { return math.parse(fn).toTex({ parenthesis: 'auto', implicit: 'hide' }); }
-        catch { return fn; }
-    })();
-
+    const fnLatex = useMemo(() => exprToLatex(fn), [fn]);
     const info = METHOD_INFO[method];
 
+    const borderC = isDark ? '#27272a' : '#e4e4e7';
+    const textDim = isDark ? '#9ca3af' : '#6b7280';
+    const textPrimary = isDark ? '#ffffff' : '#000000';
+    const inputBg = isDark ? '#18181b' : '#f3f4f6';
+    const amber = '#d97706';
+    const amberGlow = isDark ? 'rgba(217,119,6,0.1)' : 'rgba(217,119,6,0.08)';
+    const sageBg = isDark ? 'rgba(16,185,129,0.08)' : 'rgba(16,185,129,0.06)';
+
+    const sidebar = (
+        <>
+            {/* ── Integral display ── */}
+            <div style={{
+                textAlign: 'center', padding: '16px 20px',
+                background: inputBg, borderRadius: 10,
+                fontSize: '1.3rem', border: `1px solid ${borderC}`,
+            }}>
+                <Tex math={`\\int_{${a}}^{${b}} ${fnLatex} \\, dx`} display />
+            </div>
+
+            {/* ── Function input ── */}
+            <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', color: textDim }}>
+                f(x)
+            </div>
+
+            <SmartMathInput
+                value={fn}
+                onChange={setFn}
+                variable="x"
+                isDark={isDark}
+                placeholder="e.g. x^2, sin(x), exp(-x^2)"
+            />
+
+            <button onClick={() => setShowKeyboard(k => !k)} style={{
+                background: showKeyboard ? amberGlow : 'transparent', color: showKeyboard ? amber : textDim,
+                border: `1px solid ${borderC}`, borderRadius: 7, padding: '8px 10px',
+                fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', fontFamily: 'system-ui',
+                width: '100%', letterSpacing: 0.3, transition: 'all 0.1s'
+            }}>
+                {showKeyboard ? '✕ Hide keyboard' : '⌨ Math keyboard'}
+            </button>
+
+            {showKeyboard && (
+                <MathKeyboard
+                    onInsert={insertAtCursor}
+                    onBackspace={handleBackspace}
+                    onClear={() => setFn('')}
+                    isDark={isDark}
+                />
+            )}
+
+            {/* ── Controls ── */}
+            <div style={{ display: 'flex', gap: 12 }}>
+                {[
+                    { label: 'Lower bound (a)', el: <input type="number" value={a} onChange={e => setA(+e.target.value)} style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: `1px solid ${borderC}`, background: inputBg, color: textPrimary, fontSize: '0.9rem', outline: 'none' }} /> },
+                    { label: 'Upper bound (b)', el: <input type="number" value={b} onChange={e => setB(+e.target.value)} style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: `1px solid ${borderC}`, background: inputBg, color: textPrimary, fontSize: '0.9rem', outline: 'none' }} /> },
+                ].map(({ label, el }) => (
+                    <div key={label} style={{ flex: 1 }}>
+                        <div style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: textDim, marginBottom: 6 }}>{label}</div>
+                        {el}
+                    </div>
+                ))}
+            </div>
+
+            <div>
+                <div style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: textDim, marginBottom: 6 }}>Method</div>
+                <select value={method} onChange={e => setMethod(e.target.value as Method)} style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: `1px solid ${borderC}`, background: inputBg, color: textPrimary, fontSize: '0.9rem', outline: 'none' }}>
+                    <option value="left">Left Riemann</option>
+                    <option value="right">Right Riemann</option>
+                    <option value="midpoint">Midpoint Rule</option>
+                    <option value="trapezoid">Trapezoidal Rule</option>
+                    <option value="simpson">Simpson's Rule</option>
+                </select>
+            </div>
+
+            {/* ── N slider ── */}
+            <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <span style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: textDim }}>
+                        Subdivisions
+                    </span>
+                    <span style={{
+                        background: amberGlow, color: amber,
+                        padding: '2px 10px', borderRadius: 6,
+                        fontWeight: 700, fontSize: '0.85rem', fontFamily: 'monospace',
+                        border: '1px solid rgba(217,119,6,0.2)',
+                    }}>
+                        N = {n}
+                    </span>
+                </div>
+                <input
+                    type="range" min={1} max={100} value={n}
+                    onChange={e => setN(+e.target.value)}
+                    style={{ width: '100%', accentColor: amber }}
+                />
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: textDim }}>
+                    <span>1</span><span>100</span>
+                </div>
+            </div>
+
+            {/* ── Method info card ── */}
+            <div style={{
+                padding: '14px 18px',
+                background: inputBg, borderRadius: 10,
+                border: `1px solid ${borderC}`,
+            }}>
+                <div style={{ fontSize: '0.85rem', fontWeight: 700, color: textPrimary, marginBottom: 4 }}>
+                    {info.name}
+                </div>
+                <div style={{ fontSize: '0.82rem', color: textDim, marginBottom: 8 }}>
+                    {info.description}
+                </div>
+                <Tex math={info.formula} />
+            </div>
+
+            {/* ── Results ── */}
+            <div style={{
+                padding: '16px', background: amberGlow,
+                border: '1px solid rgba(217,119,6,0.3)',
+                borderRadius: 10,
+            }}>
+                <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: amber, marginBottom: 10 }}>Approximate Area</div>
+                <div style={{ fontSize: '1.2rem', fontWeight: 700, fontFamily: 'monospace', color: textPrimary }}>
+                    {approxArea}
+                </div>
+            </div>
+
+            {exactArea !== null && (
+                <>
+                    <div style={{
+                        padding: '16px', background: sageBg,
+                        border: '1px solid rgba(16,185,129,0.3)',
+                        borderRadius: 10,
+                    }}>
+                        <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: isDark ? '#10b981' : '#059669', marginBottom: 10 }}>Exact (numerical)</div>
+                        <div style={{ fontSize: '1.2rem', fontWeight: 700, fontFamily: 'monospace', color: textPrimary }}>
+                            {exactArea}
+                        </div>
+                    </div>
+
+                    <div style={{
+                        padding: '16px', background: inputBg,
+                        border: `1px solid ${borderC}`,
+                        borderRadius: 10,
+                    }}>
+                        <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: textDim, marginBottom: 10 }}>Error</div>
+                        <div style={{
+                            fontSize: '1.2rem', fontWeight: 700, fontFamily: 'monospace',
+                            color: errorPct && Number(errorPct) < 1 ? (isDark ? '#10b981' : '#059669') : '#ef4444',
+                        }}>
+                            {errorPct ? `${errorPct}%` : '--'}
+                        </div>
+                    </div>
+                </>
+            )}
+
+            {/* ── Δx info ── */}
+            <div style={{
+                padding: '12px 16px', fontSize: '0.82rem',
+                color: textDim, lineHeight: 1.6,
+                background: inputBg, borderRadius: 8,
+                border: `1px solid ${borderC}`,
+            }}>
+                <Tex math={`\\Delta x = \\frac{b - a}{N} = \\frac{${b} - ${a}}{${n}} = ${Math.round(((b - a) / n) * 10000) / 10000}`} />
+                <span style={{ margin: '0 12px', color: textDim }}>|</span>
+                Increase N to improve accuracy.
+            </div>
+
+            {/* ── 3D Immersive button ── */}
+            <button onClick={() => setShow3D(true)} style={{
+                width: '100%', padding: '10px 14px', marginTop: 4,
+                border: `1px solid ${isDark ? 'rgba(0,221,255,0.25)' : 'rgba(0,100,200,0.2)'}`,
+                borderRadius: 8,
+                background: isDark ? 'rgba(0,221,255,0.06)' : 'rgba(0,100,200,0.04)',
+                color: isDark ? '#00ddff' : '#0066cc',
+                fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer',
+                fontFamily: 'system-ui', letterSpacing: 0.3, transition: 'all 0.15s',
+            }}>
+                🌌 Immersive 3D
+            </button>
+        </>
+    );
+
+    const canvas = (
+        <>
+            <IntegrationGraph
+                fn={fn} a={a} b={b} n={n} method={method}
+                setApproxArea={setApproxArea}
+            />
+
+            {show3D && (
+                <Suspense fallback={
+                    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#050510', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(245,158,11,0.6)', fontSize: '1rem', letterSpacing: 2 }}>
+                        Loading 3D…
+                    </div>
+                }>
+                    <Integration3D
+                        expr={fn} variable="x"
+                        lowerBound={a} upperBound={b}
+                        subdivisions={n} method={method}
+                        onClose={() => setShow3D(false)}
+                    />
+                </Suspense>
+            )}
+        </>
+    );
+
     return (
-        <div className="tool-card" style={{ maxWidth: 900, margin: '0 auto' }}>
-            <div className="tool-card-header">
-                <h3>Integration Visualizer</h3>
-                <span className="subject-topic" style={{ background: 'var(--amber-soft)', color: 'var(--amber)' }}>
-                    Calculus
-                </span>
-            </div>
-            <div className="tool-card-body">
-                {/* ── Integral display ── */}
-                <div style={{
-                    textAlign: 'center',
-                    padding: '16px 20px',
-                    background: 'var(--bg-secondary)',
-                    borderRadius: 'var(--radius-md)',
-                    marginBottom: 20,
-                    fontSize: '1.3rem',
-                }}>
-                    <Tex math={`\\int_{${a}}^{${b}} ${fnLatex} \\, dx`} display />
-                </div>
-
-                {/* ── Input row ── */}
-                <div style={{ marginBottom: 16 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                        <label style={{
-                            fontSize: '0.82rem', fontWeight: 600, textTransform: 'uppercase',
-                            letterSpacing: 0.8, color: 'var(--text-dim)',
-                        }}>
-                            f(x)
-                        </label>
-                        <button
-                            onClick={() => setShowKeyboard(k => !k)}
-                            style={{
-                                background: showKeyboard ? 'var(--amber)' : 'var(--bg-secondary)',
-                                color: showKeyboard ? '#fff' : 'var(--text-secondary)',
-                                border: '1px solid var(--border-warm)',
-                                borderRadius: 'var(--radius-sm)',
-                                padding: '4px 12px',
-                                fontSize: '0.78rem',
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                transition: 'all 0.2s',
-                            }}
-                        >
-                            {showKeyboard ? 'Hide Keyboard' : 'Math Keyboard'}
-                        </button>
-                    </div>
-                    <input
-                        ref={inputRef}
-                        className="tool-input"
-                        value={fn}
-                        onChange={e => setFn(e.target.value)}
-                        placeholder="e.g. x^2, sin(x), exp(-x^2)"
-                        style={{ fontFamily: 'monospace', fontSize: '0.95rem' }}
-                    />
-                    {error && (
-                        <div style={{ color: 'var(--terracotta)', fontSize: '0.8rem', marginTop: 4 }}>
-                            {error}
-                        </div>
-                    )}
-                </div>
-
-                {/* ── Math Keyboard ── */}
-                {showKeyboard && (
-                    <div style={{
-                        marginBottom: 16, padding: 10, background: 'var(--bg-secondary)',
-                        borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-warm)',
-                    }}>
-                        {KB_KEYS.map((row, ri) => (
-                            <div key={ri} style={{ display: 'flex', gap: 5, marginBottom: ri < KB_KEYS.length - 1 ? 5 : 0, justifyContent: 'center', flexWrap: 'wrap' }}>
-                                {row.map(k => (
-                                    <button
-                                        key={k.label}
-                                        onClick={() => insertAtCursor(k.insert)}
-                                        onMouseDown={e => e.preventDefault()}
-                                        style={{
-                                            padding: '8px 6px', minWidth: 40, border: '1px solid var(--border-warm)',
-                                            borderRadius: 'var(--radius-sm)', background: 'var(--bg-card)',
-                                            color: 'var(--text-primary)', fontSize: '0.83rem', fontWeight: 600,
-                                            cursor: 'pointer', fontFamily: 'var(--font-sans)',
-                                        }}
-                                    >
-                                        {k.label}
-                                    </button>
-                                ))}
-                            </div>
-                        ))}
-                    </div>
-                )}
-
-                {/* ── Controls ── */}
-                <div className="tool-controls-row tool-controls-row--3" style={{ marginBottom: 16 }}>
-                    <div className="tool-input-group">
-                        <label>Lower bound (a)</label>
-                        <input className="tool-input" type="number" value={a} onChange={e => setA(+e.target.value)} />
-                    </div>
-                    <div className="tool-input-group">
-                        <label>Upper bound (b)</label>
-                        <input className="tool-input" type="number" value={b} onChange={e => setB(+e.target.value)} />
-                    </div>
-                    <div className="tool-input-group">
-                        <label>Method</label>
-                        <select className="tool-input" value={method} onChange={e => setMethod(e.target.value as Method)}>
-                            <option value="left">Left Riemann</option>
-                            <option value="right">Right Riemann</option>
-                            <option value="midpoint">Midpoint Rule</option>
-                            <option value="trapezoid">Trapezoidal Rule</option>
-                            <option value="simpson">Simpson's Rule</option>
-                        </select>
-                    </div>
-                </div>
-
-                {/* ── N slider ── */}
-                <div style={{ marginBottom: 20 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                        <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                            Subdivisions
-                        </label>
-                        <span style={{
-                            background: 'var(--amber-soft)', color: 'var(--amber)',
-                            padding: '2px 10px', borderRadius: 'var(--radius-sm)',
-                            fontWeight: 700, fontSize: '0.9rem', fontFamily: 'monospace',
-                        }}>
-                            N = {n}
-                        </span>
-                    </div>
-                    <input
-                        type="range" min={1} max={100} value={n}
-                        onChange={e => setN(+e.target.value)}
-                        style={{ width: '100%', accentColor: 'var(--amber)' }}
-                    />
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-light)' }}>
-                        <span>1</span><span>100</span>
-                    </div>
-                </div>
-
-                {/* ── Method info card ── */}
-                <div style={{
-                    padding: '14px 18px', marginBottom: 20,
-                    background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)',
-                    border: '1px solid var(--border-light)',
-                }}>
-                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>
-                        {info.name}
-                    </div>
-                    <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: 8 }}>
-                        {info.description}
-                    </div>
-                    <Tex math={info.formula} />
-                </div>
-
-                {/* ── Results row ── */}
-                <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: exactArea !== null ? '1fr 1fr 1fr' : '1fr',
-                    gap: 12,
-                    marginBottom: 20,
-                }}>
-                    <div style={{
-                        padding: '14px 18px', background: 'linear-gradient(135deg, rgba(217,119,6,0.08), rgba(217,119,6,0.15))',
-                        borderRadius: 'var(--radius-md)', border: '1px solid rgba(217,119,6,0.2)',
-                        textAlign: 'center',
-                    }}>
-                        <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--amber)', marginBottom: 6 }}>
-                            Approximate Area
-                        </div>
-                        <div style={{ fontSize: '1.2rem', fontWeight: 700, fontFamily: 'monospace', color: 'var(--text-primary)' }}>
-                            {approxArea}
-                        </div>
-                    </div>
-
-                    {exactArea !== null && (
-                        <>
-                            <div style={{
-                                padding: '14px 18px', background: 'linear-gradient(135deg, rgba(107,143,113,0.08), rgba(107,143,113,0.15))',
-                                borderRadius: 'var(--radius-md)', border: '1px solid rgba(107,143,113,0.2)',
-                                textAlign: 'center',
-                            }}>
-                                <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--sage)', marginBottom: 6 }}>
-                                    Exact (numerical)
-                                </div>
-                                <div style={{ fontSize: '1.2rem', fontWeight: 700, fontFamily: 'monospace', color: 'var(--text-primary)' }}>
-                                    {exactArea}
-                                </div>
-                            </div>
-                            <div style={{
-                                padding: '14px 18px', background: 'var(--bg-secondary)',
-                                borderRadius: 'var(--radius-md)', border: '1px solid var(--border-warm)',
-                                textAlign: 'center',
-                            }}>
-                                <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--text-dim)', marginBottom: 6 }}>
-                                    Error
-                                </div>
-                                <div style={{
-                                    fontSize: '1.2rem', fontWeight: 700, fontFamily: 'monospace',
-                                    color: errorPct && Number(errorPct) < 1 ? 'var(--sage)' : 'var(--terracotta)',
-                                }}>
-                                    {errorPct ? `${errorPct}%` : '--'}
-                                </div>
-                            </div>
-                        </>
-                    )}
-                </div>
-
-                {/* ── Canvas ── */}
-                <div style={{
-                    width: '100%', aspectRatio: '16/9', minHeight: 250,
-                    background: 'var(--bg-card)', border: '1px solid var(--border-warm)',
-                    borderRadius: 'var(--radius-md)', overflow: 'hidden',
-                }}>
-                    <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: '100%' }} />
-                </div>
-
-                {/* ── Explanation ── */}
-                <div style={{
-                    marginTop: 16, padding: '12px 16px', fontSize: '0.82rem',
-                    color: 'var(--text-secondary)', lineHeight: 1.6,
-                    background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)',
-                }}>
-                    <Tex math={`\\Delta x = \\frac{b - a}{N} = \\frac{${b} - ${a}}{${n}} = ${Math.round(((b - a) / n) * 10000) / 10000}`} />
-                    <span style={{ margin: '0 12px', color: 'var(--text-light)' }}>|</span>
-                    Increase N to improve accuracy. The error decreases as subdivisions increase.
-                </div>
-            </div>
-        </div>
+        <ToolLayoutSplit>
+            {[sidebar, canvas]}
+        </ToolLayoutSplit>
     );
 }

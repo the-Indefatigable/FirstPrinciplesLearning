@@ -48,7 +48,7 @@ function createTextSprite(text: string): THREE.Sprite {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(text, 64, 32);
-    
+
     const tex = new THREE.CanvasTexture(canvas);
     const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
     const sprite = new THREE.Sprite(mat);
@@ -71,18 +71,18 @@ function buildLine(points: number[], color: number, linewidth = 4, dashed = fals
     return line;
 }
 
-export default function Immersive3DMode({ expr, mode, variable, onClose }: Immersive3DProps) {
+export default function Immersive3DMode({ expr, mode: _mode, variable, onClose }: Immersive3DProps) {
     const mountRef = useRef<HTMLDivElement>(null);
     const labelFRef = useRef<HTMLDivElement>(null);
     const labelDRef = useRef<HTMLDivElement>(null);
-    
+
     // UI State
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
     const [isFinished, setIsFinished] = useState(false);
     const [isAutoTracking, setIsAutoTracking] = useState(true); // NEW: Tracks camera mode
-    
+
     // Mutable refs for the animation loop
     const stateRef = useRef({ time: 0, paused: false, finished: false, autoTracking: true });
 
@@ -91,7 +91,7 @@ export default function Immersive3DMode({ expr, mode, variable, onClose }: Immer
         if (!container) return;
 
         let compiled: EvalFunction;
-        try { compiled = compile(expr); } 
+        try { compiled = compile(expr); }
         catch { setError(true); setLoading(false); return; }
 
         const w = window.innerWidth, h = window.innerHeight;
@@ -109,7 +109,7 @@ export default function Immersive3DMode({ expr, mode, variable, onClose }: Immer
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
-        
+
         // Disable auto-tracking when user interacts, BUT do not pause the math!
         controls.addEventListener('start', () => {
             if (stateRef.current.autoTracking) {
@@ -140,20 +140,20 @@ export default function Immersive3DMode({ expr, mode, variable, onClose }: Immer
         }
 
         // ── Math Calculations ──
-        const SAMPLES = 1000; 
+        const SAMPLES = 1000;
         const xMin = -10, xMax = 10;
         const fPoints: number[] = [];
         const dPoints: number[] = [];
-        let maxY = 0; 
+        let maxY = 0;
 
         for (let i = 0; i <= SAMPLES; i++) {
             const x = xMin + (xMax - xMin) * (i / SAMPLES);
             const y = evalSafe(compiled, x, variable);
             const dy = numDeriv(compiled, x, variable);
-            
+
             const clampedY = isFinite(y) ? Math.max(-30, Math.min(30, y)) : 0;
             const clampedDy = isFinite(dy) ? Math.max(-30, Math.min(30, dy)) : 0;
-            
+
             if (Math.abs(x) < 8) maxY = Math.max(maxY, Math.abs(clampedY), Math.abs(clampedDy));
 
             fPoints.push(x, clampedY, 0);
@@ -164,7 +164,7 @@ export default function Immersive3DMode({ expr, mode, variable, onClose }: Immer
         scene.add(fCurve);
 
         const dCurveGeo = new LineGeometry();
-        dCurveGeo.setPositions([xMin, 0, 0, xMin, 0, 0]); 
+        dCurveGeo.setPositions([xMin, 0, 0, xMin, 0, 0]);
         const dCurveMat = new LineMaterial({ color: COLORS.deriv, linewidth: 5, resolution: new THREE.Vector2(w, h) });
         const dCurve = new Line2(dCurveGeo, dCurveMat);
         scene.add(dCurve);
@@ -176,7 +176,7 @@ export default function Immersive3DMode({ expr, mode, variable, onClose }: Immer
         scene.add(tangentLine);
 
         const tracerGeo = new LineGeometry();
-        tracerGeo.setPositions([0,0,0, 0,0,0]);
+        tracerGeo.setPositions([0, 0, 0, 0, 0, 0]);
         const tracerMat = new LineMaterial({ color: COLORS.tracer, linewidth: 1.5, dashed: true, resolution: new THREE.Vector2(w, h), transparent: true, opacity: 0.5 });
         const tracerLine = new Line2(tracerGeo, tracerMat);
         scene.add(tracerLine);
@@ -246,15 +246,15 @@ export default function Immersive3DMode({ expr, mode, variable, onClose }: Immer
 
                 // Smart Drone Camera (Only runs if AutoTracking is ON)
                 if (stateRef.current.autoTracking) {
-                    const targetCamX = sweepX * 0.4; 
-                    const targetCamY = (clampedFY + clampedSlope) / 4; 
-                    const targetCamZ = Math.max(25, Math.min(maxY * 1.5, 45)); 
-                    
+                    const targetCamX = sweepX * 0.4;
+                    const targetCamY = (clampedFY + clampedSlope) / 4;
+                    const targetCamZ = Math.max(25, Math.min(maxY * 1.5, 45));
+
                     camera.position.lerp(new THREE.Vector3(targetCamX, targetCamY, targetCamZ), 0.04);
                     controls.target.lerp(new THREE.Vector3(targetCamX, targetCamY, 0), 0.04);
                 }
 
-                const projectLabel = (mesh: THREE.Mesh, ref: React.RefObject<HTMLDivElement>) => {
+                const projectLabel = (mesh: THREE.Mesh, ref: React.RefObject<HTMLDivElement | null>) => {
                     if (!ref.current) return;
                     const vector = new THREE.Vector3();
                     mesh.getWorldPosition(vector);
@@ -267,7 +267,7 @@ export default function Immersive3DMode({ expr, mode, variable, onClose }: Immer
 
                 projectLabel(fDot, labelFRef);
                 projectLabel(dDot, labelDRef);
-                
+
                 if (labelFRef.current) labelFRef.current.innerHTML = `<span style="color:#0ea5e9">f(${sweepX.toFixed(1)})</span> = <b style="color:#fff">${fY.toFixed(2)}</b>`;
                 if (labelDRef.current) labelDRef.current.innerHTML = `Slope = <b style="color:#10b981">${slope.toFixed(2)}</b>`;
             }
@@ -282,7 +282,7 @@ export default function Immersive3DMode({ expr, mode, variable, onClose }: Immer
             camera.aspect = width / height;
             camera.updateProjectionMatrix();
             renderer.setSize(width, height);
-            
+
             const res = new THREE.Vector2(width, height);
             (fCurve.material as LineMaterial).resolution = res;
             (dCurve.material as LineMaterial).resolution = res;
@@ -342,7 +342,7 @@ export default function Immersive3DMode({ expr, mode, variable, onClose }: Immer
                 padding: '6px 10px', fontSize: '0.85rem', fontFamily: 'monospace',
                 pointerEvents: 'none', whiteSpace: 'nowrap',
             }} />
-            
+
             <div ref={labelDRef} style={{
                 position: 'absolute', top: 0, left: 0,
                 background: 'rgba(0,0,0,0.85)', border: '1px solid #10b981', borderRadius: 6,
@@ -370,7 +370,7 @@ export default function Immersive3DMode({ expr, mode, variable, onClose }: Immer
             {!loading && (
                 <div style={{
                     position: 'absolute', bottom: 32, left: '50%', transform: 'translateX(-50%)',
-                    display: 'flex', gap: 12, background: 'rgba(0,0,0,0.8)', padding: '8px', 
+                    display: 'flex', gap: 12, background: 'rgba(0,0,0,0.8)', padding: '8px',
                     borderRadius: 12, border: '1px solid #27272a', backdropFilter: 'blur(8px)'
                 }}>
                     <button onClick={isFinished ? handleReplay : handleTogglePause} style={{
@@ -385,7 +385,7 @@ export default function Immersive3DMode({ expr, mode, variable, onClose }: Immer
                     <button onClick={handleToggleTracking} style={{
                         padding: '10px 24px', borderRadius: 8, border: '1px solid #3f3f46',
                         background: isAutoTracking ? '#1e1e24' : 'transparent',
-                        color: isAutoTracking ? '#0ea5e9' : '#a1a1aa', 
+                        color: isAutoTracking ? '#0ea5e9' : '#a1a1aa',
                         fontSize: '0.9rem', fontWeight: 600, cursor: 'pointer',
                         fontFamily: 'system-ui', minWidth: 160, transition: 'all 0.2s'
                     }}>
