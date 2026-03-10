@@ -109,12 +109,6 @@ export default function GraphingCalc() {
         return () => obs.disconnect();
     }, [draw]);
 
-    const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-        const rect = canvasRef.current?.getBoundingClientRect();
-        if (!rect) return;
-        setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
-    }, []);
-
     const handleWheel = useCallback((e: React.WheelEvent) => {
         e.preventDefault();
         setScale(prev => Math.max(10, Math.min(500, prev * (e.deltaY > 0 ? 0.9 : 1.1))));
