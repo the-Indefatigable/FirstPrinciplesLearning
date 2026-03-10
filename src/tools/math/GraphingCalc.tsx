@@ -1,14 +1,9 @@
-import { useRef, useEffect, useState, useCallback, lazy, Suspense } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import { compile } from 'mathjs';
 import {
     MANIM, drawScene, drawGlowCurve, drawCrosshair, drawLabel,
     drawGlowDot, type CurvePoint
 } from '../../utils/manimCanvas';
-import ImmersiveToggle from '../../components/ImmersiveToggle';
-import '../../components/ImmersiveToggle.css';
-
-// Lazy-load the WebGL immersive renderer — only downloaded when user activates it
-const GraphingCalcImmersive = lazy(() => import('./GraphingCalcImmersive'));
 
 interface FnEntry { expr: string; color: string; enabled: boolean; }
 
@@ -23,27 +18,7 @@ export default function GraphingCalc() {
     const [scale, setScale] = useState(50);
     const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
 
-    // Immersive mode state
-    const [immersive, setImmersive] = useState(false);
-    const [immersiveLoading, setImmersiveLoading] = useState(false);
-
-    const handleToggleImmersive = useCallback(() => {
-        if (!immersive) {
-            setImmersiveLoading(true);
-            // The lazy import will resolve, then we switch
-            setImmersive(true);
-        } else {
-            setImmersive(false);
-        }
-    }, [immersive]);
-
-    const handleImmersiveLoaded = useCallback(() => {
-        setImmersiveLoading(false);
-    }, []);
-
-    // ── Canvas 2D Drawing (standard mode) ──
     const draw = useCallback(() => {
-        if (immersive) return; // Skip when in immersive mode
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
@@ -111,11 +86,9 @@ export default function GraphingCalc() {
         }
 
         ctx.restore();
-    }, [functions, center, scale, mousePos, immersive]);
+    }, [functions, center, scale, mousePos]);
 
-    // ── Canvas resize (standard mode) ──
     useEffect(() => {
-        if (immersive) return;
         const canvas = canvasRef.current;
         const container = containerRef.current;
         if (!canvas || !container) return;
@@ -134,9 +107,8 @@ export default function GraphingCalc() {
         const obs = new ResizeObserver(resize);
         obs.observe(container);
         return () => obs.disconnect();
-    }, [draw, immersive]);
+    }, [draw]);
 
-    // ── Mouse + Zoom handlers ──
     const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
         const rect = canvasRef.current?.getBoundingClientRect();
         if (!rect) return;
@@ -148,140 +120,85 @@ export default function GraphingCalc() {
         setScale(prev => Math.max(10, Math.min(500, prev * (e.deltaY > 0 ? 0.9 : 1.1))));
     }, []);
 
-    const handleImmersiveZoom = useCallback((deltaY: number) => {
-        setScale(prev => Math.max(10, Math.min(500, prev * (deltaY > 0 ? 0.9 : 1.1))));
-    }, []);
-
     const addFunction = () => {
-        if (functions.length >= 7) return;
+        if (functions.length >= 5) return;
         setFunctions(prev => [...prev, { expr: '', color: MANIM.palette[prev.length % 7], enabled: true }]);
     };
 
     const removeFunction = (i: number) => {
+        if (functions.length <= 1) return;
         setFunctions(prev => prev.filter((_, idx) => idx !== i));
     };
 
     return (
-        <div className="tool-card graphing-calc">
-            <div className="tool-card-header">
-                <h3>Graphing Calculator</h3>
-                <span className="subject-topic" style={{ background: 'var(--amber-soft)', color: 'var(--amber)' }}>y = f(x)</span>
-            </div>
+        <div className="graphing-calc">
+            {/* Sidebar */}
+            <div className="graphing-calc-sidebar">
+                <div className="graphing-calc-sidebar-header">
+                    <span style={{ fontSize: '0.78rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-dim)' }}>
+                        Functions
+                    </span>
+                    <button className="tool-btn tool-btn--outline" onClick={addFunction}
+                        style={{ fontSize: '0.78rem', padding: '4px 12px' }}
+                        disabled={functions.length >= 5}>
+                        + Add
+                    </button>
+                </div>
 
-            <div className="tool-card-body">
-                {/* Function inputs */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+                <div className="graphing-calc-fn-list">
                     {functions.map((fn, i) => (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <div style={{
-                                width: 12, height: 12, borderRadius: '50%',
-                                background: fn.color, flexShrink: 0,
-                                boxShadow: `0 0 8px ${fn.color}44`,
-                                cursor: 'pointer', opacity: fn.enabled ? 1 : 0.3,
-                            }} onClick={() => {
-                                const next = [...functions];
-                                next[i] = { ...next[i], enabled: !next[i].enabled };
-                                setFunctions(next);
-                            }} title="Toggle" />
+                        <div key={i} className="graphing-calc-fn-row">
+                            <div className="graphing-calc-color-dot" style={{ background: fn.color }} />
                             <input
-                                type="text" className="tool-input"
-                                value={fn.expr} placeholder={`f${i + 1}(x) = ...`}
-                                style={{ fontFamily: '"JetBrains Mono", "SF Mono", monospace', fontSize: '0.88rem' }}
+                                className="tool-input graphing-calc-input"
+                                value={fn.expr}
                                 onChange={e => {
                                     const next = [...functions];
                                     next[i] = { ...next[i], expr: e.target.value };
                                     setFunctions(next);
                                 }}
+                                placeholder={`f${i + 1}(x) = e.g. x^2, sin(x)`}
                             />
+                            <button
+                                className="graphing-calc-toggle"
+                                onClick={() => {
+                                    const next = [...functions];
+                                    next[i] = { ...next[i], enabled: !next[i].enabled };
+                                    setFunctions(next);
+                                }}
+                                title={fn.enabled ? 'Hide curve' : 'Show curve'}
+                                style={{ color: fn.enabled ? 'var(--sage)' : 'var(--text-dim)' }}
+                            >
+                                {fn.enabled ? '●' : '○'}
+                            </button>
                             {functions.length > 1 && (
-                                <button onClick={() => removeFunction(i)}
-                                    style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', fontSize: '1rem', padding: '4px 8px' }}
-                                    title="Remove">×</button>
+                                <button className="graphing-calc-remove" onClick={() => removeFunction(i)} title="Remove">
+                                    ×
+                                </button>
                             )}
                         </div>
                     ))}
-                    {functions.length < 7 && (
-                        <button onClick={addFunction}
-                            style={{
-                                background: 'none', border: '1px dashed var(--border-warm)',
-                                borderRadius: 'var(--radius-sm)', padding: '6px 12px',
-                                color: 'var(--text-dim)', cursor: 'pointer', fontSize: '0.82rem',
-                                transition: 'border-color 0.2s',
-                            }}>+ Add function</button>
-                    )}
                 </div>
 
-                {/* Canvas / Immersive container */}
-                <div
-                    ref={containerRef}
-                    style={{
-                        width: '100%', height: '360px',
-                        borderRadius: 'var(--radius-md)', overflow: 'hidden',
-                        border: '1px solid rgba(88, 196, 221, 0.1)',
-                        boxShadow: '0 0 40px rgba(88, 196, 221, 0.03), inset 0 0 60px rgba(15, 17, 23, 0.5)',
-                        position: 'relative',
-                    }}
-                >
-                    {/* Immersive Mode Toggle */}
-                    <ImmersiveToggle
-                        active={immersive}
-                        onToggle={handleToggleImmersive}
-                        loading={immersiveLoading}
-                    />
-
-                    {/* Standard Canvas 2D renderer */}
-                    {!immersive && (
-                        <canvas
-                            ref={canvasRef}
-                            onMouseMove={handleMouseMove}
-                            onMouseLeave={() => setMousePos(null)}
-                            onWheel={handleWheel}
-                            style={{ display: 'block', cursor: 'crosshair' }}
-                        />
-                    )}
-
-                    {/* Immersive WebGL renderer (lazy loaded) */}
-                    {immersive && (
-                        <Suspense fallback={
-                            <div style={{
-                                width: '100%', height: '100%',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                background: '#0f1117', color: '#58C4DD',
-                                fontSize: '0.9rem', fontFamily: 'var(--font-sans)',
-                            }}>
-                                Loading Immersive Mode...
-                            </div>
-                        }>
-                            <ImmersiveLoadWrapper onLoaded={handleImmersiveLoaded}>
-                                <GraphingCalcImmersive
-                                    functions={functions}
-                                    scale={scale}
-                                    center={center}
-                                    mousePos={mousePos}
-                                    onMouseMove={setMousePos}
-                                    onZoom={handleImmersiveZoom}
-                                />
-                            </ImmersiveLoadWrapper>
-                        </Suspense>
-                    )}
+                <div className="graphing-calc-hint">
+                    Scroll to zoom · Hover for coordinates<br />
+                    sin, cos, tan, log, sqrt, abs, exp, x^n
                 </div>
+            </div>
 
-                {/* Legend */}
-                <div style={{ display: 'flex', gap: '16px', marginTop: '10px', flexWrap: 'wrap' }}>
-                    {functions.filter(f => f.enabled && f.expr.trim()).map((fn, i) => (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                            <span style={{ width: 20, height: 3, borderRadius: 2, background: fn.color, boxShadow: `0 0 6px ${fn.color}66` }} />
-                            <code style={{ fontFamily: '"JetBrains Mono", monospace', color: fn.color }}>{fn.expr}</code>
-                        </div>
-                    ))}
-                </div>
+            {/* Canvas */}
+            <div
+                ref={containerRef}
+                className="graphing-calc-canvas-wrap"
+                onWheel={handleWheel}
+                onMouseMove={e => {
+                    const rect = canvasRef.current?.getBoundingClientRect();
+                    if (rect) setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+                }}
+                onMouseLeave={() => setMousePos(null)}
+            >
+                <canvas ref={canvasRef} style={{ cursor: 'crosshair' }} />
             </div>
         </div>
     );
-}
-
-/** Tiny wrapper that calls onLoaded when the lazy component mounts */
-function ImmersiveLoadWrapper({ children, onLoaded }: { children: React.ReactNode; onLoaded: () => void }) {
-    useEffect(() => { onLoaded(); }, [onLoaded]);
-    return <>{children}</>;
 }

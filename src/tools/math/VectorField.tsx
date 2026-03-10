@@ -1,9 +1,5 @@
-import React, { useRef, useEffect, useState, useCallback, lazy, Suspense } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import { drawBackground } from '../../utils/manimCanvas';
-import ImmersiveToggle from '../../components/ImmersiveToggle';
-import '../../components/ImmersiveToggle.css';
-
-const VectorFieldImmersive = lazy(() => import('./VectorFieldImmersive'));
 
 /* ═══════════════════════════════════════════════════════════════════════
    PRESETS — Common vector fields with interesting features
@@ -45,7 +41,6 @@ const evalExpr = (expr: string, x: number, y: number): number => {
    ═══════════════════════════════════════════════════════════════════════ */
 export default function VectorField() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const containerRef = useRef<HTMLDivElement>(null);
     const animRef = useRef<number>(0);
     const particlesRef = useRef<{ x: number; y: number; age: number }[]>([]);
 
@@ -57,23 +52,6 @@ export default function VectorField() {
     const [showDiv, setShowDiv] = useState(false);
     const [showCurl, setShowCurl] = useState(false);
     const [density, setDensity] = useState(12);
-
-    // Immersive mode state
-    const [immersive, setImmersive] = useState(false);
-    const [immersiveLoading, setImmersiveLoading] = useState(false);
-
-    const handleToggleImmersive = useCallback(() => {
-        if (!immersive) {
-            setImmersiveLoading(true);
-            setImmersive(true);
-        } else {
-            setImmersive(false);
-        }
-    }, [immersive]);
-
-    const handleImmersiveLoaded = useCallback(() => {
-        setImmersiveLoading(false);
-    }, []);
 
     const selectPreset = useCallback((idx: number) => {
         setPresetIdx(idx);
@@ -362,48 +340,9 @@ export default function VectorField() {
                     </div>
                 )}
 
-                {/* Canvas / Immersive container */}
-                <div
-                    ref={containerRef}
-                    style={{
-                        width: '100%', aspectRatio: '1/1', maxHeight: 260, background: '#0f1117',
-                        border: '1px solid rgba(88, 196, 221, 0.1)', borderRadius: 'var(--radius-md)',
-                        overflow: 'hidden', position: 'relative',
-                        boxShadow: '0 0 40px rgba(88, 196, 221, 0.03), inset 0 0 60px rgba(15, 17, 23, 0.5)',
-                    }}
-                >
-                    <ImmersiveToggle
-                        active={immersive}
-                        onToggle={handleToggleImmersive}
-                        loading={immersiveLoading}
-                    />
-
-                    {!immersive && (
-                        <canvas ref={canvasRef} style={{ display: 'block' }} />
-                    )}
-
-                    {immersive && (
-                        <Suspense fallback={
-                            <div style={{
-                                width: '100%', height: '100%',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                background: '#0f1117', color: '#58C4DD',
-                                fontSize: '0.9rem', fontFamily: 'var(--font-sans)',
-                            }}>
-                                Loading Immersive Mode...
-                            </div>
-                        }>
-                            <ImmersiveLoadWrapper onLoaded={handleImmersiveLoaded}>
-                                <VectorFieldImmersive
-                                    pExpr={pExpr}
-                                    qExpr={qExpr}
-                                    showArrows={showArrows}
-                                    showParticles={showParticles}
-                                    density={density}
-                                />
-                            </ImmersiveLoadWrapper>
-                        </Suspense>
-                    )}
+                {/* Canvas */}
+                <div style={{ width: '100%', aspectRatio: '1/1', maxHeight: 260, background: '#0f1117', border: '1px solid rgba(88, 196, 221, 0.1)', borderRadius: 'var(--radius-md)', overflow: 'hidden', boxShadow: '0 0 40px rgba(88, 196, 221, 0.03), inset 0 0 60px rgba(15, 17, 23, 0.5)' }}>
+                    <canvas ref={canvasRef} style={{ display: 'block' }} />
                 </div>
             </div>
         </div>
@@ -423,9 +362,3 @@ const toggleStyle: React.CSSProperties = {
     display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer',
     color: 'var(--text-dim)', fontWeight: 500,
 };
-
-/** Tiny wrapper that calls onLoaded when the lazy component mounts */
-function ImmersiveLoadWrapper({ children, onLoaded }: { children: React.ReactNode; onLoaded: () => void }) {
-    useEffect(() => { onLoaded(); }, [onLoaded]);
-    return <>{children}</>;
-}

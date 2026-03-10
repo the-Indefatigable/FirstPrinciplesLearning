@@ -1,9 +1,5 @@
-import { useRef, useState, useEffect, useCallback, lazy, Suspense } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import { drawBackground, drawGlowCurve, drawGlowDot, MANIM, type CurvePoint } from '../../utils/manimCanvas';
-import ImmersiveToggle from '../../components/ImmersiveToggle';
-import '../../components/ImmersiveToggle.css';
-
-const FourierSeriesImmersive = lazy(() => import('./FourierSeriesImmersive'));
 
 /* ═══════════════════════════════════════════════════════════════════════
    FOURIER SERIES VISUALIZER
@@ -42,25 +38,7 @@ export default function FourierSeries() {
     const [showHarmonics, setShowHarmonics] = useState(true);
     const [playing, setPlaying] = useState(false);
 
-    // Immersive mode state
-    const [immersive, setImmersive] = useState(false);
-    const [immersiveLoading, setImmersiveLoading] = useState(false);
-
-    const handleToggleImmersive = useCallback(() => {
-        if (!immersive) {
-            setImmersiveLoading(true);
-            setImmersive(true);
-        } else {
-            setImmersive(false);
-        }
-    }, [immersive]);
-
-    const handleImmersiveLoaded = useCallback(() => {
-        setImmersiveLoading(false);
-    }, []);
-
     const paint = useCallback(() => {
-        if (immersive) return;
         const cvs = canvasRef.current;
         const box = boxRef.current;
         if (!cvs || !box) return;
@@ -201,7 +179,7 @@ export default function FourierSeries() {
         ctx.textBaseline = 'top';
         ctx.fillText(`${wave.charAt(0).toUpperCase() + wave.slice(1)} wave — ${terms} term${terms > 1 ? 's' : ''}`, 14, 14);
 
-    }, [wave, terms, showTarget, showHarmonics, immersive]);
+    }, [wave, terms, showTarget, showHarmonics]);
 
     useEffect(() => {
         let running = true;
@@ -254,40 +232,8 @@ export default function FourierSeries() {
                     background: '#0f1117', border: '1px solid rgba(88, 196, 221, 0.1)',
                     borderRadius: 'var(--radius-md)', overflow: 'hidden',
                     boxShadow: '0 0 40px rgba(88, 196, 221, 0.03), inset 0 0 60px rgba(15, 17, 23, 0.5)',
-                    position: 'relative',
                 }}>
-                    <ImmersiveToggle
-                        active={immersive}
-                        onToggle={handleToggleImmersive}
-                        loading={immersiveLoading}
-                    />
-
-                    {!immersive && (
-                        <canvas ref={canvasRef} style={{ display: 'block' }} />
-                    )}
-
-                    {immersive && (
-                        <Suspense fallback={
-                            <div style={{
-                                width: '100%', height: '100%',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                background: '#0f1117', color: '#58C4DD',
-                                fontSize: '0.9rem', fontFamily: 'var(--font-sans)',
-                            }}>
-                                Loading Immersive Mode...
-                            </div>
-                        }>
-                            <ImmersiveLoadWrapper onLoaded={handleImmersiveLoaded}>
-                                <FourierSeriesImmersive
-                                    wave={wave}
-                                    terms={terms}
-                                    showTarget={showTarget}
-                                    showHarmonics={showHarmonics}
-                                    playing={playing}
-                                />
-                            </ImmersiveLoadWrapper>
-                        </Suspense>
-                    )}
+                    <canvas ref={canvasRef} style={{ display: 'block' }} />
                 </div>
 
                 <p style={{ fontSize: '0.78rem', color: 'var(--text-dim)', marginTop: 8 }}>
@@ -296,10 +242,4 @@ export default function FourierSeries() {
             </div>
         </div>
     );
-}
-
-/** Tiny wrapper that calls onLoaded when the lazy component mounts */
-function ImmersiveLoadWrapper({ children, onLoaded }: { children: React.ReactNode; onLoaded: () => void }) {
-    useEffect(() => { onLoaded(); }, [onLoaded]);
-    return <>{children}</>;
 }

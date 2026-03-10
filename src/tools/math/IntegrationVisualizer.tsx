@@ -1,13 +1,8 @@
-import { useRef, useEffect, useState, useCallback, lazy, Suspense } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import * as math from 'mathjs';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import { drawBackground, drawGlowCurve, drawGlowDot, type CurvePoint } from '../../utils/manimCanvas';
-import ImmersiveToggle from '../../components/ImmersiveToggle';
-import '../../components/ImmersiveToggle.css';
-
-// Lazy-load the WebGL immersive renderer — only downloaded when user activates it
-const IntegrationVisualizerImmersive = lazy(() => import('./IntegrationVisualizerImmersive'));
 
 type Method = 'left' | 'right' | 'midpoint' | 'trapezoid' | 'simpson';
 
@@ -89,24 +84,6 @@ export default function IntegrationVisualizer() {
     const [exactArea, setExactArea] = useState<number | null>(null);
     const [showKeyboard, setShowKeyboard] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
-    const containerRef = useRef<HTMLDivElement>(null);
-
-    // Immersive mode state
-    const [immersive, setImmersive] = useState(false);
-    const [immersiveLoading, setImmersiveLoading] = useState(false);
-
-    const handleToggleImmersive = useCallback(() => {
-        if (!immersive) {
-            setImmersiveLoading(true);
-            setImmersive(true);
-        } else {
-            setImmersive(false);
-        }
-    }, [immersive]);
-
-    const handleImmersiveLoaded = useCallback(() => {
-        setImmersiveLoading(false);
-    }, []);
 
     const insertAtCursor = useCallback((text: string) => {
         const input = inputRef.current;
@@ -562,51 +539,14 @@ export default function IntegrationVisualizer() {
                     )}
                 </div>
 
-                {/* ── Canvas / Immersive container ── */}
-                <div
-                    ref={containerRef}
-                    style={{
-                        width: '100%', aspectRatio: '16/9', minHeight: 250,
-                        background: '#0f1117', border: '1px solid rgba(88, 196, 221, 0.1)',
-                        borderRadius: 'var(--radius-md)', overflow: 'hidden',
-                        boxShadow: '0 0 40px rgba(88, 196, 221, 0.03), inset 0 0 60px rgba(15, 17, 23, 0.5)',
-                        position: 'relative',
-                    }}
-                >
-                    {/* Immersive Mode Toggle */}
-                    <ImmersiveToggle
-                        active={immersive}
-                        onToggle={handleToggleImmersive}
-                        loading={immersiveLoading}
-                    />
-
-                    {/* Standard Canvas 2D renderer */}
-                    {!immersive && (
-                        <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: '100%' }} />
-                    )}
-
-                    {/* Immersive WebGL renderer (lazy loaded) */}
-                    {immersive && (
-                        <Suspense fallback={
-                            <div style={{
-                                width: '100%', height: '100%',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                background: '#0f1117', color: '#58C4DD',
-                                fontSize: '0.9rem', fontFamily: 'var(--font-sans)',
-                            }}>
-                                Loading Immersive Mode...
-                            </div>
-                        }>
-                            <ImmersiveLoadWrapper onLoaded={handleImmersiveLoaded}>
-                                <IntegrationVisualizerImmersive
-                                    expression={fn}
-                                    bounds={[a, b]}
-                                    subdivisions={n}
-                                    method={method}
-                                />
-                            </ImmersiveLoadWrapper>
-                        </Suspense>
-                    )}
+                {/* ── Canvas ── */}
+                <div style={{
+                    width: '100%', aspectRatio: '16/9', minHeight: 250,
+                    background: '#0f1117', border: '1px solid rgba(88, 196, 221, 0.1)',
+                    borderRadius: 'var(--radius-md)', overflow: 'hidden',
+                    boxShadow: '0 0 40px rgba(88, 196, 221, 0.03), inset 0 0 60px rgba(15, 17, 23, 0.5)',
+                }}>
+                    <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: '100%' }} />
                 </div>
 
                 {/* ── Explanation ── */}
@@ -622,10 +562,4 @@ export default function IntegrationVisualizer() {
             </div>
         </div>
     );
-}
-
-/** Tiny wrapper that calls onLoaded when the lazy component mounts */
-function ImmersiveLoadWrapper({ children, onLoaded }: { children: React.ReactNode; onLoaded: () => void }) {
-    useEffect(() => { onLoaded(); }, [onLoaded]);
-    return <>{children}</>;
 }
