@@ -12,7 +12,6 @@ export interface ToolMeta {
 
 export const toolLoaders: Record<string, () => Promise<{ default: ComponentType }>> = {
   'unit-circle': () => import('../tools/math/UnitCircle'),
-  'plotter-3d': () => import('../tools/math/Plotter3D'),
   'slope-field': () => import('../tools/math/SlopeField'),
   'derivative-integral': () => import('../tools/math/DerivativeIntegral'),
   'graphing-calculator': () => import('../tools/math/GraphingCalc'),
@@ -85,15 +84,7 @@ const PreviewUnitCircle: React.FC = () => (
   </svg>
 );
 
-const PreviewPlotter3D: React.FC = () => (
-  <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
-    <path d="M8 62 Q20 38 32 48 Q44 58 56 34 Q66 18 72 44" stroke="#d97706" strokeWidth="1.8" fill="none" strokeLinecap="round" />
-    <path d="M8 70 Q20 48 32 56 Q44 66 56 42 Q66 28 72 52" stroke="#f59e0b" strokeWidth="1.2" fill="none" strokeLinecap="round" opacity="0.6" />
-    <path d="M8 54 Q20 30 32 40 Q44 50 56 26 Q66 10 72 36" stroke="#fde68a" strokeWidth="1" fill="none" strokeLinecap="round" opacity="0.5" />
-    <line x1="32" y1="40" x2="32" y2="56" stroke="#d97706" strokeWidth="0.8" opacity="0.5" />
-    <line x1="56" y1="26" x2="56" y2="42" stroke="#d97706" strokeWidth="0.8" opacity="0.5" />
-  </svg>
-);
+
 
 const PreviewSlopeField: React.FC = () => {
   const segments: Array<{ x1: number; y1: number; x2: number; y2: number }> = [];
@@ -699,13 +690,6 @@ export const allTools: ToolMeta[] = [
     Preview: PreviewUnitCircle,
   },
   {
-    slug: 'plotter-3d', name: '3D Surface Plotter', tag: 'Multivariable Calculus',
-    description: 'Visualize three-dimensional functions with an interactive WebGL surface plotter.',
-    category: 'math',
-    gradient: 'linear-gradient(160deg, #fffbeb 0%, #fef3c7 60%, #fde68a 100%)',
-    Preview: PreviewPlotter3D,
-  },
-  {
     slug: 'slope-field', name: 'Slope Field', tag: 'Differential Equations',
     description: 'Draw slope fields for any dy/dx expression and sketch solution curves.',
     category: 'math',
@@ -721,7 +705,7 @@ export const allTools: ToolMeta[] = [
   },
   {
     slug: 'graphing-calculator', name: 'Graphing Calculator', tag: 'Algebra & Calculus',
-    description: 'Plot multiple functions simultaneously with a full-featured graphing calculator.',
+    description: 'Interactive 2D/3D graphing calculator — plot functions, switch to 3D surface mode, and enter immersive cinematic views.',
     category: 'math',
     gradient: 'linear-gradient(140deg, #fef9ee 0%, #fef3c7 60%, #fde68a 100%)',
     Preview: PreviewGraphingCalc,
@@ -1103,19 +1087,19 @@ export const allTools: ToolMeta[] = [
     gradient: 'linear-gradient(145deg, #faf0ec 0%, #f0d5c8 55%, #e0baa8 100%)',
     Preview: () => (
       <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
-        {['IF','ID','EX','MEM','WB'].map((s, i) => (
+        {['IF', 'ID', 'EX', 'MEM', 'WB'].map((s, i) => (
           <g key={s}>
             <rect x={4 + i * 15} y={32} width={13} height={16} rx={2}
-              fill={['#3b82f6','#8b5cf6','#f59e0b','#22c55e','#ef4444'][i]} opacity={0.7} />
+              fill={['#3b82f6', '#8b5cf6', '#f59e0b', '#22c55e', '#ef4444'][i]} opacity={0.7} />
             <text x={10 + i * 15} y={43} textAnchor="middle" fontSize={5}
               fill="white" fontFamily="monospace" fontWeight="bold">{s}</text>
           </g>
         ))}
-        {[0,1,2,3].map(row => (
+        {[0, 1, 2, 3].map(row => (
           <g key={row}>
-            {Array.from({length: 5 - row}, (_, i) => (
+            {Array.from({ length: 5 - row }, (_, i) => (
               <rect key={i} x={4 + (i + row) * 15} y={56 - row * 10} width={13} height={7} rx={1}
-                fill={['#3b82f6','#8b5cf6','#f59e0b','#22c55e','#ef4444'][i]} opacity={0.25} />
+                fill={['#3b82f6', '#8b5cf6', '#f59e0b', '#22c55e', '#ef4444'][i]} opacity={0.25} />
             ))}
           </g>
         ))}
@@ -1150,7 +1134,7 @@ export const allTools: ToolMeta[] = [
     gradient: 'linear-gradient(140deg, #fdf4f2 0%, #f0d5c8 55%, #c2714f30 100%)',
     Preview: () => (
       <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
-        {['0','0','1','X','1','_','_'].map((c, i) => (
+        {['0', '0', '1', 'X', '1', '_', '_'].map((c, i) => (
           <g key={i}>
             <rect x={4 + i * 10} y={30} width={9} height={12} rx={1}
               fill={i === 3 ? '#d9770622' : 'none'}

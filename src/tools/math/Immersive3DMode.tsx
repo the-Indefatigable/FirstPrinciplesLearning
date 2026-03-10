@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { Line2 } from 'three/examples/jsm/lines/Line2.js';
@@ -83,8 +84,13 @@ export default function Immersive3DMode({ expr, mode: _mode, variable, onClose }
     const [isFinished, setIsFinished] = useState(false);
     const [isAutoTracking, setIsAutoTracking] = useState(true); // NEW: Tracks camera mode
 
-    // Mutable refs for the animation loop
     const stateRef = useRef({ time: 0, paused: false, finished: false, autoTracking: true });
+
+    // Native fullscreen on mount
+    useEffect(() => {
+        document.documentElement.requestFullscreen().catch(() => { });
+        return () => { document.exitFullscreen().catch(() => { }); };
+    }, []);
 
     useEffect(() => {
         const container = mountRef.current;
@@ -323,16 +329,17 @@ export default function Immersive3DMode({ expr, mode: _mode, variable, onClose }
     };
 
     if (error) {
-        return (
-            <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#050508', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444', flexDirection: 'column', gap: 16 }}>
+        return createPortal(
+            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 99999, background: '#050508', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444', flexDirection: 'column', gap: 16 }}>
                 <h2>Math Error</h2>
                 <button onClick={onClose} style={{ padding: '8px 16px', background: '#333', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}>Close</button>
-            </div>
+            </div>,
+            document.body
         );
     }
 
-    return (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#050508', overflow: 'hidden' }}>
+    return createPortal(
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 99999, background: '#050508', overflow: 'hidden' }}>
             <div ref={mountRef} style={{ width: '100%', height: '100%', position: 'absolute', inset: 0, cursor: 'grab' }} />
 
             {/* Labels */}
@@ -393,6 +400,7 @@ export default function Immersive3DMode({ expr, mode: _mode, variable, onClose }
                     </button>
                 </div>
             )}
-        </div>
+        </div>,
+        document.body
     );
 }
