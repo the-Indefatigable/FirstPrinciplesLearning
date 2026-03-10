@@ -8,14 +8,14 @@
  */
 
 import { useRef, useEffect, useCallback, useMemo } from 'react';
-import { compile } from 'mathjs';
+import * as math from 'mathjs';
+const { compile } = math;
 import * as THREE from 'three';
 import gsap from 'gsap';
 import {
   ImmersiveRenderer,
   IMM,
   createBackground, updateBackground,
-  createGridLines,
   createAxes,
   createGlowLine, updateGlowLine,
 } from '../../utils/immersive';
@@ -90,7 +90,7 @@ export default function DerivativeIntegralImmersive({
     let yMin = Infinity, yMax = -Infinity;
     const N = 600;
 
-    const evalFn = (compiled: ReturnType<typeof compile>, x: number): number => {
+    const evalFn = (compiled: math.EvalFunction, x: number): number => {
       try {
         const val = compiled.evaluate({ [variable]: x, e: Math.E, pi: Math.PI });
         return typeof val === 'number' ? val : NaN;

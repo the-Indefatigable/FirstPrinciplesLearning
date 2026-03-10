@@ -13,7 +13,6 @@ import {
   ImmersiveRenderer,
   IMM,
   createBackground, updateBackground,
-  createGridLines,
   createAxes,
 } from '../../utils/immersive';
 
@@ -107,12 +106,6 @@ export default function VectorFieldImmersive({
 
     const W = imm.width;
     const H = imm.height;
-    const cx = W / 2;
-    const cy = H / 2;
-    // Scale so that [-RANGE, RANGE] maps to [0, W] and [0, H]
-    const scaleX = W / (2 * RANGE);
-    const scaleY = H / (2 * RANGE);
-
     const toScreenX = (vx: number) => (vx + RANGE) / (2 * RANGE) * W;
     const toScreenY = (vy: number) => (RANGE - vy) / (2 * RANGE) * H;
 
