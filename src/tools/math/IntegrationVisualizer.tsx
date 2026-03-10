@@ -2,20 +2,16 @@ import { useRef, useEffect, useState, useCallback } from 'react';
 import * as math from 'mathjs';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
-import { drawBackground, drawGlowCurve, drawGlowDot, type CurvePoint } from '../../utils/manimCanvas';
 
 type Method = 'left' | 'right' | 'midpoint' | 'trapezoid' | 'simpson';
 
-/* ─── KaTeX renderer ─── */
+/* ─── KaTeX renderer ── */
 function Tex({ math: tex, display = false }: { math: string; display?: boolean }) {
     const ref = useRef<HTMLSpanElement>(null);
     useEffect(() => {
         if (!ref.current) return;
-        try {
-            katex.render(tex, ref.current, { displayMode: display, throwOnError: false });
-        } catch {
-            ref.current.textContent = tex;
-        }
+        try { katex.render(tex, ref.current, { displayMode: display, throwOnError: false, trust: true }); }
+        catch { ref.current.textContent = tex; }
     }, [tex, display]);
     return <span ref={ref} />;
 }
@@ -27,15 +23,15 @@ const KB_KEYS = [
         { label: '^', insert: '^' },
         { label: 'sin', insert: 'sin(' },
         { label: 'cos', insert: 'cos(' },
+        { label: 'tan', insert: 'tan(' },
         { label: 'ln', insert: 'log(' },
-        { label: 'e^x', insert: 'exp(' },
         { label: 'sqrt', insert: 'sqrt(' },
     ],
     [
-        { label: '1', insert: '1' }, { label: '2', insert: '2' }, { label: '3', insert: '3' },
-        { label: '4', insert: '4' }, { label: '5', insert: '5' }, { label: '6', insert: '6' },
-        { label: '7', insert: '7' }, { label: '8', insert: '8' }, { label: '9', insert: '9' },
-        { label: '0', insert: '0' },
+        { label: '0', insert: '0' }, { label: '1', insert: '1' }, { label: '2', insert: '2' },
+        { label: '3', insert: '3' }, { label: '4', insert: '4' }, { label: '5', insert: '5' },
+        { label: '6', insert: '6' }, { label: '7', insert: '7' }, { label: '8', insert: '8' },
+        { label: '9', insert: '9' },
     ],
     [
         { label: '+', insert: '+' }, { label: '-', insert: '-' }, { label: '*', insert: '*' },
@@ -48,22 +44,22 @@ const METHOD_INFO: Record<Method, { name: string; description: string; formula: 
     left: {
         name: 'Left Riemann Sum',
         description: 'Uses the left endpoint of each subinterval to determine rectangle height.',
-        formula: '\\sum_{i=0}^{n-1} f(x_i) \\cdot \\Delta x',
+        formula: '\\sum_{i=0}^{N-1} f(x_i) \\cdot \\Delta x',
     },
     right: {
         name: 'Right Riemann Sum',
         description: 'Uses the right endpoint of each subinterval to determine rectangle height.',
-        formula: '\\sum_{i=1}^{n} f(x_i) \\cdot \\Delta x',
+        formula: '\\sum_{i=1}^{N} f(x_i) \\cdot \\Delta x',
     },
     midpoint: {
         name: 'Midpoint Rule',
-        description: 'Uses the midpoint of each subinterval for a better approximation.',
-        formula: '\\sum_{i=0}^{n-1} f\\!\\left(\\frac{x_i + x_{i+1}}{2}\\right) \\cdot \\Delta x',
+        description: 'Uses the midpoint of each subinterval for generally better accuracy.',
+        formula: '\\sum_{i=0}^{N-1} f\\left(\\frac{x_i + x_{i+1}}{2}\\right) \\cdot \\Delta x',
     },
     trapezoid: {
         name: 'Trapezoidal Rule',
-        description: 'Connects function values with straight lines, forming trapezoids.',
-        formula: '\\sum_{i=0}^{n-1} \\frac{f(x_i) + f(x_{i+1})}{2} \\cdot \\Delta x',
+        description: 'Connects consecutive points with straight lines, forming trapezoids.',
+        formula: '\\frac{\\Delta x}{2} \\left[ f(x_0) + 2f(x_1) + \\cdots + f(x_n) \\right]',
     },
     simpson: {
         name: "Simpson's Rule",
@@ -72,31 +68,48 @@ const METHOD_INFO: Record<Method, { name: string; description: string; formula: 
     },
 };
 
+/* ─── Helpers (matching GraphingCalc) ─── */
+const gridStep = (scale: number): number => {
+    const raw = 60 / scale;
+    const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+    const n = raw / mag;
+    return (n < 2 ? 1 : n < 5 ? 2 : 5) * mag;
+};
+
+const formatAxisValue = (val: number): string => {
+    if (Math.abs(val) < 1e-10) return '0';
+    return Number.isInteger(val) ? String(val) : val.toFixed(1);
+};
+
 export default function IntegrationVisualizer() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
     const [fn, setFn] = useState('x^2');
     const [a, setA] = useState(0);
     const [b, setB] = useState(3);
     const [n, setN] = useState(6);
     const [method, setMethod] = useState<Method>('left');
-    const [error, setError] = useState<string | null>(null);
+    const [showKeyboard, setShowKeyboard] = useState(false);
     const [approxArea, setApproxArea] = useState(0);
     const [exactArea, setExactArea] = useState<number | null>(null);
-    const [showKeyboard, setShowKeyboard] = useState(false);
-    const inputRef = useRef<HTMLInputElement>(null);
+    const [error, setError] = useState<string | null>(null);
+
+    // Detect theme
+    const [isDark, setIsDark] = useState(() => document.documentElement.getAttribute('data-theme') === 'dark');
+    useEffect(() => {
+        const el = document.documentElement;
+        const obs = new MutationObserver(() => setIsDark(el.getAttribute('data-theme') === 'dark'));
+        obs.observe(el, { attributes: true, attributeFilter: ['data-theme'] });
+        return () => obs.disconnect();
+    }, []);
 
     const insertAtCursor = useCallback((text: string) => {
         const input = inputRef.current;
-        if (!input) { setFn(prev => prev + text); return; }
+        if (!input) { setFn(p => p + text); return; }
         const start = input.selectionStart ?? fn.length;
         const end = input.selectionEnd ?? fn.length;
-        const newVal = fn.slice(0, start) + text + fn.slice(end);
-        setFn(newVal);
-        requestAnimationFrame(() => {
-            input.focus();
-            const pos = start + text.length;
-            input.setSelectionRange(pos, pos);
-        });
+        setFn(fn.slice(0, start) + text + fn.slice(end));
+        requestAnimationFrame(() => { input.focus(); const pos = start + text.length; input.setSelectionRange(pos, pos); });
     }, [fn]);
 
     // Compute exact integral via high-N Simpson's for comparison
@@ -142,9 +155,10 @@ export default function IntegrationVisualizer() {
             setError(null);
         } catch {
             setError('Invalid function expression');
-            drawBackground(ctx, W, H);
-            ctx.fillStyle = 'rgba(200, 210, 225, 0.4)';
-            ctx.font = '14px "JetBrains Mono", monospace';
+            ctx.fillStyle = isDark ? '#1a1a2e' : '#ffffff';
+            ctx.fillRect(0, 0, W, H);
+            ctx.fillStyle = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
+            ctx.font = '14px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
             ctx.textAlign = 'center';
             ctx.fillText('Enter a valid function', W / 2, H / 2);
             return;
@@ -170,66 +184,95 @@ export default function IntegrationVisualizer() {
 
         const toX = (x: number) => ((x - xMin) / (xMax - xMin)) * W;
         const toY = (y: number) => H - ((y - yMin) / (yMax - yMin)) * H;
+        const scale = W / (xMax - xMin);
+
+        // Theme colors (matching GraphingCalc Lite)
+        const bgColor = isDark ? '#1a1a2e' : '#ffffff';
+        const gridColor = isDark ? '#2a2a3e' : '#e0e0e0';
+        const axisColor = isDark ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.85)';
+        const labelColor = isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.55)';
+        const curveColor = isDark ? '#5b9bd5' : '#2d70b3';
+        const fillColor = isDark ? 'rgba(91,155,213,0.15)' : 'rgba(45,112,179,0.10)';
+        const strokeColor = isDark ? 'rgba(91,155,213,0.4)' : 'rgba(45,112,179,0.3)';
+        const boundColor = isDark ? '#6abf69' : '#388c46';
 
         // Background
-        drawBackground(ctx, W, H);
+        ctx.fillStyle = bgColor;
+        ctx.fillRect(0, 0, W, H);
 
         // Grid
-        ctx.strokeStyle = 'rgba(88, 196, 221, 0.07)';
-        ctx.lineWidth = 0.5;
-        for (let x = Math.ceil(xMin); x <= xMax; x++) {
-            ctx.beginPath(); ctx.moveTo(toX(x), 0); ctx.lineTo(toX(x), H); ctx.stroke();
+        const step = gridStep(scale);
+        ctx.strokeStyle = gridColor; ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let x = Math.ceil(xMin / step) * step; x <= xMax; x += step) {
+            if (Math.abs(x) < 1e-10) continue;
+            const px = Math.round(toX(x)) + 0.5;
+            ctx.moveTo(px, 0); ctx.lineTo(px, H);
         }
-        for (let y = Math.ceil(yMin); y <= yMax; y++) {
-            ctx.beginPath(); ctx.moveTo(0, toY(y)); ctx.lineTo(W, toY(y)); ctx.stroke();
+        for (let y = Math.ceil(yMin / step) * step; y <= yMax; y += step) {
+            if (Math.abs(y) < 1e-10) continue;
+            const py = Math.round(toY(y)) + 0.5;
+            ctx.moveTo(0, py); ctx.lineTo(W, py);
         }
+        ctx.stroke();
 
-        // Axis labels
-        ctx.fillStyle = 'rgba(200, 210, 225, 0.45)';
-        ctx.font = '10px "JetBrains Mono", monospace';
-        ctx.textAlign = 'center';
-        for (let x = Math.ceil(xMin); x <= Math.floor(xMax); x++) {
-            if (x === 0) continue;
-            const py = yMin <= 0 && yMax >= 0 ? toY(0) + 14 : H - 4;
-            ctx.fillText(String(x), toX(x), py);
-        }
-        ctx.textAlign = 'right';
-        for (let y = Math.ceil(yMin); y <= Math.floor(yMax); y++) {
-            if (y === 0) continue;
-            const px = xMin <= 0 && xMax >= 0 ? toX(0) - 6 : 20;
-            ctx.fillText(String(y), px, toY(y) + 4);
-        }
-
-        // Axes with glow
+        // Axes
+        ctx.strokeStyle = axisColor; ctx.lineWidth = 1.5;
+        ctx.beginPath();
         if (yMin <= 0 && yMax >= 0) {
-            ctx.save(); ctx.strokeStyle = 'rgba(200, 210, 225, 0.08)'; ctx.lineWidth = 4;
-            ctx.beginPath(); ctx.moveTo(0, toY(0)); ctx.lineTo(W, toY(0)); ctx.stroke(); ctx.restore();
-            ctx.strokeStyle = 'rgba(200, 210, 225, 0.35)'; ctx.lineWidth = 1;
-            ctx.beginPath(); ctx.moveTo(0, toY(0)); ctx.lineTo(W, toY(0)); ctx.stroke();
+            const ay = Math.round(toY(0)) + 0.5; ctx.moveTo(0, ay); ctx.lineTo(W, ay);
         }
         if (xMin <= 0 && xMax >= 0) {
-            ctx.save(); ctx.strokeStyle = 'rgba(200, 210, 225, 0.08)'; ctx.lineWidth = 4;
-            ctx.beginPath(); ctx.moveTo(toX(0), 0); ctx.lineTo(toX(0), H); ctx.stroke(); ctx.restore();
-            ctx.strokeStyle = 'rgba(200, 210, 225, 0.35)'; ctx.lineWidth = 1;
-            ctx.beginPath(); ctx.moveTo(toX(0), 0); ctx.lineTo(toX(0), H); ctx.stroke();
+            const ax = Math.round(toX(0)) + 0.5; ctx.moveTo(ax, 0); ctx.lineTo(ax, H);
+        }
+        ctx.stroke();
+
+        // Tick marks
+        ctx.strokeStyle = axisColor; ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        const ayPx = yMin <= 0 && yMax >= 0 ? Math.round(toY(0)) + 0.5 : H - 0.5;
+        const axPx = xMin <= 0 && xMax >= 0 ? Math.round(toX(0)) + 0.5 : 0.5;
+        for (let x = Math.ceil(xMin / step) * step; x <= xMax; x += step) {
+            if (Math.abs(x) < 1e-10) continue;
+            const px = Math.round(toX(x)) + 0.5;
+            ctx.moveTo(px, ayPx - 4); ctx.lineTo(px, ayPx + 4);
+        }
+        for (let y = Math.ceil(yMin / step) * step; y <= yMax; y += step) {
+            if (Math.abs(y) < 1e-10) continue;
+            const py = Math.round(toY(y)) + 0.5;
+            ctx.moveTo(axPx - 4, py); ctx.lineTo(axPx + 4, py);
+        }
+        ctx.stroke();
+
+        // Axis labels
+        ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+        ctx.fillStyle = labelColor;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        for (let x = Math.ceil(xMin / step) * step; x <= xMax; x += step) {
+            if (Math.abs(x) < 1e-10) continue;
+            const px = toX(x);
+            if (px < 25 || px > W - 25) continue;
+            ctx.fillText(formatAxisValue(x), px, ayPx + 8);
+        }
+        ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        for (let y = Math.ceil(yMin / step) * step; y <= yMax; y += step) {
+            if (Math.abs(y) < 1e-10) continue;
+            const py = toY(y);
+            if (py < 12 || py > H - 12) continue;
+            ctx.fillText(formatAxisValue(y), axPx - 8, py);
         }
 
         // Shapes
         const dx = (b - a) / n;
         let totalArea = 0;
-
-        const fillColor = 'rgba(88, 196, 221, 0.12)';
-        const strokeColor = 'rgba(88, 196, 221, 0.35)';
         ctx.lineWidth = 1;
 
         if (method === 'simpson' && n % 2 !== 0) {
-            // Simpson needs even n — draw nothing, show warning
-            ctx.fillStyle = 'rgba(200, 210, 225, 0.4)';
-            ctx.font = '13px "JetBrains Mono", monospace';
+            ctx.fillStyle = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
+            ctx.font = '13px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
             ctx.textAlign = 'center';
             ctx.fillText("Simpson's rule requires even N", W / 2, 30);
         } else if (method === 'simpson') {
-            // Simpson's rule — draw parabolic fills
             const h = dx;
             for (let i = 0; i < n; i += 2) {
                 const x0 = a + i * h;
@@ -238,7 +281,6 @@ export default function IntegrationVisualizer() {
                 const y0 = f(x0), y1 = f(x1), y2 = f(x2);
                 totalArea += (h / 3) * (y0 + 4 * y1 + y2);
 
-                // Draw parabola fill
                 ctx.fillStyle = fillColor;
                 ctx.strokeStyle = strokeColor;
                 ctx.beginPath();
@@ -247,7 +289,6 @@ export default function IntegrationVisualizer() {
                 for (let s = 0; s <= steps; s++) {
                     const t = s / steps;
                     const xp = x0 + t * 2 * h;
-                    // Lagrange interpolation through (x0,y0), (x1,y1), (x2,y2)
                     const L0 = ((xp - x1) * (xp - x2)) / ((x0 - x1) * (x0 - x2));
                     const L1 = ((xp - x0) * (xp - x2)) / ((x1 - x0) * (x1 - x2));
                     const L2 = ((xp - x0) * (xp - x1)) / ((x2 - x0) * (x2 - x1));
@@ -290,39 +331,43 @@ export default function IntegrationVisualizer() {
                     ctx.strokeRect(toX(x0), top, toX(x1) - toX(x0), height);
 
                     if (method === 'midpoint') {
-                        drawGlowDot(ctx, toX(sampleX), toY(h), '#58C4DD', { radius: 3 });
+                        ctx.beginPath(); ctx.arc(toX(sampleX), toY(h), 3, 0, Math.PI * 2);
+                        ctx.fillStyle = curveColor; ctx.fill();
                     }
                 }
             }
         }
         setApproxArea(Math.round(totalArea * 100000) / 100000);
 
-        // Function curve (glow)
-        const curvePoints: CurvePoint[] = [];
+        // Function curve — solid clean line
+        ctx.strokeStyle = curveColor; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        ctx.beginPath();
+        let drawing = false;
         for (let i = 0; i <= 600; i++) {
             const x = xMin + (xMax - xMin) * (i / 600);
             const y = f(x);
-            if (!isFinite(y) || Math.abs(y) > 1e6) { curvePoints.push({ x: toX(x), y: NaN }); continue; }
-            curvePoints.push({ x: toX(x), y: toY(y) });
+            if (!isFinite(y) || Math.abs(y) > 1e6) { if (drawing) { ctx.stroke(); ctx.beginPath(); } drawing = false; continue; }
+            const px = toX(x), py = toY(y);
+            if (!drawing) { ctx.moveTo(px, py); drawing = true; } else ctx.lineTo(px, py);
         }
-        drawGlowCurve(ctx, curvePoints, '#58C4DD');
+        if (drawing) ctx.stroke();
 
         // Bound markers
         ctx.setLineDash([5, 4]);
-        ctx.strokeStyle = '#83C167';
+        ctx.strokeStyle = boundColor;
         ctx.lineWidth = 1.5;
         ctx.beginPath(); ctx.moveTo(toX(a), 0); ctx.lineTo(toX(a), H); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(toX(b), 0); ctx.lineTo(toX(b), H); ctx.stroke();
         ctx.setLineDash([]);
 
         // Bound labels
-        ctx.font = 'bold 11px "JetBrains Mono", monospace';
-        ctx.fillStyle = '#83C167';
+        ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+        ctx.fillStyle = boundColor;
         ctx.textAlign = 'center';
         ctx.fillText(`a = ${a}`, toX(a), H - 8);
         ctx.fillText(`b = ${b}`, toX(b), H - 8);
 
-    }, [fn, a, b, n, method]);
+    }, [fn, a, b, n, method, isDark]);
 
     const errorPct = exactArea && exactArea !== 0
         ? Math.abs(((approxArea - exactArea) / exactArea) * 100).toFixed(2)
@@ -542,9 +587,8 @@ export default function IntegrationVisualizer() {
                 {/* ── Canvas ── */}
                 <div style={{
                     width: '100%', aspectRatio: '16/9', minHeight: 250,
-                    background: '#0f1117', border: '1px solid rgba(88, 196, 221, 0.1)',
+                    background: 'var(--bg-card)', border: '1px solid var(--border-warm)',
                     borderRadius: 'var(--radius-md)', overflow: 'hidden',
-                    boxShadow: '0 0 40px rgba(88, 196, 221, 0.03), inset 0 0 60px rgba(15, 17, 23, 0.5)',
                 }}>
                     <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: '100%' }} />
                 </div>

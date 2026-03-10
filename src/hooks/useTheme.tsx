@@ -16,6 +16,9 @@ const ThemeContext = createContext<ThemeCtx>({
 
 export const useTheme = () => useContext(ThemeContext);
 
+/** Convenience: returns `true` when the resolved theme is 'dark'. */
+export const useIsDark = () => useTheme().resolved === 'dark';
+
 function getSystemPref(): 'light' | 'dark' {
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }

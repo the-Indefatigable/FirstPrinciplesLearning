@@ -12,6 +12,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@types/react-mathquill": "^0.1.1",
     "@types/three": "^0.183.1",
     "@vercel/analytics": "^1.6.1",
     "firebase": "^12.10.0",
@@ -22,6 +23,7 @@
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-markdown": "^10.1.0",
+    "react-mathquill": "^1.0.4",
     "react-plotly.js": "^2.6.0",
     "react-router-dom": "^7.13.1",
     "remark-gfm": "^4.0.1",
