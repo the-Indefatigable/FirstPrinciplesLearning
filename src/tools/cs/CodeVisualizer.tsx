@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 
 /* ═══════════════════════════════════════════════════════════════════════
-   TYPES
+   TYPES  (shared with codeRunnerWorker.ts)
    ═══════════════════════════════════════════════════════════════════════ */
 type VKind = 'number' | 'string' | 'boolean' | 'null' | 'undefined' | 'function' | 'array' | 'object';
 interface VNode {
@@ -10,227 +10,11 @@ interface VNode {
   id?: number; items?: VNode[]; fields?: [string, VNode][]; len?: number;
 }
 interface Step { line: number; text: string; vars: [string, VNode][]; }
+interface WorkerResult { steps: Step[]; lineMap: number[]; error?: string; }
 
 type Lang = 'js' | 'python' | 'java' | 'go';
 
-/* ═══════════════════════════════════════════════════════════════════════
-   SERIALISATION
-   ═══════════════════════════════════════════════════════════════════════ */
-function makeVNode(val: unknown, hm: WeakMap<object, number>, hc: { n: number }, depth: number): VNode {
-  if (val === null) return { kind: 'null' };
-  if (val === undefined) return { kind: 'undefined' };
-  if (typeof val === 'function') return { kind: 'function' };
-  if (typeof val === 'number') return { kind: 'number', prim: val };
-  if (typeof val === 'string') return { kind: 'string', prim: val };
-  if (typeof val === 'boolean') return { kind: 'boolean', prim: val };
-  if (!hm.has(val as object)) hm.set(val as object, hc.n++);
-  const id = hm.get(val as object)!;
-  if (Array.isArray(val)) {
-    const items = depth < 2 ? (val as unknown[]).slice(0, 24).map(v => makeVNode(v, hm, hc, depth + 1)) : [];
-    return { kind: 'array', id, items, len: (val as unknown[]).length };
-  }
-  const entries = Object.entries(val as object).slice(0, 16);
-  const fields: [string, VNode][] = depth < 2
-    ? entries.map(([k, v]) => [k, makeVNode(v, hm, hc, depth + 1)]) : [];
-  return { kind: 'object', id, fields, len: entries.length };
-}
 
-/* ═══════════════════════════════════════════════════════════════════════
-   JS INSTRUMENTATION
-   ═══════════════════════════════════════════════════════════════════════ */
-function extractVarNames(code: string): string[] {
-  const names = new Set<string>();
-  const re = /\b(?:let|const|var)\s+([a-zA-Z_$]\w*)/g;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(code))) names.add(m[1]);
-  return [...names];
-}
-
-function instrumentJS(code: string, varNames: string[]): string {
-  const cap = varNames.map(n => `"${n}":__g(function(){return ${n}})`).join(',');
-  const mkStep = (ln: number, text: string) =>
-    `  __step__(${ln},{${cap}},${JSON.stringify(text.slice(0, 80))});`;
-  const lines = code.split('\n');
-  const out: string[] = [];
-  for (let i = 0; i < lines.length; i++) {
-    const raw = lines[i], tr = raw.trim();
-    out.push(raw);
-    if (!tr || tr.startsWith('//') || tr.startsWith('/*') || tr === '{' || tr === '}') continue;
-    if (/^else\b/.test(tr)) continue;
-    if (/^(?:for|while|if)\s*\(/.test(tr) && tr.endsWith('{')) continue;
-    if (/^function\s+\w+/.test(tr)) continue;
-    out.push(mkStep(i + 1, tr));
-  }
-  return out.join('\n');
-}
-
-/* ═══════════════════════════════════════════════════════════════════════
-   PYTHON → JS TRANSPILER
-   Returns { js, lineMap } where lineMap[jsLine] = pythonLine (1-indexed)
-   ═══════════════════════════════════════════════════════════════════════ */
-function transpilePython(py: string): { js: string; lineMap: number[] } {
-  const pyLines = py.split('\n');
-  const jsLines: string[] = [];
-  // lineMap[i] = python line number that produced jsLines[i] (1-indexed, 0 = synthetic)
-  const lineMap: number[] = [];
-  const declared = new Set<string>();
-  const indentStack: number[] = [0];
-
-  const push = (s: string, pyLine: number) => { jsLines.push(s); lineMap.push(pyLine); };
-
-  const convExpr = (s: string) =>
-    s.replace(/\bNone\b/g, 'null')
-      .replace(/\bTrue\b/g, 'true')
-      .replace(/\bFalse\b/g, 'false')
-      .replace(/\blen\s*\((\w+)\)/g, '$1.length')
-      .replace(/\band\b/g, '&&')
-      .replace(/\bor\b/g, '||')
-      .replace(/\bnot\s+/g, '!')
-      .replace(/\.append\s*\(/g, '.push(');
-
-  for (let pi = 0; pi < pyLines.length; pi++) {
-    const raw = pyLines[pi];
-    const trimmed = raw.trimEnd();
-    const content = raw.trimStart();
-    const pyLineNum = pi + 1;
-
-    if (!trimmed) { push('', 0); continue; }
-    if (content.startsWith('#')) { push(`// ${content.slice(1).trim()}`, pyLineNum); continue; }
-
-    const indent = raw.length - content.length;
-
-    // Close blocks on dedent
-    while (indentStack.length > 1 && indent < indentStack[indentStack.length - 1]) {
-      indentStack.pop();
-      push('  '.repeat(indentStack.length) + '}', 0);
-    }
-
-    const pad = '  '.repeat(indentStack.length);
-    const endsColon = content.trimEnd().endsWith(':');
-
-    // for i in range(n) / range(a, b)
-    let m = content.match(/^for\s+(\w+)\s+in\s+range\s*\((.+)\)\s*:$/);
-    if (m) {
-      const [, v, args] = m;
-      const parts = args.split(',').map(s => s.trim());
-      const [start, end] = parts.length === 1 ? ['0', parts[0]] : [parts[0], parts[1]];
-      if (!declared.has(v)) declared.add(v);
-      push(`${pad}for (let ${v} = ${convExpr(start)}; ${v} < ${convExpr(end)}; ${v}++) {`, pyLineNum);
-      indentStack.push(indent + 1);
-      continue;
-    }
-
-    // for item in iterable
-    m = content.match(/^for\s+(\w+)\s+in\s+(.+)\s*:$/);
-    if (m) {
-      const [, v, iter] = m;
-      if (!declared.has(v)) declared.add(v);
-      push(`${pad}for (let ${v} of ${convExpr(iter)}) {`, pyLineNum);
-      indentStack.push(indent + 1);
-      continue;
-    }
-
-    // while
-    m = content.match(/^while\s+(.+)\s*:$/);
-    if (m) {
-      push(`${pad}while (${convExpr(m[1])}) {`, pyLineNum);
-      indentStack.push(indent + 1);
-      continue;
-    }
-
-    // if / elif / else
-    m = content.match(/^if\s+(.+)\s*:$/);
-    if (m) { push(`${pad}if (${convExpr(m[1])}) {`, pyLineNum); indentStack.push(indent + 1); continue; }
-    m = content.match(/^elif\s+(.+)\s*:$/);
-    if (m) {
-      // close current if-block then open else-if
-      if (indentStack.length > 1) indentStack.pop();
-      push(`${'  '.repeat(indentStack.length)}} else if (${convExpr(m[1])}) {`, pyLineNum);
-      indentStack.push(indent + 1);
-      continue;
-    }
-    if (content.trim() === 'else:') {
-      if (indentStack.length > 1) indentStack.pop();
-      push(`${'  '.repeat(indentStack.length)}} else {`, pyLineNum);
-      indentStack.push(indent + 1);
-      continue;
-    }
-
-    // print → skip (just emit a comment so it counts as a step)
-    m = content.match(/^print\s*\((.+)\)\s*;?$/);
-    if (m) { push(`${pad}// print(${m[1]})`, pyLineNum); continue; }
-
-    // Augmented assignment: x += 1
-    m = content.match(/^([a-zA-Z_]\w*)\s*([+\-*\/]=)\s*(.+?)\s*;?$/);
-    if (m) {
-      const [, name, op, val] = m;
-      push(`${pad}${name} ${op} ${convExpr(val)};`, pyLineNum);
-      continue;
-    }
-
-    // Simple assignment: x = expr
-    m = content.match(/^([a-zA-Z_]\w*)\s*=\s*(.+?)\s*;?$/);
-    if (m && !content.includes('==') && !endsColon) {
-      const [, name, val] = m;
-      const decl = !declared.has(name);
-      if (decl) declared.add(name);
-      push(`${pad}${decl ? 'let ' : ''}${name} = ${convExpr(val)};`, pyLineNum);
-      continue;
-    }
-
-    // Dict/attr assignment: obj["key"] = val  OR  obj.key = val
-    m = content.match(/^(\w+(?:\[.+?\]|(?:\.\w+)+))\s*=\s*(.+?)\s*;?$/);
-    if (m && !content.includes('==')) {
-      push(`${pad}${convExpr(m[1])} = ${convExpr(m[2])};`, pyLineNum);
-      continue;
-    }
-
-    // Everything else
-    let line = convExpr(content.replace(/#.*$/, s => `// ${s.slice(1).trim()}`));
-    if (!line.endsWith('{') && !line.endsWith('}') && !line.endsWith(';')) line += ';';
-    push(`${pad}${line}`, pyLineNum);
-  }
-
-  // Close remaining open blocks
-  while (indentStack.length > 1) {
-    indentStack.pop();
-    push('  '.repeat(indentStack.length) + '}', 0);
-  }
-
-  return { js: jsLines.join('\n'), lineMap };
-}
-
-/* ═══════════════════════════════════════════════════════════════════════
-   RUNNER
-   ═══════════════════════════════════════════════════════════════════════ */
-interface RunResult { steps: Step[]; error?: string; }
-
-function runCode(jsCode: string): RunResult {
-  const varNames = extractVarNames(jsCode);
-  const instrumented = instrumentJS(jsCode, varNames);
-  const steps: Step[] = [];
-  const hm = new WeakMap<object, number>();
-  const hc = { n: 1 };
-  const startMs = Date.now();
-
-  const __step__ = (lineNum: number, rawVars: Record<string, unknown>, text: string) => {
-    if (Date.now() - startMs > 2500) throw new Error('Execution timed out (2.5 s). Check for infinite loops.');
-    if (steps.length >= 250) throw new Error('Too many steps (max 250).');
-    const vars: [string, VNode][] = Object.entries(rawVars)
-      .filter(([, v]) => v !== undefined)
-      .map(([k, v]) => [k, makeVNode(v, hm, hc, 0)]);
-    steps.push({ line: lineNum, text, vars });
-  };
-
-  try {
-    const pre = `"use strict";function __g(fn){try{return fn();}catch(_){return undefined;}}\n`;
-    // eslint-disable-next-line no-new-func
-    new Function('__step__', pre + instrumented)(__step__);
-  } catch (e: unknown) {
-    return { steps, error: (e as Error).message };
-  }
-  return { steps };
-}
 
 /* ═══════════════════════════════════════════════════════════════════════
    CANVAS — palette, drawing helpers, drawStep, drawLoading
@@ -573,6 +357,7 @@ export default function CodeVisualizer() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
   const animRef = useRef<number | null>(null);
+  const workerRef = useRef<Worker | null>(null);
 
   const [lang, setLang] = useState<Lang>('js');
   const [code, setCode] = useState(EXAMPLES.js);
@@ -609,7 +394,7 @@ export default function CodeVisualizer() {
     if (animRef.current) { cancelAnimationFrame(animRef.current); animRef.current = null; }
   }, []);
 
-  // Process code with debounce
+  // Process code via Web Worker (sandboxed — no DOM/window/process access)
   useEffect(() => {
     if (lang === 'java' || lang === 'go') { setStatus('idle'); return; }
     if (!code.trim()) { setStatus('idle'); return; }
@@ -617,33 +402,53 @@ export default function CodeVisualizer() {
     startLoading();
 
     const timer = setTimeout(() => {
-      let jsCode = code;
-      lineMapRef.current = [];
+      // Terminate any previous worker before starting a new one
+      workerRef.current?.terminate();
 
-      if (lang === 'python') {
-        const { js, lineMap } = transpilePython(code);
-        jsCode = js;
+      const worker = new Worker(
+        new URL('./codeRunnerWorker.ts', import.meta.url),
+        { type: 'module' }
+      );
+      workerRef.current = worker;
+
+      worker.onmessage = (e: MessageEvent<WorkerResult>) => {
+        const { steps: s, lineMap, error } = e.data;
         lineMapRef.current = lineMap;
-      }
+        stopLoading();
 
-      const result = runCode(jsCode);
-      stopLoading();
+        if (error) {
+          setError(error);
+          setStatus('error');
+        } else if (s.length === 0) {
+          setError('No steps captured — make sure your code uses variable assignments.');
+          setStatus('error');
+        } else {
+          setSteps(s);
+          setStepIdx(0);
+          setError(null);
+          setStatus('ready');
+        }
+        worker.terminate();
+        workerRef.current = null;
+      };
 
-      if (result.error) {
-        setError(result.error);
+      worker.onerror = (e) => {
+        stopLoading();
+        setError(e.message ?? 'Worker error');
         setStatus('error');
-      } else if (result.steps.length === 0) {
-        setError('No steps captured — make sure your code uses variable assignments.');
-        setStatus('error');
-      } else {
-        setSteps(result.steps);
-        setStepIdx(0);
-        setError(null);
-        setStatus('ready');
-      }
+        worker.terminate();
+        workerRef.current = null;
+      };
+
+      worker.postMessage({ code, lang });
     }, 600);
 
-    return () => { clearTimeout(timer); stopLoading(); };
+    return () => {
+      clearTimeout(timer);
+      stopLoading();
+      workerRef.current?.terminate();
+      workerRef.current = null;
+    };
   }, [code, lang]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Draw current step

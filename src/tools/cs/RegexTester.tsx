@@ -10,16 +10,16 @@ export default function RegexTester() {
         try {
             const regex = new RegExp(pattern, flags);
             setError(null);
-            const result: { start: number; end: number; match: string }[] = [];
+            const result: { start: number; end: number; match: string; groups: (string | undefined)[] }[] = [];
             let m: RegExpExecArray | null;
             if (flags.includes('g')) {
                 while ((m = regex.exec(testStr)) !== null) {
-                    result.push({ start: m.index, end: m.index + m[0].length, match: m[0] });
+                    result.push({ start: m.index, end: m.index + m[0].length, match: m[0], groups: Array.from(m).slice(1) });
                     if (!m[0].length) regex.lastIndex++;
                 }
             } else {
                 m = regex.exec(testStr);
-                if (m) result.push({ start: m.index, end: m.index + m[0].length, match: m[0] });
+                if (m) result.push({ start: m.index, end: m.index + m[0].length, match: m[0], groups: Array.from(m).slice(1) });
             }
             return result;
         } catch (e) { setError((e as Error).message); return []; }
@@ -73,11 +73,22 @@ export default function RegexTester() {
 
                 {matches.length > 0 && (
                     <div style={{ border: '1px solid var(--border-warm)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
-                        {matches.slice(0, 20).map((m, i) => (
-                            <div key={i} style={{ padding: '6px 16px', borderTop: i ? '1px solid var(--border-light)' : 'none', display: 'flex', gap: 16, fontSize: '0.85rem', fontFamily: 'monospace' }}>
-                                <span style={{ color: 'var(--text-dim)', minWidth: 30 }}>#{i + 1}</span>
-                                <span style={{ color: 'var(--amber)', fontWeight: 600 }}>"{m.match}"</span>
-                                <span style={{ color: 'var(--text-dim)' }}>pos {m.start}–{m.end}</span>
+                        {matches.map((m, i) => (
+                            <div key={i} style={{ padding: '6px 16px', borderTop: i ? '1px solid var(--border-light)' : 'none', fontSize: '0.85rem', fontFamily: 'monospace' }}>
+                                <div style={{ display: 'flex', gap: 16 }}>
+                                    <span style={{ color: 'var(--text-dim)', minWidth: 30 }}>#{i + 1}</span>
+                                    <span style={{ color: 'var(--amber)', fontWeight: 600 }}>"{m.match}"</span>
+                                    <span style={{ color: 'var(--text-dim)' }}>pos {m.start}–{m.end}</span>
+                                </div>
+                                {m.groups.length > 0 && (
+                                    <div style={{ paddingLeft: 46, marginTop: 2, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                        {m.groups.map((g, gi) => (
+                                            <span key={gi} style={{ color: 'var(--sage)', fontSize: '0.78rem' }}>
+                                                ${gi + 1}=<span style={{ color: 'var(--text-dim)' }}>"{g ?? '—'}"</span>
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         ))}
                     </div>
