@@ -1,6 +1,10 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback, lazy, Suspense } from 'react';
 import * as math from 'mathjs';
 import { drawBackground, drawGlowCurve, drawGlowDot, MANIM, type CurvePoint } from '../../utils/manimCanvas';
+import ImmersiveToggle from '../../components/ImmersiveToggle';
+import '../../components/ImmersiveToggle.css';
+
+const SlopeFieldImmersive = lazy(() => import('./SlopeFieldImmersive'));
 
 interface Particle {
     x: number;
@@ -13,12 +17,30 @@ const COLORS = MANIM.palette;
 
 export default function SlopeField() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
     const [equation, setEquation] = useState('sin(x) + cos(y)');
     const [bounds, setBounds] = useState(10); // -10 to 10
     const [density, setDensity] = useState(20); // Grid points
     const [particles, setParticles] = useState<Particle[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [isDarkMode] = useState(false); // kept for API compat but always manim dark
+
+    // Immersive mode state
+    const [immersive, setImmersive] = useState(false);
+    const [immersiveLoading, setImmersiveLoading] = useState(false);
+
+    const handleToggleImmersive = useCallback(() => {
+        if (!immersive) {
+            setImmersiveLoading(true);
+            setImmersive(true);
+        } else {
+            setImmersive(false);
+        }
+    }, [immersive]);
+
+    const handleImmersiveLoaded = useCallback(() => {
+        setImmersiveLoading(false);
+    }, []);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -225,6 +247,7 @@ export default function SlopeField() {
                 </div>
 
                 <div
+                    ref={containerRef}
                     style={{
                         width: '100%',
                         position: 'relative',
@@ -235,29 +258,67 @@ export default function SlopeField() {
                         boxShadow: '0 0 40px rgba(88, 196, 221, 0.03), inset 0 0 60px rgba(15, 17, 23, 0.5)',
                     }}
                 >
-                    <div style={{ position: 'absolute', top: 12, left: 16, zIndex: 10, pointerEvents: 'none' }}>
-                        <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
-                            Click map to drop trace particles
-                        </p>
-                    </div>
-                    <div style={{ position: 'absolute', top: 12, right: 16, zIndex: 10 }}>
-                        <button
-                            className="tool-btn tool-btn--outline"
-                            style={{ padding: '6px 12px', fontSize: '0.8rem' }}
-                            onClick={() => setParticles([])}
-                        >
-                            Clear Particles
-                        </button>
-                    </div>
-                    <div style={{ width: '100%', aspectRatio: '16/9' }}>
-                        <canvas
-                            ref={canvasRef}
-                            onClick={handleCanvasClick}
-                            style={{ cursor: 'crosshair', display: 'block' }}
-                        />
-                    </div>
+                    <ImmersiveToggle
+                        active={immersive}
+                        onToggle={handleToggleImmersive}
+                        loading={immersiveLoading}
+                    />
+
+                    {!immersive && (
+                        <>
+                            <div style={{ position: 'absolute', top: 12, left: 16, zIndex: 10, pointerEvents: 'none' }}>
+                                <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
+                                    Click map to drop trace particles
+                                </p>
+                            </div>
+                            <div style={{ position: 'absolute', top: 12, right: 56, zIndex: 10 }}>
+                                <button
+                                    className="tool-btn tool-btn--outline"
+                                    style={{ padding: '6px 12px', fontSize: '0.8rem' }}
+                                    onClick={() => setParticles([])}
+                                >
+                                    Clear Particles
+                                </button>
+                            </div>
+                            <div style={{ width: '100%', aspectRatio: '16/9' }}>
+                                <canvas
+                                    ref={canvasRef}
+                                    onClick={handleCanvasClick}
+                                    style={{ cursor: 'crosshair', display: 'block' }}
+                                />
+                            </div>
+                        </>
+                    )}
+
+                    {immersive && (
+                        <Suspense fallback={
+                            <div style={{
+                                width: '100%', height: '100%', aspectRatio: '16/9',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                background: '#0f1117', color: '#58C4DD',
+                                fontSize: '0.9rem', fontFamily: 'var(--font-sans)',
+                            }}>
+                                Loading Immersive Mode...
+                            </div>
+                        }>
+                            <ImmersiveLoadWrapper onLoaded={handleImmersiveLoaded}>
+                                <SlopeFieldImmersive
+                                    equation={equation}
+                                    bounds={bounds}
+                                    density={density}
+                                    particles={particles}
+                                />
+                            </ImmersiveLoadWrapper>
+                        </Suspense>
+                    )}
                 </div>
             </div>
         </div>
     );
+}
+
+/** Tiny wrapper that calls onLoaded when the lazy component mounts */
+function ImmersiveLoadWrapper({ children, onLoaded }: { children: React.ReactNode; onLoaded: () => void }) {
+    useEffect(() => { onLoaded(); }, [onLoaded]);
+    return <>{children}</>;
 }

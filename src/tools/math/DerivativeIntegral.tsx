@@ -1,8 +1,13 @@
-import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo, lazy, Suspense } from 'react';
 import { derivative, parse, simplify, compile, type MathNode, type EvalFunction } from 'mathjs';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import { drawBackground, drawGlowCurve } from '../../utils/manimCanvas';
+import ImmersiveToggle from '../../components/ImmersiveToggle';
+import '../../components/ImmersiveToggle.css';
+
+// Lazy-load the WebGL immersive renderer — only downloaded when user activates it
+const DerivativeIntegralImmersive = lazy(() => import('./DerivativeIntegralImmersive'));
 
 /* ─── Types ─── */
 type Tab = 'derivative' | 'integral';
@@ -202,11 +207,30 @@ function integrationSteps(expr: string, variable: string): StepEntry[] {
 /* ─── Graph component (Manim-grade) ─── */
 function Graph({ expr, derivExpr, variable }: { expr: string; derivExpr: string | null; variable: string }) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    // Immersive mode state
+    const [immersive, setImmersive] = useState(false);
+    const [immersiveLoading, setImmersiveLoading] = useState(false);
+
+    const handleToggleImmersive = useCallback(() => {
+        if (!immersive) {
+            setImmersiveLoading(true);
+            setImmersive(true);
+        } else {
+            setImmersive(false);
+        }
+    }, [immersive]);
+
+    const handleImmersiveLoaded = useCallback(() => {
+        setImmersiveLoading(false);
+    }, []);
 
     useEffect(() => {
+        if (immersive) return;
         const canvas = canvasRef.current;
         if (!canvas) return;
-        const parent = canvas.parentElement;
+        const parent = containerRef.current;
         if (!parent) return;
 
         const rect = parent.getBoundingClientRect();
@@ -356,20 +380,56 @@ function Graph({ expr, derivExpr, variable }: { expr: string; derivExpr: string 
             ctx.fillStyle = '#83C167';
             ctx.fillText("f'(x)", 32, legendY + 20);
         }
-    }, [expr, derivExpr, variable]);
+    }, [expr, derivExpr, variable, immersive]);
 
     return (
-        <div style={{
-            width: '100%',
-            aspectRatio: '2 / 1',
-            minHeight: 220,
-            background: '#0f1117',
-            border: '1px solid rgba(88, 196, 221, 0.1)',
-            borderRadius: 'var(--radius-md)',
-            overflow: 'hidden',
-            boxShadow: '0 0 40px rgba(88, 196, 221, 0.03), inset 0 0 60px rgba(15, 17, 23, 0.5)',
-        }}>
-            <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: '100%' }} />
+        <div
+            ref={containerRef}
+            style={{
+                width: '100%',
+                aspectRatio: '2 / 1',
+                minHeight: 220,
+                background: '#0f1117',
+                border: '1px solid rgba(88, 196, 221, 0.1)',
+                borderRadius: 'var(--radius-md)',
+                overflow: 'hidden',
+                boxShadow: '0 0 40px rgba(88, 196, 221, 0.03), inset 0 0 60px rgba(15, 17, 23, 0.5)',
+                position: 'relative',
+            }}
+        >
+            {/* Immersive Mode Toggle */}
+            <ImmersiveToggle
+                active={immersive}
+                onToggle={handleToggleImmersive}
+                loading={immersiveLoading}
+            />
+
+            {/* Standard Canvas 2D renderer */}
+            {!immersive && (
+                <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: '100%' }} />
+            )}
+
+            {/* Immersive WebGL renderer (lazy loaded) */}
+            {immersive && (
+                <Suspense fallback={
+                    <div style={{
+                        width: '100%', height: '100%',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        background: '#0f1117', color: '#58C4DD',
+                        fontSize: '0.9rem', fontFamily: 'var(--font-sans)',
+                    }}>
+                        Loading Immersive Mode...
+                    </div>
+                }>
+                    <ImmersiveLoadWrapper onLoaded={handleImmersiveLoaded}>
+                        <DerivativeIntegralImmersive
+                            expression={expr}
+                            derivativeExpression={derivExpr}
+                            variable={variable}
+                        />
+                    </ImmersiveLoadWrapper>
+                </Suspense>
+            )}
         </div>
     );
 }
@@ -849,4 +909,10 @@ export default function DerivativeIntegral() {
             </div>
         </div>
     );
+}
+
+/** Tiny wrapper that calls onLoaded when the lazy component mounts */
+function ImmersiveLoadWrapper({ children, onLoaded }: { children: React.ReactNode; onLoaded: () => void }) {
+    useEffect(() => { onLoaded(); }, [onLoaded]);
+    return <>{children}</>;
 }

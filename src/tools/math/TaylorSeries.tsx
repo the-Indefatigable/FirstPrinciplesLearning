@@ -1,15 +1,38 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useCallback, lazy, Suspense } from 'react';
 import * as math from 'mathjs';
 import { drawBackground, drawGlowCurve, drawGlowDot, MANIM, type CurvePoint } from '../../utils/manimCanvas';
+import ImmersiveToggle from '../../components/ImmersiveToggle';
+import '../../components/ImmersiveToggle.css';
+
+const TaylorSeriesImmersive = lazy(() => import('./TaylorSeriesImmersive'));
 
 export default function TaylorSeries() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
     const [fn, setFn] = useState('sin(x)');
     const [center, setCenter] = useState(0);
     const [terms, setTerms] = useState(4);
     const [error, setError] = useState<string | null>(null);
 
+    // Immersive mode state
+    const [immersive, setImmersive] = useState(false);
+    const [immersiveLoading, setImmersiveLoading] = useState(false);
+
+    const handleToggleImmersive = useCallback(() => {
+        if (!immersive) {
+            setImmersiveLoading(true);
+            setImmersive(true);
+        } else {
+            setImmersive(false);
+        }
+    }, [immersive]);
+
+    const handleImmersiveLoaded = useCallback(() => {
+        setImmersiveLoading(false);
+    }, []);
+
     useEffect(() => {
+        if (immersive) return;
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
@@ -143,7 +166,7 @@ export default function TaylorSeries() {
         ctx.fillStyle = MANIM.palette[terms % MANIM.palette.length];
         ctx.fillText(`T${terms}(x) — ${terms + 1} terms`, 12, 36);
 
-    }, [fn, center, terms]);
+    }, [fn, center, terms, immersive]);
 
     return (
         <div className="tool-card">
@@ -169,8 +192,46 @@ export default function TaylorSeries() {
                     </div>
                 </div>
 
-                <div style={{ width: '100%', aspectRatio: '16/9', background: '#0f1117', border: '1px solid rgba(88, 196, 221, 0.1)', borderRadius: 'var(--radius-md)', overflow: 'hidden', boxShadow: '0 0 40px rgba(88, 196, 221, 0.03), inset 0 0 60px rgba(15, 17, 23, 0.5)' }}>
-                    <canvas ref={canvasRef} style={{ display: 'block' }} />
+                <div
+                    ref={containerRef}
+                    style={{
+                        width: '100%', aspectRatio: '16/9',
+                        background: '#0f1117', border: '1px solid rgba(88, 196, 221, 0.1)',
+                        borderRadius: 'var(--radius-md)', overflow: 'hidden',
+                        boxShadow: '0 0 40px rgba(88, 196, 221, 0.03), inset 0 0 60px rgba(15, 17, 23, 0.5)',
+                        position: 'relative',
+                    }}
+                >
+                    <ImmersiveToggle
+                        active={immersive}
+                        onToggle={handleToggleImmersive}
+                        loading={immersiveLoading}
+                    />
+
+                    {!immersive && (
+                        <canvas ref={canvasRef} style={{ display: 'block' }} />
+                    )}
+
+                    {immersive && (
+                        <Suspense fallback={
+                            <div style={{
+                                width: '100%', height: '100%',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                background: '#0f1117', color: '#58C4DD',
+                                fontSize: '0.9rem', fontFamily: 'var(--font-sans)',
+                            }}>
+                                Loading Immersive Mode...
+                            </div>
+                        }>
+                            <ImmersiveLoadWrapper onLoaded={handleImmersiveLoaded}>
+                                <TaylorSeriesImmersive
+                                    fn={fn}
+                                    center={center}
+                                    terms={terms}
+                                />
+                            </ImmersiveLoadWrapper>
+                        </Suspense>
+                    )}
                 </div>
 
                 <p style={{ margin: '12px 0 0', fontSize: '0.82rem', color: 'var(--text-dim)' }}>
@@ -179,4 +240,10 @@ export default function TaylorSeries() {
             </div>
         </div>
     );
+}
+
+/** Tiny wrapper that calls onLoaded when the lazy component mounts */
+function ImmersiveLoadWrapper({ children, onLoaded }: { children: React.ReactNode; onLoaded: () => void }) {
+    useEffect(() => { onLoaded(); }, [onLoaded]);
+    return <>{children}</>;
 }

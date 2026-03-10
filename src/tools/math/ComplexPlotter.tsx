@@ -1,5 +1,9 @@
-import { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback, lazy, Suspense } from 'react';
 import { drawBackground, drawGlowDot, MANIM } from '../../utils/manimCanvas';
+import ImmersiveToggle from '../../components/ImmersiveToggle';
+import '../../components/ImmersiveToggle.css';
+
+const ComplexPlotterImmersive = lazy(() => import('./ComplexPlotterImmersive'));
 
 interface ComplexNum { re: number; im: number; }
 
@@ -13,9 +17,27 @@ const arg = (a: ComplexNum) => Math.atan2(a.im, a.re);
 
 export default function ComplexPlotter() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
     const [zA, setZA] = useState<ComplexNum>({ re: 3, im: 2 });
     const [zB, setZB] = useState<ComplexNum>({ re: -1, im: 1 });
     const [op, setOp] = useState<'add' | 'multiply'>('add');
+
+    // Immersive mode state
+    const [immersive, setImmersive] = useState(false);
+    const [immersiveLoading, setImmersiveLoading] = useState(false);
+
+    const handleToggleImmersive = useCallback(() => {
+        if (!immersive) {
+            setImmersiveLoading(true);
+            setImmersive(true);
+        } else {
+            setImmersive(false);
+        }
+    }, [immersive]);
+
+    const handleImmersiveLoaded = useCallback(() => {
+        setImmersiveLoading(false);
+    }, []);
 
     const result = op === 'add' ? add(zA, zB) : mul(zA, zB);
 
@@ -174,10 +196,54 @@ export default function ComplexPlotter() {
                     <div style={{ fontSize: '0.82rem', color: MANIM.yellow, fontWeight: 600 }}>Result: {fmt(result)}</div>
                 </div>
 
-                <div style={{ width: '100%', aspectRatio: '4/3', background: '#0f1117', border: '1px solid rgba(88, 196, 221, 0.1)', borderRadius: 'var(--radius-md)', overflow: 'hidden', boxShadow: '0 0 40px rgba(88, 196, 221, 0.03), inset 0 0 60px rgba(15, 17, 23, 0.5)' }}>
-                    <canvas ref={canvasRef} style={{ display: 'block' }} />
+                <div
+                    ref={containerRef}
+                    style={{
+                        width: '100%', aspectRatio: '4/3', background: '#0f1117',
+                        border: '1px solid rgba(88, 196, 221, 0.1)', borderRadius: 'var(--radius-md)',
+                        overflow: 'hidden', position: 'relative',
+                        boxShadow: '0 0 40px rgba(88, 196, 221, 0.03), inset 0 0 60px rgba(15, 17, 23, 0.5)',
+                    }}
+                >
+                    <ImmersiveToggle
+                        active={immersive}
+                        onToggle={handleToggleImmersive}
+                        loading={immersiveLoading}
+                    />
+
+                    {!immersive && (
+                        <canvas ref={canvasRef} style={{ display: 'block' }} />
+                    )}
+
+                    {immersive && (
+                        <Suspense fallback={
+                            <div style={{
+                                width: '100%', height: '100%',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                background: '#0f1117', color: '#58C4DD',
+                                fontSize: '0.9rem', fontFamily: 'var(--font-sans)',
+                            }}>
+                                Loading Immersive Mode...
+                            </div>
+                        }>
+                            <ImmersiveLoadWrapper onLoaded={handleImmersiveLoaded}>
+                                <ComplexPlotterImmersive
+                                    zA={zA}
+                                    zB={zB}
+                                    op={op}
+                                    result={result}
+                                />
+                            </ImmersiveLoadWrapper>
+                        </Suspense>
+                    )}
                 </div>
             </div>
         </div>
     );
+}
+
+/** Tiny wrapper that calls onLoaded when the lazy component mounts */
+function ImmersiveLoadWrapper({ children, onLoaded }: { children: React.ReactNode; onLoaded: () => void }) {
+    useEffect(() => { onLoaded(); }, [onLoaded]);
+    return <>{children}</>;
 }
