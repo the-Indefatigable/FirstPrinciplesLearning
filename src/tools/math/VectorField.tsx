@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { drawBackground } from '../../utils/manimCanvas';
+import { useUrlState } from '../../hooks/useUrlState';
 
 /* ═══════════════════════════════════════════════════════════════════════
    PRESETS — Common vector fields with interesting features
@@ -44,9 +45,11 @@ export default function VectorField() {
     const animRef = useRef<number>(0);
     const particlesRef = useRef<{ x: number; y: number; age: number }[]>([]);
 
-    const [presetIdx, setPresetIdx] = useState(0);
-    const [pExpr, setPExpr] = useState(PRESETS[0].pExpr);
-    const [qExpr, setQExpr] = useState(PRESETS[0].qExpr);
+    const [urlState, setUrlState] = useUrlState('vf', { presetIdx: 0, pExpr: PRESETS[0].pExpr, qExpr: PRESETS[0].qExpr });
+    const { presetIdx, pExpr, qExpr } = urlState;
+    const setPresetIdx = (v: number) => setUrlState(s => ({ ...s, presetIdx: v }));
+    const setPExpr = (v: string) => setUrlState(s => ({ ...s, pExpr: v }));
+    const setQExpr = (v: string) => setUrlState(s => ({ ...s, qExpr: v }));
     const [showArrows, setShowArrows] = useState(true);
     const [showParticles, setShowParticles] = useState(false);
     const [showDiv, setShowDiv] = useState(false);
@@ -54,11 +57,9 @@ export default function VectorField() {
     const [density, setDensity] = useState(12);
 
     const selectPreset = useCallback((idx: number) => {
-        setPresetIdx(idx);
-        setPExpr(PRESETS[idx].pExpr);
-        setQExpr(PRESETS[idx].qExpr);
+        setUrlState({ presetIdx: idx, pExpr: PRESETS[idx].pExpr, qExpr: PRESETS[idx].qExpr });
         particlesRef.current = [];
-    }, []);
+    }, [setUrlState]);
 
     useEffect(() => {
         const canvas = canvasRef.current;

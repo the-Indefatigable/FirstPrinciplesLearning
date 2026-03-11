@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import * as math from 'mathjs';
 import { drawBackground, drawGlowCurve, drawGlowDot, MANIM, type CurvePoint } from '../../utils/manimCanvas';
+import { useUrlState } from '../../hooks/useUrlState';
 
 interface Particle {
     x: number;
@@ -13,9 +14,11 @@ const COLORS = MANIM.palette;
 
 export default function SlopeField() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [equation, setEquation] = useState('sin(x) + cos(y)');
-    const [bounds, setBounds] = useState(10); // -10 to 10
-    const [density, setDensity] = useState(20); // Grid points
+    const [urlState, setUrlState] = useUrlState('sf', { equation: 'sin(x) + cos(y)', bounds: 10, density: 20 });
+    const { equation, bounds, density } = urlState;
+    const setEquation = (v: string) => setUrlState(s => ({ ...s, equation: v }));
+    const setBounds   = (v: number) => setUrlState(s => ({ ...s, bounds: v }));
+    const setDensity  = (v: number) => setUrlState(s => ({ ...s, density: v }));
     const [particles, setParticles] = useState<Particle[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [isDarkMode] = useState(false); // kept for API compat but always manim dark

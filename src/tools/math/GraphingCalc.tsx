@@ -9,6 +9,7 @@
  */
 
 import React, { useState, useCallback, useRef, useEffect, Suspense } from 'react';
+import { useUrlState } from '../../hooks/useUrlState';
 import { compile, type EvalFunction } from 'mathjs';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -450,8 +451,11 @@ function Surface3D({ expr, bounds, resolution }: { expr: string; bounds: number;
    ═══════════════════════════════════════════════════ */
 export default function GraphingCalc() {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [expr, setExpr] = useState('sin(x)');
-  const [viewMode, setViewMode] = useState<ViewMode>('2d');
+  const [urlState, setUrlState] = useUrlState('gc', { expr: 'sin(x)', viewMode: '2d' as ViewMode });
+  const { expr, viewMode } = urlState;
+  const setExpr = (v: string | ((prev: string) => string)) =>
+    setUrlState(s => ({ ...s, expr: typeof v === 'function' ? v(s.expr) : v }));
+  const setViewMode = (v: ViewMode) => setUrlState(s => ({ ...s, viewMode: v }));
   const [showKeyboard, setShowKeyboard] = useState(false);
   const [show3DImmersive, setShow3DImmersive] = useState(false);
   const [showSurfaceFS, setShowSurfaceFS] = useState(false);

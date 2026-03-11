@@ -48,9 +48,7 @@ export const toolLoaders: Record<string, () => Promise<{ default: ComponentType 
   'free-body-diagram': () => import('../tools/physics/FreeBodyDiagram'),
   'thermo-pv': () => import('../tools/physics/ThermoPV'),
   // Phase 3 — CS
-  'binary-tree': () => import('../tools/cs/BinaryTree'),
-  'stack-queue': () => import('../tools/cs/StackQueue'),
-  'linked-list': () => import('../tools/cs/LinkedList'),
+  'data-structures': () => import('../tools/cs/DataStructures'),
   'bigo-comparator': () => import('../tools/cs/BigOComparator'),
   'regex-tester': () => import('../tools/cs/RegexTester'),
   'fsm-builder': () => import('../tools/cs/FSMBuilder'),
@@ -63,7 +61,6 @@ export const toolLoaders: Record<string, () => Promise<{ default: ComponentType 
   'linear-algebra-viz': () => import('../tools/math/LinearAlgebraViz'),
   'quantum-wave': () => import('../tools/physics/QuantumWave'),
   'em-induction': () => import('../tools/physics/EMInduction'),
-  'lens-mirror': () => import('../tools/physics/LensMirror'),
   'cpu-pipeline': () => import('../tools/cs/CPUPipeline'),
   'memory-allocator': () => import('../tools/cs/MemoryAllocator'),
   'turing-machine': () => import('../tools/cs/TuringMachine'),
@@ -167,13 +164,21 @@ const PreviewCircuitBuilder: React.FC = () => (
 
 const PreviewOrbitalMechanics: React.FC = () => (
   <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
-    <ellipse cx="38" cy="42" rx="27" ry="18" stroke="#6b8f71" strokeWidth="1.5" opacity="0.45" />
-    <circle cx="32" cy="44" r="6" fill="#1e293b" opacity="0.75" />
-    <circle cx="30" cy="42" r="2" fill="#a3c4a8" opacity="0.5" />
-    <g className="preview-orbit" style={{ transformOrigin: '38px 42px' }}>
-      <circle cx="65" cy="42" r="4" fill="#6b8f71" />
-      <circle cx="64" cy="41" r="1.5" fill="#d4edda" opacity="0.8" />
-    </g>
+    {/* Orbits */}
+    <ellipse cx="40" cy="40" rx="24" ry="16" stroke="#f59e0b" strokeWidth="1" opacity="0.3" />
+    <ellipse cx="40" cy="40" rx="10" ry="7" stroke="#3b82f6" strokeWidth="1" opacity="0.3" />
+    {/* CoM crosshair */}
+    <line x1="36" y1="40" x2="44" y2="40" stroke="#6b8f71" strokeWidth="1" opacity="0.5" />
+    <line x1="40" y1="36" x2="40" y2="44" stroke="#6b8f71" strokeWidth="1" opacity="0.5" />
+    {/* m1 (amber, larger) */}
+    <circle cx="30" cy="40" r="8" fill="#f59e0b" opacity="0.85" />
+    <circle cx="28" cy="38" r="2.5" fill="#fef3c7" opacity="0.4" />
+    {/* m2 (blue, smaller) */}
+    <circle cx="64" cy="40" r="5" fill="#3b82f6" opacity="0.85" />
+    <circle cx="63" cy="39" r="1.5" fill="#bfdbfe" opacity="0.4" />
+    {/* Velocity arrows */}
+    <line x1="30" y1="40" x2="30" y2="30" stroke="#fbbf24" strokeWidth="1.5" strokeLinecap="round" />
+    <line x1="64" y1="40" x2="64" y2="52" stroke="#60a5fa" strokeWidth="1.5" strokeLinecap="round" />
   </svg>
 );
 
@@ -811,8 +816,8 @@ export const allTools: ToolMeta[] = [
     Preview: PreviewCircuitBuilder,
   },
   {
-    slug: 'orbital-mechanics', name: 'Orbital Gravity Simulator', tag: 'Mechanics',
-    description: "Simulate planetary orbits and explore Kepler's laws with gravitational physics.",
+    slug: 'orbital-mechanics', name: 'Two-Body Problem', tag: 'Classical Mechanics',
+    description: 'Explore the gravitational two-body problem with live KaTeX equations, reduced-mass derivation, and dual-perspective simulation (lab frame & center-of-mass frame).',
     category: 'physics',
     gradient: 'linear-gradient(160deg, #f0f5f1 0%, #d8eada 60%, #b8d4bd 100%)',
     Preview: PreviewOrbitalMechanics,
@@ -919,25 +924,11 @@ export const allTools: ToolMeta[] = [
   },
 
   {
-    slug: 'binary-tree', name: 'Binary Search Tree', tag: 'Data Structures',
-    description: 'Insert, delete, and traverse a BST with animated in-order, pre-order, and post-order walks.',
+    slug: 'data-structures', name: 'Data Structures', tag: 'Data Structures',
+    description: 'Interactive playground for Stack, Queue, Linked List, and Binary Search Tree — all in one tabbed tool.',
     category: 'cs',
     gradient: 'linear-gradient(145deg, #faf0ec 0%, #f0d5c8 55%, #e0baa8 100%)',
     Preview: PreviewBinaryTree,
-  },
-  {
-    slug: 'stack-queue', name: 'Stack & Queue', tag: 'Data Structures',
-    description: 'Push, pop, enqueue, dequeue — visualize LIFO and FIFO data structures side by side.',
-    category: 'cs',
-    gradient: 'linear-gradient(150deg, #fdf4f2 0%, #fce7e2 55%, #f9c8c0 100%)',
-    Preview: PreviewStackQueue,
-  },
-  {
-    slug: 'linked-list', name: 'Linked List', tag: 'Data Structures',
-    description: 'Visual insert, delete, reverse a linked list with animated pointer arrows.',
-    category: 'cs',
-    gradient: 'linear-gradient(135deg, #faf0ec 0%, #f5d9ce 55%, #e8b9a8 100%)',
-    Preview: PreviewLinkedList,
   },
   {
     slug: 'bigo-comparator', name: 'Big-O Comparator', tag: 'Algorithms',
@@ -1059,26 +1050,6 @@ export const allTools: ToolMeta[] = [
       </svg>
     ),
   },
-  {
-    slug: 'lens-mirror', name: 'Lens & Mirror Calculator', tag: 'Optics',
-    description: 'Trace principal rays through converging/diverging lenses and concave/convex mirrors. See real and virtual images form.',
-    category: 'physics',
-    gradient: 'linear-gradient(140deg, #ecfdf5 0%, #d1fae5 55%, #6ee7b7 100%)',
-    Preview: () => (
-      <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
-        <line x1="4" y1="40" x2="76" y2="40" stroke="#9c9488" strokeWidth="0.6" strokeDasharray="3 2" />
-        <path d="M40 16 Q52 28 52 40 Q52 52 40 64" stroke="#d97706" strokeWidth="2" fill="none" />
-        <path d="M40 16 Q28 28 28 40 Q28 52 40 64" stroke="#d97706" strokeWidth="2" fill="none" />
-        <line x1="16" y1="28" x2="40" y2="28" stroke="#f59e0b" strokeWidth="1.2" opacity="0.7" />
-        <line x1="40" y1="28" x2="60" y2="52" stroke="#f59e0b" strokeWidth="1.2" opacity="0.7" />
-        <line x1="16" y1="28" x2="40" y2="40" stroke="#3b82f6" strokeWidth="1.2" opacity="0.7" />
-        <line x1="40" y1="40" x2="60" y2="52" stroke="#3b82f6" strokeWidth="1.2" opacity="0.7" />
-        <line x1="60" y1="40" x2="60" y2="52" stroke="#f59e0b" strokeWidth="2.5" strokeLinecap="round" />
-        <polygon points="60,40 57,47 63,47" fill="#f59e0b" />
-      </svg>
-    ),
-  },
-
   // ── New CS tools ──────────────────────────────────────────────────
   {
     slug: 'cpu-pipeline', name: 'CPU Pipeline Simulator', tag: 'Computer Architecture',

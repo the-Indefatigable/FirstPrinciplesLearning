@@ -15,7 +15,6 @@
 
   <!-- Math tools (20) -->
   <url><loc>https://www.firstprincipleslearningg.com/math/unit-circle</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/math/plotter-3d</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://www.firstprincipleslearningg.com/math/slope-field</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://www.firstprincipleslearningg.com/math/derivative-integral</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://www.firstprincipleslearningg.com/math/graphing-calculator</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
@@ -49,17 +48,14 @@
   <url><loc>https://www.firstprincipleslearningg.com/physics/thermo-pv</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://www.firstprincipleslearningg.com/physics/quantum-wave</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://www.firstprincipleslearningg.com/physics/em-induction</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/physics/lens-mirror</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
 
-  <!-- CS tools (18) -->
+  <!-- CS tools (16) -->
   <url><loc>https://www.firstprincipleslearningg.com/cs/pathfinding</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://www.firstprincipleslearningg.com/cs/sql-visualizer</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://www.firstprincipleslearningg.com/cs/sorting-visualizer</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://www.firstprincipleslearningg.com/cs/graph-traversal</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://www.firstprincipleslearningg.com/cs/recursion-visualizer</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/cs/binary-tree</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/cs/stack-queue</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.firstprincipleslearningg.com/cs/linked-list</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.firstprincipleslearningg.com/cs/data-structures</loc><lastmod>2026-03-10</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://www.firstprincipleslearningg.com/cs/bigo-comparator</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://www.firstprincipleslearningg.com/cs/regex-tester</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://www.firstprincipleslearningg.com/cs/fsm-builder</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
