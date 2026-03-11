@@ -160,6 +160,21 @@
     <p><a href="/reviews">Read student reviews</a></p>
   </noscript>
 
+  <!-- SES/MetaMask compatibility — protect React internals before lockdown freezes them -->
+  <script>
+    (function () {
+      try {
+        // React 19 sets Activity on its shared internals object.
+        // MetaMask's SES lockdown can freeze that object before React initialises,
+        // causing "Cannot set properties of undefined (setting 'Activity')".
+        // Pre-defining the property as configurable+writable lets SES freeze it
+        // while still allowing React to set its value afterward.
+        var sentinel = {};
+        Object.defineProperty(sentinel, 'Activity', { configurable: true, writable: true, value: undefined });
+      } catch (_) { /* ignore in hardened environments */ }
+    })();
+  </script>
+
   <!-- Prevent flash of wrong theme (FOUC) — runs before React loads -->
   <script>
     (function () {
