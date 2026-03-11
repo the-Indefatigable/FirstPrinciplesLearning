@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import ThemeToggle from './ThemeToggle';
 import { useSettings } from '../hooks/SettingsProvider';
 import { allTools, type ToolMeta } from '../config/tools';
@@ -11,18 +11,13 @@ const CATEGORIES = [
   { key: 'cs' as const, label: 'Computer Science', color: '#c2714f', path: '/cs' },
 ];
 
-export default function Navbar() {
+export default function Navbar({ onOpenPalette }: { onOpenPalette: () => void }) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [megaOpen, setMegaOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
   const location = useLocation();
-  const navigate = useNavigate();
   const { bookingLink } = useSettings();
   const megaRef = useRef<HTMLDivElement>(null);
-  const searchRef = useRef<HTMLDivElement>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
   const megaTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   // Swipe gesture tracking
@@ -40,32 +35,19 @@ export default function Navbar() {
   useEffect(() => {
     setMenuOpen(false);
     setMegaOpen(false);
-    setSearchOpen(false);
-    setSearchQuery('');
   }, [location.pathname]);
 
-  // Escape key closes everything
+  // Escape key closes mobile menu / mega menu
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setMenuOpen(false);
         setMegaOpen(false);
-        setSearchOpen(false);
-      }
-      // Cmd/Ctrl+K for search
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        setSearchOpen(prev => !prev);
       }
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, []);
-
-  // Focus search input when opened
-  useEffect(() => {
-    if (searchOpen) searchInputRef.current?.focus();
-  }, [searchOpen]);
 
   // Click outside mega menu closes it
   useEffect(() => {
@@ -76,23 +58,6 @@ export default function Navbar() {
     document.addEventListener('click', onClick);
     return () => document.removeEventListener('click', onClick);
   }, [megaOpen]);
-
-  // Click outside search closes it
-  useEffect(() => {
-    if (!searchOpen) return;
-    const onClick = (e: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
-        setSearchOpen(false);
-        setSearchQuery('');
-      }
-    };
-    // Defer so the opening click doesn't immediately close the overlay
-    const timer = setTimeout(() => document.addEventListener('click', onClick), 0);
-    return () => {
-      clearTimeout(timer);
-      document.removeEventListener('click', onClick);
-    };
-  }, [searchOpen]);
 
   // Swipe gestures for mobile
   const handleTouchStart = useCallback((e: TouchEvent) => {
@@ -123,24 +88,6 @@ export default function Navbar() {
     document.body.style.overflow = menuOpen ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
   }, [menuOpen]);
-
-  // Search results
-  const searchResults = useMemo(() => {
-    if (!searchQuery.trim()) return [];
-    const q = searchQuery.toLowerCase();
-    return allTools.filter(t =>
-      t.name.toLowerCase().includes(q) ||
-      t.tag.toLowerCase().includes(q) ||
-      t.description.toLowerCase().includes(q) ||
-      t.category.toLowerCase().includes(q)
-    ).slice(0, 8);
-  }, [searchQuery]);
-
-  const handleSearchSelect = (tool: ToolMeta) => {
-    navigate(`/${tool.category}/${tool.slug}`);
-    setSearchOpen(false);
-    setSearchQuery('');
-  };
 
   const closeMenu = () => setMenuOpen(false);
 
@@ -230,7 +177,7 @@ export default function Navbar() {
             {/* Search button */}
             <button
               className="navbar-icon-btn"
-              onClick={() => setSearchOpen(!searchOpen)}
+              onClick={onOpenPalette}
               aria-label="Search tools"
               title="Search (⌘K)"
             >
@@ -257,49 +204,6 @@ export default function Navbar() {
           </div>
         </div>
       </nav>
-
-      {/* Search Overlay */}
-      {searchOpen && (
-        <div className="search-overlay">
-          <div className="search-modal" ref={searchRef}>
-            <div className="search-input-row">
-              <svg width="18" height="18" viewBox="0 0 18 18" fill="none" className="search-icon">
-                <circle cx="7.5" cy="7.5" r="5.5" stroke="currentColor" strokeWidth="1.6" />
-                <line x1="11.5" y1="11.5" x2="16" y2="16" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-              </svg>
-              <input
-                ref={searchInputRef}
-                type="text"
-                className="search-input"
-                placeholder="Search tools..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter' && searchResults.length > 0) handleSearchSelect(searchResults[0]);
-                }}
-              />
-              <kbd className="search-kbd">ESC</kbd>
-            </div>
-            {searchResults.length > 0 && (
-              <div className="search-results">
-                {searchResults.map(tool => (
-                  <button key={tool.slug} className="search-result" onClick={() => handleSearchSelect(tool)}>
-                    <span className="search-result-dot" style={{ background: { math: '#d97706', physics: '#6b8f71', cs: '#c2714f' }[tool.category] }} />
-                    <div className="search-result-info">
-                      <span className="search-result-name">{tool.name}</span>
-                      <span className="search-result-tag">{tool.tag}</span>
-                    </div>
-                    <span className="search-result-cat">{tool.category.toUpperCase()}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-            {searchQuery && searchResults.length === 0 && (
-              <div className="search-empty">No tools found for "{searchQuery}"</div>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Mobile backdrop */}
       {menuOpen && <div className="mobile-backdrop" onClick={closeMenu} />}
