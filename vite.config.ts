@@ -75,7 +75,9 @@ export default defineConfig({
           if (id.includes('node_modules/three')) return 'vendor-three';
           if (id.includes('node_modules/gsap')) return 'vendor-gsap';
           if (id.includes('node_modules/react-dom')) return 'vendor-react-dom';
-          if (id.includes('node_modules/react/') || id.includes('node_modules/react-router')) return 'vendor-react';
+          // react-router is intentionally NOT merged into vendor-react —
+          // react-router imports react-dom which creates a circular chunk dependency.
+          if (id.includes('node_modules/react/')) return 'vendor-react';
         },
       },
     },
