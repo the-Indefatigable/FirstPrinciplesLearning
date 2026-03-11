@@ -501,7 +501,7 @@ export default function TwoBodyImmersive({ m1, m2, sep, vTan, G, onClose }: TwoB
         let timeSec = 0;
 
         // ── Predicted orbit ellipse ──
-        const orbit = buildOrbitEllipse(sim, m1, m2, G, scene);
+        buildOrbitEllipse(sim, m1, m2, G, scene);
 
         // ── Velocity arrows ──
         const arrow1 = new THREE.ArrowHelper(

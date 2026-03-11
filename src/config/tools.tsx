@@ -445,31 +445,6 @@ const PreviewBinaryTree: React.FC = () => (
   </svg>
 );
 
-const PreviewStackQueue: React.FC = () => (
-  <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
-    {[{ y: 54, o: 0.5 }, { y: 42, o: 0.65 }, { y: 30, o: 0.8 }, { y: 18, o: 1 }].map(({ y, o }, i) => (
-      <rect key={i} x="24" y={y} width="32" height="10" rx="2" fill="#c2714f" opacity={o} />
-    ))}
-    <path d="M40 10L36 16L44 16Z" fill="#c2714f" opacity="0.5" />
-    <path d="M40 72L36 66L44 66Z" fill="#c2714f" opacity="0.5" />
-    <text x="40" y="12" fill="#c2714f" fontSize="5" textAnchor="middle" opacity="0.6">PUSH</text>
-    <text x="40" y="74" fill="#c2714f" fontSize="5" textAnchor="middle" opacity="0.6">POP</text>
-  </svg>
-);
-
-const PreviewLinkedList: React.FC = () => (
-  <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
-    {[{ x: 8, v: '10' }, { x: 30, v: '20' }, { x: 52, v: '30' }].map(({ x, v }, i) => (
-      <g key={i}>
-        <rect x={x} y="32" width="18" height="16" rx="2" stroke="#c2714f" strokeWidth="1.5" fill="none" />
-        <text x={x + 9} y="43" fill="#c2714f" fontSize="7" textAnchor="middle" fontFamily="monospace">{v}</text>
-        {i < 2 && <><line x1={x + 18} y1="40" x2={x + 30} y2="40" stroke="#c2714f" strokeWidth="1.5" />
-          <polygon points={`${x + 28},37 ${x + 30},40 ${x + 28},43`} fill="#c2714f" /></>}
-      </g>
-    ))}
-    <text x="74" y="43" fill="#9c9488" fontSize="7" fontFamily="monospace">∅</text>
-  </svg>
-);
 
 const PreviewBigO: React.FC = () => (
   <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
