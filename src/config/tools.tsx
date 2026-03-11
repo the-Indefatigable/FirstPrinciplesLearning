@@ -64,6 +64,8 @@ export const toolLoaders: Record<string, () => Promise<{ default: ComponentType 
   'cpu-pipeline': () => import('../tools/cs/CPUPipeline'),
   'memory-allocator': () => import('../tools/cs/MemoryAllocator'),
   'turing-machine': () => import('../tools/cs/TuringMachine'),
+  'statistics-lab': () => import('../tools/math/StatisticsLab'),
+  'lens-mirror': () => import('../tools/physics/LensMirror'),
 };
 
 // ── Math Previews (amber) ────────────────────────────────────────────
@@ -860,6 +862,33 @@ export const allTools: ToolMeta[] = [
     gradient: 'linear-gradient(130deg, #f0f5f1 0%, #c8deca 60%, #a3c4a8 100%)',
     Preview: PreviewThermoPV,
   },
+  {
+    slug: 'lens-mirror', name: 'Lens & Mirror', tag: 'Optics',
+    description: 'Trace rays through converging and diverging lenses, concave and convex mirrors. See image formation with the thin lens equation.',
+    category: 'physics',
+    gradient: 'linear-gradient(140deg, #f0f4ff 0%, #dbeafe 55%, #bfdbfe 100%)',
+    Preview: () => (
+      <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+        {/* Lens */}
+        <path d="M40 18 Q50 40 40 62 Q30 40 40 18Z" stroke="#3b82f6" strokeWidth="1.5" fill="#3b82f618" />
+        {/* Optical axis */}
+        <line x1="8" y1="40" x2="72" y2="40" stroke="#9c9488" strokeWidth="0.8" strokeDasharray="3 2" />
+        {/* Object arrow */}
+        <line x1="16" y1="40" x2="16" y2="26" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" />
+        <polygon points="16,23 13,29 19,29" fill="#22c55e" />
+        {/* Focal points */}
+        <circle cx="30" cy="40" r="2" fill="#3b82f6" opacity="0.6" />
+        <circle cx="50" cy="40" r="2" fill="#3b82f6" opacity="0.6" />
+        {/* Rays */}
+        <line x1="16" y1="26" x2="40" y2="26" stroke="#ef4444" strokeWidth="1" opacity="0.7" />
+        <line x1="40" y1="26" x2="64" y2="56" stroke="#ef4444" strokeWidth="1" opacity="0.7" />
+        <line x1="16" y1="26" x2="64" y2="40" stroke="#f59e0b" strokeWidth="1" opacity="0.6" strokeDasharray="2 2" />
+        {/* Image arrow */}
+        <line x1="64" y1="40" x2="64" y2="56" stroke="#ef4444" strokeWidth="1.5" strokeLinecap="round" />
+        <polygon points="64,59 61,53 67,53" fill="#ef4444" />
+      </svg>
+    ),
+  },
 
   // CS
   {
@@ -987,6 +1016,32 @@ export const allTools: ToolMeta[] = [
         <line x1="40" y1="40" x2="40" y2="18" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" />
         <polygon points="62,40 57,37 57,43" fill="#3b82f6" />
         <polygon points="40,18 37,23 43,23" fill="#22c55e" />
+      </svg>
+    ),
+  },
+
+  {
+    slug: 'statistics-lab', name: 'Statistics Lab', tag: 'Statistics',
+    description: 'Full stats workbench: descriptive analysis with histograms & box plots, distribution explorer, hypothesis testing (t-test, z-test), and linear regression.',
+    category: 'math',
+    gradient: 'linear-gradient(140deg, #fffbeb 0%, #fef3c7 55%, #fbbf24 100%)',
+    Preview: () => (
+      <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+        {/* Histogram bars */}
+        {[{ x: 8, h: 16, o: 0.5 }, { x: 19, h: 30, o: 0.65 }, { x: 30, h: 44, o: 0.85 }, { x: 41, h: 36, o: 0.75 }, { x: 52, h: 20, o: 0.55 }, { x: 63, h: 10, o: 0.4 }].map(({ x, h, o }, i) => (
+          <rect key={i} x={x} y={68 - h} width={9} height={h} rx={1} fill="#d97706" opacity={o} />
+        ))}
+        {/* Mean line */}
+        <line x1="38" y1="22" x2="38" y2="68" stroke="#ef4444" strokeWidth="1.5" strokeDasharray="3 2" />
+        {/* Normal curve */}
+        <path d="M8 66 Q20 30 38 22 Q56 30 72 66" stroke="#22c55e" strokeWidth="1.5" fill="none" opacity="0.7" />
+        {/* Axis */}
+        <line x1="7" y1="68" x2="74" y2="68" stroke="#9c9488" strokeWidth="1" />
+        {/* Regression dots & line */}
+        {[{ x: 12, y: 56 }, { x: 22, y: 50 }, { x: 32, y: 43 }, { x: 42, y: 37 }, { x: 55, y: 30 }].map(({ x, y }, i) => (
+          <circle key={i} cx={x} cy={y} r={1.8} fill="#f59e0b" />
+        ))}
+        <line x1="10" y1="58" x2="58" y2="28" stroke="#f59e0b" strokeWidth="1" opacity="0.6" />
       </svg>
     ),
   },
