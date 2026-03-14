@@ -347,7 +347,8 @@ function drawComponent(ctx: CanvasRenderingContext2D, c: SchComponent, isDark: b
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function CircuitBuilder() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const oscRef    = useRef<HTMLCanvasElement>(null);
+  const oscRef = useRef<HTMLCanvasElement>(null);
+  const oscPreviewRef = useRef<HTMLCanvasElement>(null);
   const canvasDivRef = useRef<HTMLDivElement>(null);
   const oscContainerRef = useRef<HTMLDivElement>(null);
 
@@ -362,11 +363,12 @@ export default function CircuitBuilder() {
   const [viewport, setViewport]       = useState<Viewport>({ scale: 1, tx: 0, ty: 0 });
   const [selectedId, setSelectedId]   = useState<string | null>(null);
   const [simResults, setSimResults]   = useState<SimResults | null>(null);
-  const [analysis, setAnalysis]       = useState<AnalysisMode>('transient');
+  const [analysis, setAnalysis]       = useState<AnalysisMode>('dc');
   const [probes, setProbes]           = useState<Probe[]>([]);
   const [showOsc, setShowOsc]         = useState(false);
-  const [tMax, setTMax]               = useState(0.05);
-  const [dt] = useState(1e-4);
+  const [showOscPreview, setShowOscPreview] = useState(false);
+  const [tMax, setTMax]               = useState(0.01);
+  const [dt] = useState(0.0001);
   const [editingId, setEditingId]     = useState<string | null>(null);
   const [editValue, setEditValue]     = useState('');
   const [history, setHistory]         = useState<{ components: SchComponent[]; wires: Wire[] }[]>([]);
@@ -394,6 +396,9 @@ export default function CircuitBuilder() {
     const r2 = solveTransient(DEFAULT_COMPS, DEFAULT_WIRES, 0.05, 1e-4, nodeKeys);
     setProbes(nodeKeys.map((nk, i) => ({ nodeKey: nk, color: PROBE_COLORS[i], label: nk })));
     setSimResults(r2);
+    
+    // Ensure analysis initializes to transient so the osc UI renders
+    setAnalysis('transient'); 
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // DC auto-solve
@@ -524,66 +529,86 @@ export default function CircuitBuilder() {
 
   // ── Oscilloscope draw ──
   useEffect(() => {
-    if (!showOsc) return; // don't measure while panel is translated off-screen
-    const canvas = oscRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    const par = canvas.parentElement;
-    if (!par) return;
-    // Use offsetWidth/offsetHeight (layout size, unaffected by CSS transform)
-    const W = par.offsetWidth || 440;
-    const H = par.offsetHeight || 200;
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = W * dpr;
-    canvas.height = H * dpr;
-    ctx.scale(dpr, dpr);
+    const targets = [
+      { canvas: oscRef.current, isPreview: false },
+      { canvas: oscPreviewRef.current, isPreview: true }
+    ];
 
-    ctx.fillStyle = isDark ? '#0a0908' : '#f3efe8';
-    ctx.fillRect(0, 0, W, H);
+    targets.forEach(({ canvas, isPreview }) => {
+      if (!canvas) return;
+      
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      const par = canvas.parentElement;
+      if (!par) return;
+      
+      const W = par.offsetWidth || (isPreview ? 320 : 440);
+      const H = par.offsetHeight || (isPreview ? 180 : 200);
+      const dpr = window.devicePixelRatio || 1;
+      
+      canvas.width = W * dpr;
+      canvas.height = H * dpr;
+      ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform
+      ctx.scale(dpr, dpr);
 
-    if (!simResults?.ok || !simResults.waveforms || !simResults.time || probes.length === 0) {
-      ctx.fillStyle = isDark ? '#3d3530' : '#9c9488';
-      ctx.font = '12px Sora, sans-serif'; ctx.textAlign = 'center';
-      ctx.fillText('Run Transient · add probes to see waveforms', W / 2, H / 2);
-      return;
-    }
+      ctx.fillStyle = isDark ? (isPreview ? '#030705' : '#0a0908') : (isPreview ? '#f0fdf4' : '#f3efe8');
+      ctx.fillRect(0, 0, W, H);
 
-    const pad = { l: 52, r: 12, t: 12, b: 28 };
-    const pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
-    const time = simResults.time!;
-    const wf   = simResults.waveforms!;
+      if (!simResults?.ok || !simResults.waveforms || !simResults.time || probes.length === 0) {
+        if (!isPreview) {
+          ctx.fillStyle = isDark ? '#3d3530' : '#9c9488';
+          ctx.font = '12px Sora, sans-serif'; ctx.textAlign = 'center';
+          ctx.fillText('Run Transient · add probes to see waveforms', W / 2, H / 2);
+        }
+        return;
+      }
 
-    ctx.strokeStyle = isDark ? '#1e1c18' : '#e8e0d4'; ctx.lineWidth = 1;
-    for (let i = 0; i <= 5; i++) { const y = pad.t + (i / 5) * ph; ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l + pw, y); ctx.stroke(); }
-    for (let i = 0; i <= 8; i++) { const x = pad.l + (i / 8) * pw; ctx.beginPath(); ctx.moveTo(x, pad.t); ctx.lineTo(x, pad.t + ph); ctx.stroke(); }
+      const pad = isPreview ? { l: 12, r: 12, t: 12, b: 12 } : { l: 52, r: 12, t: 12, b: 28 };
+      const pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
+      const time = simResults.time!;
+      const wf   = simResults.waveforms!;
 
-    let vmin = Infinity, vmax2 = -Infinity;
-    for (const p of probes) { const data = wf[p.nodeKey]; if (!data) continue; for (const v of data) { if (v < vmin) vmin = v; if (v > vmax2) vmax2 = v; } }
-    if (!isFinite(vmin)) { vmin = -1; vmax2 = 1; }
-    if (Math.abs(vmax2 - vmin) < 0.001) { vmin -= 1; vmax2 += 1; }
-    const vRange = vmax2 - vmin;
-    const tEnd = time[time.length - 1] || 1;
-    const toX = (t: number) => pad.l + (t / tEnd) * pw;
-    const toY = (v: number) => pad.t + ph - ((v - vmin) / vRange) * ph;
+      ctx.strokeStyle = isDark ? (isPreview ? '#0d2010' : '#1e1c18') : (isPreview ? '#d1fae5' : '#e8e0d4'); 
+      ctx.lineWidth = 1;
+      
+      const ySteps = isPreview ? 2 : 5;
+      const xSteps = isPreview ? 4 : 8;
+      
+      for (let i = 0; i <= ySteps; i++) { const y = pad.t + (i / ySteps) * ph; ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l + pw, y); ctx.stroke(); }
+      for (let i = 0; i <= xSteps; i++) { const x = pad.l + (i / xSteps) * pw; ctx.beginPath(); ctx.moveTo(x, pad.t); ctx.lineTo(x, pad.t + ph); ctx.stroke(); }
 
-    ctx.fillStyle = isDark ? '#9c9488' : '#5c544a'; ctx.font = '11px Sora, sans-serif'; ctx.textAlign = 'right';
-    for (let i = 0; i <= 5; i++) ctx.fillText(formatVal(vmin + (i / 5) * vRange, 'V'), pad.l - 4, pad.t + ph - (i / 5) * ph + 4);
-    ctx.textAlign = 'center';
-    for (let i = 0; i <= 4; i++) ctx.fillText(formatVal((i / 4) * tEnd, 's'), pad.l + (i / 4) * pw, pad.t + ph + 18);
+      let vmin = Infinity, vmax2 = -Infinity;
+      for (const p of probes) { const data = wf[p.nodeKey]; if (!data) continue; for (const v of data) { if (v < vmin) vmin = v; if (v > vmax2) vmax2 = v; } }
+      if (!isFinite(vmin)) { vmin = -1; vmax2 = 1; }
+      if (Math.abs(vmax2 - vmin) < 0.001) { vmin -= 1; vmax2 += 1; }
+      const vRange = vmax2 - vmin;
+      const tEnd = time[time.length - 1] || 1;
+      const toX = (t: number) => pad.l + (t / tEnd) * pw;
+      const toY = (v: number) => pad.t + ph - ((v - vmin) / vRange) * ph;
 
-    for (const probe of probes) {
-      const data = wf[probe.nodeKey];
-      if (!data || data.length === 0) continue;
-      ctx.strokeStyle = probe.color; ctx.lineWidth = 1.8;
-      ctx.beginPath();
-      data.forEach((v, i) => { const x = toX(time[i]), y = toY(v); i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); });
-      ctx.stroke();
-      const li = probes.indexOf(probe);
-      ctx.fillStyle = probe.color; ctx.font = 'bold 11px Sora, sans-serif'; ctx.textAlign = 'left';
-      ctx.fillText(`${probe.label} (${probe.nodeKey})`, pad.l + 8 + li * 110, pad.t + 14);
-    }
-  }, [simResults, probes, isDark, showOsc]);
+      if (!isPreview) {
+        ctx.fillStyle = isDark ? '#9c9488' : '#5c544a'; ctx.font = '11px Sora, sans-serif'; ctx.textAlign = 'right';
+        for (let i = 0; i <= ySteps; i++) ctx.fillText(formatVal(vmin + (i / ySteps) * vRange, 'V'), pad.l - 4, pad.t + ph - (i / ySteps) * ph + 4);
+        ctx.textAlign = 'center';
+        for (let i = 0; i <= xSteps; i++) ctx.fillText(formatVal((i / xSteps) * tEnd, 's'), pad.l + (i / xSteps) * pw, pad.t + ph + 18);
+      }
+
+      for (const probe of probes) {
+        const data = wf[probe.nodeKey];
+        if (!data || data.length === 0) continue;
+        ctx.strokeStyle = probe.color; ctx.lineWidth = isPreview ? 1.2 : 1.8;
+        ctx.beginPath();
+        data.forEach((v, i) => { const x = toX(time[i]), y = toY(v); i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); });
+        ctx.stroke();
+        
+        if (!isPreview) {
+          const li = probes.indexOf(probe);
+          ctx.fillStyle = probe.color; ctx.font = 'bold 11px Sora, sans-serif'; ctx.textAlign = 'left';
+          ctx.fillText(`${probe.label} (${probe.nodeKey})`, pad.l + 8 + li * 110, pad.t + 14);
+        }
+      }
+    });
+  }, [simResults, probes, isDark, showOsc, showOscPreview]);
 
   // ── Input helpers ──
   const screenToGrid = useCallback((sx: number, sy: number) => ({
@@ -622,10 +647,13 @@ export default function CircuitBuilder() {
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     const { sx, sy } = getCanvasPos(e);
+    
+    // Middle-click OR Spacebar+Left-click explicitly triggers Pan
     if (e.button === 1 || (spaceDown && e.button === 0)) {
       panRef.current = { startX: e.clientX, startY: e.clientY, tx: viewport.tx, ty: viewport.ty };
       return;
     }
+    
     if (mode === 'place' && placingDef) {
       const { gx, gy } = screenToGrid(sx, sy);
       pushHistory();
@@ -639,6 +667,7 @@ export default function CircuitBuilder() {
       setSelectedId(newComp.id);
       return;
     }
+    
     if (mode === 'wire') {
       const { gx, gy } = screenToGrid(sx, sy);
       if (!wireStart) { setWireStart({ gx, gy }); }
@@ -654,22 +683,31 @@ export default function CircuitBuilder() {
       }
       return;
     }
+    
     const S = GRID;
     const wx = (sx - viewport.tx) / viewport.scale;
     const wy = (sy - viewport.ty) / viewport.scale;
     let hit: SchComponent | null = null;
+    
+    // Hit test components
     for (let i = components.length - 1; i >= 0; i--) {
       const c = components[i];
       const dx = wx - c.gx * S, dy = wy - c.gy * S;
       const hitRadius = (c.kind === 'ground' || c.kind === 'vcc' || c.kind === 'junction') ? S * 0.8 : S * 2.2;
       if (Math.sqrt(dx * dx + dy * dy) < hitRadius) { hit = c; break; }
     }
+    
     if (hit) {
       setSelectedId(hit.id);
       setComponents(prev => prev.map(c => ({ ...c, selected: c.id === hit!.id })));
     } else {
       setSelectedId(null);
       setComponents(prev => prev.map(c => ({ ...c, selected: false })));
+      
+      // If we clicked on empty space in select mode, allow panning
+      if (mode === 'select' && e.button === 0) {
+        panRef.current = { startX: e.clientX, startY: e.clientY, tx: viewport.tx, ty: viewport.ty };
+      }
     }
   }, [mode, placingDef, placing, viewport, spaceDown, wireStart, components, screenToGrid, getCanvasPos, pushHistory, nextLabel]);
 
@@ -691,9 +729,15 @@ export default function CircuitBuilder() {
   const handleMouseUp = useCallback(() => { panRef.current = null; }, []);
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
+    // Only zoom if ctrlKey or metaKey is pressed (maps to pinch gesture on trackpads)
+    if (!e.ctrlKey && !e.metaKey) return; 
+    
     e.preventDefault();
     const { sx, sy } = getCanvasPos(e as unknown as React.MouseEvent);
-    const factor = e.deltaY > 0 ? 0.9 : 1.1;
+    
+    // Smoother zoom factor for pinch/scroll
+    const factor = Math.pow(0.995, e.deltaY);
+    
     setViewport(v => {
       const newScale = Math.max(0.2, Math.min(8, v.scale * factor));
       const ratio = newScale / v.scale;
@@ -980,7 +1024,7 @@ export default function CircuitBuilder() {
 
       {/* Circuit canvas */}
       <div ref={canvasDivRef}
-        style={{ position: 'absolute', inset: 0, cursor: cursorStyle }}
+        style={{ position: 'absolute', inset: 0, cursor: cursorStyle, touchAction: 'none' }} // <-- Prevent browser scroll on pinch
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
@@ -995,7 +1039,7 @@ export default function CircuitBuilder() {
         fontSize: '0.68rem', color: textDim, letterSpacing: 0.4,
         pointerEvents: 'none', userSelect: 'none',
       }}>
-        E = rotate · Del = delete · Space+drag = pan · scroll = zoom
+        E = rotate · Del = delete · Click+drag = pan · Pinch = zoom
       </div>
 
       {/* ── Oscilloscope ── */}
@@ -1019,7 +1063,7 @@ export default function CircuitBuilder() {
               display: 'flex', alignItems: 'center', gap: 16, padding: '16px 32px',
               borderBottom: `1px solid ${isDark ? '#0d2010' : '#d1fae5'}`,
               background: isDark ? '#030705' : '#f0fdf4',
-              flexShrink: 0, flexWrap: 'wrap',
+              flexShrink: 0, flexWrap: 'wrap', zIndex: 10,
             }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#10b981', fontSize: '1rem', fontWeight: 800, letterSpacing: 3, textTransform: 'uppercase', fontFamily: 'monospace', flexShrink: 0 }}>
                 <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 12px #10b981', display: 'inline-block' }} />
@@ -1075,14 +1119,49 @@ export default function CircuitBuilder() {
             </div>
           </div>
 
-          {/* Floating pill trigger — always visible at bottom-right of the circuit canvas, only when modal is CLOSED */}
+          {/* Floating pill trigger with Sneak Peek Hover — always visible at bottom-right of the circuit canvas, only when modal is CLOSED */}
           <div
-            onClick={() => setShowOsc(v => !v)}
+            onMouseEnter={() => setShowOscPreview(true)}
+            onMouseLeave={() => setShowOscPreview(false)}
+            onClick={() => { setShowOscPreview(false); setShowOsc(true); }}
             style={{
               position: 'absolute',
               bottom: 24,
-              right: 24,
-              display: showOsc ? 'none' : 'flex', alignItems: 'center', gap: 10, padding: '12px 24px',
+              right: 24, // <-- Moved to bottom-right
+              display: showOsc ? 'none' : 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-end', // <-- Align children to right edge
+              pointerEvents: 'auto',
+              zIndex: 9999,
+            }}>
+            
+            {/* Sneak Peek Mini Card */}
+            <div style={{
+              width: 320, height: 180,
+              background: isDark ? '#060a07' : '#f8fdf9',
+              border: `1px solid ${isDark ? '#0d3320' : '#bbf7d0'}`,
+              borderRadius: 16,
+              boxShadow: '0 12px 40px rgba(0,0,0,0.3)',
+              marginBottom: 12,
+              opacity: showOscPreview ? 1 : 0,
+              transform: showOscPreview ? 'translateY(0) scale(1)' : 'translateY(20px) scale(0.95)',
+              transformOrigin: 'bottom right', // <-- Open from the right side
+              transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+              pointerEvents: 'none',
+              overflow: 'hidden',
+              display: 'flex', flexDirection: 'column',
+            }}>
+              <div style={{ padding: '8px 12px', background: isDark ? '#030705' : '#f0fdf4', borderBottom: `1px solid ${isDark ? '#0d2010' : '#d1fae5'}`, fontSize: '0.65rem', fontWeight: 800, color: '#10b981', letterSpacing: 2, textTransform: 'uppercase', fontFamily: 'monospace' }}>
+                LIVE PREVIEW
+              </div>
+              <div style={{ flex: 1, position: 'relative' }}>
+                <canvas ref={oscPreviewRef} style={{ width: '100%', height: '100%', display: 'block', position: 'absolute', inset: 0 }} />
+              </div>
+            </div>
+
+            {/* The Trigger Pill */}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 10, padding: '12px 24px',
               background: isDark ? 'rgba(6,10,7,0.92)' : 'rgba(255,255,255,0.92)',
               backdropFilter: 'blur(12px)',
               border: `1px solid #10b981`,
@@ -1091,15 +1170,16 @@ export default function CircuitBuilder() {
               fontSize: '0.8rem', fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase',
               cursor: 'pointer', userSelect: 'none', fontFamily: 'monospace',
               boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
-              pointerEvents: 'auto',
+              transition: 'transform 0.1s, box-shadow 0.1s',
             }}>
-            <span style={{
-              width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
-              background: '#10b981',
-              boxShadow: '0 0 12px #10b981',
-              display: 'inline-block'
-            }} />
-            Open Full Oscilloscope
+              <span style={{
+                width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
+                background: '#10b981',
+                boxShadow: '0 0 12px #10b981',
+                display: 'inline-block'
+              }} />
+              Open Full Oscilloscope
+            </div>
           </div>
 
         </div>
