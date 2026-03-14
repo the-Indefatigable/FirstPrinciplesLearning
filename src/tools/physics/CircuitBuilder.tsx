@@ -1003,105 +1003,103 @@ export default function CircuitBuilder() {
         // Transparent full-canvas wrapper (pointer-events:none so circuit still works)
         <div ref={oscContainerRef} style={{ position: 'absolute', inset: 0, zIndex: 20, pointerEvents: 'none' }}>
 
-          {/* Full-width drawer that slides up from the bottom */}
+          {/* Full-screen Oscilloscope overlay */}
           <div style={{
-            position: 'absolute', bottom: 0, left: 0, right: 0,
-            height: 320,
+            position: 'fixed', inset: 0, zIndex: 9999,
             background: isDark ? '#060a07' : '#f8fdf9',
-            borderTop: `1px solid ${isDark ? '#0d3320' : '#bbf7d0'}`,
-            boxShadow: isDark
-              ? '0 -16px 48px rgba(0,200,100,0.07), 0 0 0 1px rgba(0,200,100,0.05)'
-              : '0 -8px 32px rgba(0,0,0,0.07)',
             display: 'flex', flexDirection: 'column',
-            transform: showOsc ? 'translateY(0)' : 'translateY(320px)',
-            transition: 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-            pointerEvents: 'auto',
+            opacity: showOsc ? 1 : 0,
+            pointerEvents: showOsc ? 'auto' : 'none',
+            transform: showOsc ? 'scale(1)' : 'scale(0.98)',
+            transformOrigin: 'center bottom',
+            transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
           }}>
             {/* Toolbar */}
             <div style={{
-              display: 'flex', alignItems: 'center', gap: 12, padding: '10px 20px',
+              display: 'flex', alignItems: 'center', gap: 16, padding: '16px 32px',
               borderBottom: `1px solid ${isDark ? '#0d2010' : '#d1fae5'}`,
               background: isDark ? '#030705' : '#f0fdf4',
               flexShrink: 0, flexWrap: 'wrap',
             }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 7, color: '#10b981', fontSize: '0.72rem', fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase', fontFamily: 'monospace', flexShrink: 0 }}>
-                <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 6px #10b981', display: 'inline-block' }} />
-                Oscilloscope
+              <span style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#10b981', fontSize: '1rem', fontWeight: 800, letterSpacing: 3, textTransform: 'uppercase', fontFamily: 'monospace', flexShrink: 0 }}>
+                <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 12px #10b981', display: 'inline-block' }} />
+                OSCILLOSCOPE VIEW
               </span>
               <button onClick={addProbe} style={{
-                padding: '4px 12px', borderRadius: 6, fontSize: '0.72rem', cursor: 'pointer',
+                padding: '8px 20px', borderRadius: 8, fontSize: '0.85rem', cursor: 'pointer',
                 border: '1px solid #10b981', background: 'transparent', color: '#10b981', fontWeight: 600, flexShrink: 0,
-              }}>+ Probe</button>
-              <label style={{ fontSize: '0.72rem', color: isDark ? '#6ee7b7' : '#065f46', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'monospace', flexShrink: 0 }}>
+                marginLeft: 16,
+              }}>+ Add Probe</button>
+              <label style={{ fontSize: '0.85rem', color: isDark ? '#6ee7b7' : '#065f46', display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'monospace', flexShrink: 0, marginLeft: 16 }}>
                 t_max:
                 <input type="number" value={tMax * 1000} min={0.1} max={1000} step={0.1}
                   onChange={e => setTMax(parseFloat(e.target.value) / 1000)}
                   style={{
-                    width: 60, padding: '3px 8px', borderRadius: 6, fontSize: '0.72rem',
+                    width: 80, padding: '6px 12px', borderRadius: 8, fontSize: '0.85rem',
                     border: `1px solid ${isDark ? '#0d3320' : '#bbf7d0'}`,
                     background: isDark ? '#030705' : '#fff', color: isDark ? '#6ee7b7' : '#065f46',
                     fontFamily: 'monospace', outline: 'none',
                   }} />
                 ms
               </label>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginLeft: 16 }}>
                 {probes.map(p => (
                   <span key={p.nodeKey} style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px',
-                    borderRadius: 14, border: `1px solid ${p.color}40`, background: `${p.color}12`,
-                    fontSize: '0.72rem', fontFamily: 'monospace', color: p.color, fontWeight: 700,
+                    display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 16px',
+                    borderRadius: 20, border: `1px solid ${p.color}40`, background: `${p.color}15`,
+                    fontSize: '0.85rem', fontFamily: 'monospace', color: p.color, fontWeight: 700,
                   }}>
-                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: p.color, display: 'inline-block' }} />
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: p.color, display: 'inline-block' }} />
                     {p.nodeKey}
                   </span>
                 ))}
                 {probes.length > 0 && (
                   <button onClick={() => setProbes([])} style={{
-                    padding: '3px 8px', borderRadius: 6, fontSize: '0.7rem', cursor: 'pointer',
+                    padding: '6px 12px', borderRadius: 8, fontSize: '0.85rem', cursor: 'pointer',
                     border: '1px solid rgba(239,68,68,0.4)', background: 'transparent', color: '#ef4444', flexShrink: 0,
-                  }}>Clear</button>
+                  }}>Clear All</button>
                 )}
               </div>
               {/* Close */}
               <button onClick={() => setShowOsc(false)} style={{
-                marginLeft: 'auto', padding: '4px 10px', borderRadius: 6, fontSize: '0.72rem', cursor: 'pointer',
-                border: `1px solid ${isDark ? '#27272a' : '#e4e4e7'}`, background: 'transparent',
-                color: isDark ? '#71717a' : '#a1a1aa', flexShrink: 0,
-              }}>✕</button>
+                marginLeft: 'auto', padding: '10px 24px', borderRadius: 8, fontSize: '0.85rem', cursor: 'pointer', fontWeight: 700,
+                border: `1px solid ${isDark ? '#3f3f46' : '#d4d4d8'}`, background: isDark ? '#27272a' : '#e4e4e7',
+                color: isDark ? '#f4f4f5' : '#18181b', flexShrink: 0, transition: 'all 0.2s',
+              }}>
+                Close Viewer ✕
+              </button>
             </div>
             {/* Canvas area */}
-            <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
-              <canvas ref={oscRef} style={{ display: 'block', position: 'absolute', inset: 0 }} />
+            <div style={{ flex: 1, position: 'relative', minHeight: 0, padding: 20 }}>
+              <canvas ref={oscRef} style={{ display: 'block', position: 'absolute', inset: 20, width: 'calc(100% - 40px)', height: 'calc(100% - 40px)' }} />
             </div>
           </div>
 
-          {/* Floating pill trigger — always visible at bottom-right */}
+          {/* Floating pill trigger — always visible at bottom-right of the circuit canvas, only when modal is CLOSED */}
           <div
             onClick={() => setShowOsc(v => !v)}
             style={{
               position: 'absolute',
-              bottom: showOsc ? 328 : 20,
-              right: 20,
-              display: 'flex', alignItems: 'center', gap: 8, padding: '8px 18px',
+              bottom: 24,
+              right: 24,
+              display: showOsc ? 'none' : 'flex', alignItems: 'center', gap: 10, padding: '12px 24px',
               background: isDark ? 'rgba(6,10,7,0.92)' : 'rgba(255,255,255,0.92)',
               backdropFilter: 'blur(12px)',
-              border: `1px solid ${showOsc ? '#10b981' : border}`,
-              borderRadius: 10,
-              color: showOsc ? '#10b981' : textMid,
-              fontSize: '0.72rem', fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase',
+              border: `1px solid #10b981`,
+              borderRadius: 30,
+              color: '#10b981',
+              fontSize: '0.8rem', fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase',
               cursor: 'pointer', userSelect: 'none', fontFamily: 'monospace',
-              boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
-              transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
               pointerEvents: 'auto',
             }}>
             <span style={{
-              width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
-              background: showOsc ? '#10b981' : (isDark ? '#52525b' : '#d4d4d8'),
-              boxShadow: showOsc ? '0 0 8px #10b981' : 'none',
-              transition: 'all 0.2s',
+              width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
+              background: '#10b981',
+              boxShadow: '0 0 12px #10b981',
+              display: 'inline-block'
             }} />
-            Oscilloscope
-            <span style={{ fontSize: '0.58rem', opacity: 0.5, marginLeft: 2 }}>{showOsc ? '▼' : '▲'}</span>
+            Open Full Oscilloscope
           </div>
 
         </div>
