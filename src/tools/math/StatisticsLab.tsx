@@ -406,13 +406,64 @@ function DescriptiveCanvas({ s, isDark }: { s: ReturnType<typeof useDescriptive>
     }, [draw]);
 
     return (
-        <div ref={containerRef} style={{ position: 'absolute', inset: 0 }}>
-            {stats ? (
-                <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: '100%' }} />
-            ) : (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: textC(true), fontSize: '0.9rem' }}>
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', padding: '20px 24px', gap: 14, overflowY: 'auto' }}>
+            {!stats ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, color: textC(isDark), fontSize: '0.9rem' }}>
                     Enter at least 2 numbers in the sidebar.
                 </div>
+            ) : (
+                <>
+                    {/* Row of 4 stat cards */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+                        {([
+                            ['Mean', stats.mean.toFixed(3)],
+                            ['Median', stats.median.toFixed(3)],
+                            ['Std Dev', stats.stdDev.toFixed(3)],
+                            ['IQR', stats.iqr.toFixed(3)],
+                        ] as [string, string][]).map(([label, value]) => (
+                            <div key={label} className="stats-lab-card stats-lab-card--accent">
+                                <div className="stats-metric-value">{value}</div>
+                                <div className="stats-metric-label">{label}</div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Summary table */}
+                    <table className="stats-summary-table">
+                        <thead>
+                            <tr>
+                                <th>Statistic</th>
+                                <th>Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {([
+                                ['Min', stats.min.toFixed(4)],
+                                ['Q1', stats.q1.toFixed(4)],
+                                ['Median', stats.median.toFixed(4)],
+                                ['Q3', stats.q3.toFixed(4)],
+                                ['Max', stats.max.toFixed(4)],
+                                ['Mean', stats.mean.toFixed(4)],
+                                ['Std Dev', stats.stdDev.toFixed(4)],
+                                ['Variance', stats.variance.toFixed(4)],
+                                ['Skewness', stats.skewness.toFixed(4)],
+                                ['Kurtosis', stats.kurtosis.toFixed(4)],
+                                ['Count', String(stats.n)],
+                                ['Sum', stats.sum.toFixed(4)],
+                            ] as [string, string][]).map(([stat, val]) => (
+                                <tr key={stat}>
+                                    <td>{stat}</td>
+                                    <td>{val}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+
+                    {/* Histogram/boxplot canvas */}
+                    <div ref={containerRef} style={{ flex: 1, minHeight: 180, position: 'relative', borderRadius: 8, overflow: 'hidden' }}>
+                        <canvas ref={canvasRef} style={{ display: 'block', position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
+                    </div>
+                </>
             )}
         </div>
     );
@@ -513,6 +564,16 @@ function DistributionsCanvas({ s, isDark }: { s: ReturnType<typeof useDistributi
         }
         drawAxes(ctx, pad, W, H, isDark);
 
+        // Formula text at top of plot area
+        ctx.fillStyle = isDark ? '#64748b' : '#94a3b8';
+        ctx.font = '11px monospace';
+        ctx.textAlign = 'left';
+        const formulaText = dist === 'normal' ? `f(x) = (1/σ√2π) · e^(-(x-μ)²/2σ²)  μ=${mu.toFixed(1)} σ=${sigma.toFixed(1)}`
+            : dist === 'binomial' ? `P(X=k) = C(n,k) · p^k · (1-p)^(n-k)  n=${nBinom} p=${pBinom.toFixed(2)}`
+            : dist === 'poisson' ? `P(X=k) = e^(-λ) · λ^k / k!  λ=${lambda.toFixed(1)}`
+            : `f(x) = λ·e^(-λx)  λ=${lambda.toFixed(1)}`;
+        ctx.fillText(formulaText, pad.left, pad.top - 8);
+
         if (dist === 'normal') {
             const xMin = mu - 4.5 * sigma, xMax = mu + 4.5 * sigma;
             const peak = normalPDF(mu, mu, sigma);
@@ -525,10 +586,10 @@ function DistributionsCanvas({ s, isDark }: { s: ReturnType<typeof useDistributi
                 ctx.lineTo(pad.left + px, y);
             }
             ctx.lineTo(pad.left + cw, pad.top + ch); ctx.closePath();
-            ctx.fillStyle = isDark ? '#d9770618' : '#f59e0b14'; ctx.fill();
+            ctx.fillStyle = 'rgba(59,130,246,0.08)'; ctx.fill();
 
             // PDF
-            ctx.strokeStyle = amber; ctx.lineWidth = 2.5;
+            ctx.strokeStyle = blue; ctx.lineWidth = 2.5;
             ctx.beginPath();
             for (let px = 0; px <= cw; px++) {
                 const x = xMin + (px / cw) * (xMax - xMin);
@@ -539,7 +600,7 @@ function DistributionsCanvas({ s, isDark }: { s: ReturnType<typeof useDistributi
 
             // CDF
             if (showCDF) {
-                ctx.strokeStyle = blue; ctx.lineWidth = 2; ctx.setLineDash([6, 3]);
+                ctx.strokeStyle = '#f97316'; ctx.lineWidth = 2; ctx.setLineDash([6, 3]);
                 ctx.beginPath();
                 for (let px = 0; px <= cw; px++) {
                     const x = xMin + (px / cw) * (xMax - xMin);
@@ -569,12 +630,12 @@ function DistributionsCanvas({ s, isDark }: { s: ReturnType<typeof useDistributi
 
             for (let k = 0; k <= nBinom; k++) {
                 const bh = (vals[k] / maxP) * ch;
-                ctx.fillStyle = isDark ? '#d9770699' : '#f59e0b99';
+                ctx.fillStyle = isDark ? '#3b82f699' : '#3b82f699';
                 ctx.fillRect(pad.left + k * barW + 1, pad.top + ch - bh, barW - 2, bh);
             }
             if (showCDF) {
                 let cum = 0;
-                ctx.strokeStyle = blue; ctx.lineWidth = 2; ctx.setLineDash([5, 3]);
+                ctx.strokeStyle = '#f97316'; ctx.lineWidth = 2; ctx.setLineDash([5, 3]);
                 ctx.beginPath();
                 for (let k = 0; k <= nBinom; k++) {
                     cum += vals[k];
@@ -602,7 +663,7 @@ function DistributionsCanvas({ s, isDark }: { s: ReturnType<typeof useDistributi
 
             for (let k = 0; k < kMax; k++) {
                 const bh = (vals[k] / maxP) * ch;
-                ctx.fillStyle = isDark ? '#a855f799' : '#c084fc99';
+                ctx.fillStyle = isDark ? '#3b82f699' : '#3b82f699';
                 ctx.fillRect(pad.left + k * barW + 1, pad.top + ch - bh, barW - 2, bh);
             }
             ctx.strokeStyle = red; ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]);
@@ -618,7 +679,18 @@ function DistributionsCanvas({ s, isDark }: { s: ReturnType<typeof useDistributi
             // Exponential
             const xMax = 5 / lambda;
             const peak = lambda;
-            ctx.strokeStyle = green; ctx.lineWidth = 2.5;
+
+            // Fill
+            ctx.beginPath(); ctx.moveTo(pad.left, pad.top + ch);
+            for (let px = 0; px <= cw; px++) {
+                const x = (px / cw) * xMax;
+                const y = pad.top + ch - (exponentialPDF(x, lambda) / peak) * ch;
+                ctx.lineTo(pad.left + px, y);
+            }
+            ctx.lineTo(pad.left + cw, pad.top + ch); ctx.closePath();
+            ctx.fillStyle = 'rgba(59,130,246,0.08)'; ctx.fill();
+
+            ctx.strokeStyle = blue; ctx.lineWidth = 2.5;
             ctx.beginPath();
             for (let px = 0; px <= cw; px++) {
                 const x = (px / cw) * xMax;
@@ -628,7 +700,7 @@ function DistributionsCanvas({ s, isDark }: { s: ReturnType<typeof useDistributi
             ctx.stroke();
 
             if (showCDF) {
-                ctx.strokeStyle = blue; ctx.lineWidth = 2; ctx.setLineDash([5, 3]);
+                ctx.strokeStyle = '#f97316'; ctx.lineWidth = 2; ctx.setLineDash([5, 3]);
                 ctx.beginPath();
                 for (let px = 0; px <= cw; px++) {
                     const x = (px / cw) * xMax;
@@ -645,8 +717,8 @@ function DistributionsCanvas({ s, isDark }: { s: ReturnType<typeof useDistributi
         }
 
         // Legend
-        const legend: [string, string][] = [[amber, 'PDF']];
-        if (showCDF) legend.push([blue, 'CDF']);
+        const legend: [string, string][] = [[blue, 'PDF']];
+        if (showCDF) legend.push(['#f97316', 'CDF']);
         legend.push([red, 'Mean']);
         ctx.font = '11px Sora'; ctx.textAlign = 'left';
         legend.forEach(([col, label], i) => {
@@ -902,8 +974,73 @@ function HypothesisCanvas({ s, isDark }: { s: ReturnType<typeof useHypothesis>; 
     }, [draw]);
 
     return (
-        <div ref={containerRef} style={{ position: 'absolute', inset: 0 }}>
-            <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: '100%' }} />
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            {/* T-distribution canvas — top half */}
+            <div ref={containerRef} style={{ flex: 1, position: 'relative', minHeight: 0 }}>
+                <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0 }} />
+            </div>
+
+            {/* Statistical Report Card — bottom */}
+            {result && (
+                <div style={{
+                    flexShrink: 0, borderTop: '1px solid var(--border-warm)',
+                    padding: '14px 20px', overflowY: 'auto', maxHeight: '55%',
+                    background: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(248,250,252,0.8)',
+                }}>
+                    {/* H0 / H1 row */}
+                    <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+                        <div style={{ flex: 1, padding: '7px 12px', background: isDark ? '#1c1c1e' : '#f8fafc', border: '1px solid var(--border-warm)', borderRadius: 8, fontFamily: 'monospace', fontSize: '0.82rem', color: 'var(--text-primary)' }}>
+                            H₀: μ {s.testType === 'one-sample' ? `= ${s.mu0}` : '₁ = μ₂'}
+                        </div>
+                        <div style={{ flex: 1, padding: '7px 12px', background: isDark ? '#1c1c1e' : '#f8fafc', border: '1px solid var(--border-warm)', borderRadius: 8, fontFamily: 'monospace', fontSize: '0.82rem', color: 'var(--text-primary)' }}>
+                            H₁: μ {s.testType === 'one-sample' ? `≠ ${s.mu0}` : '₁ ≠ μ₂'}
+                        </div>
+                    </div>
+
+                    {/* Test statistic */}
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, marginBottom: 10 }}>
+                        <span style={{ fontFamily: 'monospace', fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                            t = {result.t.toFixed(4)}
+                        </span>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', fontFamily: 'monospace' }}>df = {result.df.toFixed(1)}</span>
+                        <span style={{ fontSize: '0.68rem', color: 'var(--text-dim)', fontFamily: 'monospace', marginLeft: 'auto' }}>
+                            {s.testType === 'one-sample' ? 't = (x̄ − μ₀) / (s/√n)' : 't = (x̄₁ − x̄₂) / SE'}
+                        </span>
+                    </div>
+
+                    {/* p-value + decision */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                        <span className={`stats-pvalue-badge ${result.reject ? 'stats-pvalue-reject' : 'stats-pvalue-accept'}`}>
+                            p = {result.pVal < 0.0001 ? result.pVal.toExponential(2) : result.pVal.toFixed(5)}
+                        </span>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>
+                            {result.reject ? `< α = ${s.alpha}` : `≥ α = ${s.alpha}`}
+                        </span>
+                    </div>
+
+                    {/* Decision block */}
+                    <div style={{
+                        padding: '10px 14px', borderRadius: 8, fontWeight: 700, fontSize: '0.82rem',
+                        background: result.reject ? (isDark ? 'rgba(220,38,38,0.1)' : '#fef2f2') : (isDark ? 'rgba(22,163,74,0.1)' : '#f0fdf4'),
+                        border: `1.5px solid ${result.reject ? (isDark ? 'rgba(220,38,38,0.3)' : '#fca5a5') : (isDark ? 'rgba(22,163,74,0.3)' : '#86efac')}`,
+                        color: result.reject ? '#dc2626' : '#16a34a',
+                    }}>
+                        {result.reject ? '✗ Reject H₀' : '✓ Fail to Reject H₀'}
+                        <span style={{ fontWeight: 400, marginLeft: 8, fontSize: '0.75rem' }}>
+                            — {result.reject
+                                ? 'There is sufficient evidence to reject the null hypothesis.'
+                                : 'There is insufficient evidence to reject the null hypothesis.'}
+                        </span>
+                    </div>
+
+                    {/* 95% CI (one-sample only) */}
+                    {s.testType === 'one-sample' && result.mean1 !== undefined && result.se !== undefined && (
+                        <div style={{ marginTop: 8, fontSize: '0.75rem', color: 'var(--text-dim)', fontFamily: 'monospace' }}>
+                            95% CI: [{(result.mean1 - 1.96 * result.se).toFixed(3)}, {(result.mean1 + 1.96 * result.se).toFixed(3)}]
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 }
@@ -1080,11 +1217,61 @@ function RegressionCanvas({ s, isDark }: { s: ReturnType<typeof useRegression>; 
     }, [draw]);
 
     return (
-        <div ref={containerRef} style={{ position: 'absolute', inset: 0 }}>
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', padding: '20px 24px', gap: 14, overflowY: 'auto' }}>
             {model ? (
-                <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: '100%' }} />
+                <>
+                    {/* Equation — large formatted */}
+                    <div style={{ fontFamily: 'Sora, sans-serif', fontSize: '1.3rem', fontWeight: 800, letterSpacing: -0.5, lineHeight: 1.2, color: 'var(--text-primary)', paddingBottom: 12, borderBottom: '1px solid var(--border-warm)' }}>
+                        ŷ =&nbsp;
+                        <span style={{ color: '#3b82f6' }}>{model.slope >= 0 ? model.slope.toFixed(4) : `(${model.slope.toFixed(4)})`}</span>
+                        x&nbsp;
+                        {model.intercept >= 0 ? '+ ' : '− '}
+                        <span style={{ color: '#8b5cf6' }}>{Math.abs(model.intercept).toFixed(4)}</span>
+                    </div>
+
+                    {/* R² bar */}
+                    <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: '0.75rem' }}>
+                            <span style={{ fontWeight: 600, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.65rem' }}>R² — Goodness of Fit</span>
+                            <span style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.82rem' }}>{model.r2.toFixed(4)}</span>
+                        </div>
+                        <div style={{ height: 8, borderRadius: 4, background: 'var(--border-warm)', overflow: 'hidden' }}>
+                            <div className="stats-r2-bar" style={{ width: `${model.r2 * 100}%`, height: '100%' }} />
+                        </div>
+                    </div>
+
+                    {/* Coefficient table */}
+                    <table className="stats-coeff-table">
+                        <thead>
+                            <tr>
+                                <th>Coefficient</th>
+                                <th style={{ textAlign: 'right' }}>Value</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {[
+                                ['β₀ — Intercept', model.intercept.toFixed(6), 'y-value when x = 0'],
+                                ['β₁ — Slope', model.slope.toFixed(6), `Δŷ per unit x (${model.slope > 0 ? 'positive' : 'negative'} relationship)`],
+                                ['r — Pearson', model.r.toFixed(6), `${Math.abs(model.r) > 0.9 ? 'Very strong' : Math.abs(model.r) > 0.7 ? 'Strong' : Math.abs(model.r) > 0.4 ? 'Moderate' : 'Weak'} ${model.r > 0 ? 'positive' : 'negative'} correlation`],
+                                ['SE — Std Error', model.se.toFixed(6), 'Standard error of residuals'],
+                            ].map(([coef, val, desc], i) => (
+                                <tr key={coef} style={{ background: i % 2 === 1 ? (isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.015)') : 'transparent' }}>
+                                    <td style={{ fontFamily: 'monospace', fontWeight: 700, color: '#3b82f6', fontSize: '0.78rem' }}>{coef}</td>
+                                    <td style={{ fontFamily: 'monospace', textAlign: 'right', color: 'var(--text-primary)', fontWeight: 600 }}>{val}</td>
+                                    <td style={{ color: 'var(--text-dim)', fontSize: '0.72rem' }}>{desc}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+
+                    {/* Scatter plot canvas */}
+                    <div ref={containerRef} style={{ flex: 1, minHeight: 200, position: 'relative', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-warm)' }}>
+                        <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
+                    </div>
+                </>
             ) : (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: textC(true), fontSize: '0.9rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, color: 'var(--text-dim)', fontSize: '0.85rem' }}>
                     Enter X and Y data in the sidebar.
                 </div>
             )}

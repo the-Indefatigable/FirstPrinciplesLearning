@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import type { SchComponent, Wire, SimResults, Probe, Viewport, EditorMode, AnalysisMode, ComponentKind } from './circuit/types';
 import { getPins, solveDC, solveTransient, detectNodes, formatVal } from './circuit/solver';
+import ToolLayoutSplit from '../../components/tool/ToolLayoutSplit';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const GRID = 20; // px per grid unit
@@ -913,27 +914,17 @@ export default function CircuitBuilder() {
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
-    if (e.ctrlKey || e.metaKey) {
-      // Ctrl/Cmd + scroll → zoom (centred on cursor)
-      const { sx, sy } = getCanvasPos(e as unknown as React.MouseEvent);
-      const delta = e.deltaY > 0 ? 0.95 : 1.05;
-      setViewport(v => {
-        const newScale = Math.max(0.2, Math.min(5, v.scale * delta));
-        const ratio = newScale / v.scale;
-        return {
-          scale: newScale,
-          tx: sx - ratio * (sx - v.tx),
-          ty: sy - ratio * (sy - v.ty),
-        };
-      });
-    } else {
-      // Plain scroll → pan
-      setViewport(v => ({
-        ...v,
-        tx: v.tx - e.deltaX,
-        ty: v.ty - e.deltaY,
-      }));
-    }
+    const { sx, sy } = getCanvasPos(e as unknown as React.MouseEvent);
+    const factor = e.deltaY > 0 ? 0.9 : 1.1;
+    setViewport(v => {
+      const newScale = Math.max(0.2, Math.min(8, v.scale * factor));
+      const ratio = newScale / v.scale;
+      return {
+        scale: newScale,
+        tx: sx - ratio * (sx - v.tx),
+        ty: sy - ratio * (sy - v.ty),
+      };
+    });
   }, [getCanvasPos]);
 
   // Keyboard shortcuts
@@ -984,376 +975,348 @@ export default function CircuitBuilder() {
   }, [simResults, probes]);
 
   const selectedComp = components.find(c => c.id === selectedId) ?? null;
-
   const cursorStyle = spaceDown ? 'grab' : mode === 'place' ? 'crosshair' : mode === 'wire' ? 'cell' : 'default';
 
-  // ─── Render ─────────────────────────────────────────────────────────────────
-  return (
-    <div style={{
-      display: 'flex', flexDirection: 'column',
-      height: 'calc(100vh - 200px)', minHeight: 580,
-      background: isDark ? '#0f0e0c' : '#faf8f5',
-      borderRadius: 12, overflow: 'hidden',
-      border: `1px solid ${isDark ? '#2a2520' : '#e8e0d4'}`,
-      boxShadow: isDark ? '0 4px 32px rgba(0,0,0,0.4)' : '0 4px 32px rgba(26,22,18,0.08)',
-      fontFamily: 'Sora, sans-serif',
-    }}>
-      {/* ── Top bar ── */}
+  const border = isDark ? '#27272a' : '#e4e4e7';
+  const textDim = isDark ? '#71717a' : '#a1a1aa';
+  const textMid = isDark ? '#a1a1aa' : '#52525b';
+
+  // Button style helpers
+  const pillBtn = (active: boolean, color = '#d97706'): React.CSSProperties => ({
+    padding: '4px 14px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 700,
+    cursor: 'pointer', letterSpacing: 0.3, border: `1px solid ${active ? color : border}`,
+    background: active ? `${color}22` : 'transparent', color: active ? color : textMid,
+    transition: 'all 0.15s',
+  });
+  const ghostBtn: React.CSSProperties = {
+    padding: '4px 10px', borderRadius: 6, fontSize: '0.72rem', fontWeight: 500,
+    cursor: 'pointer', border: `1px solid ${border}`, background: 'transparent', color: textMid,
+  };
+  const oscHeaderBtn: React.CSSProperties = {
+    padding: '2px 8px', borderRadius: 4, fontSize: '0.62rem', cursor: 'pointer',
+    border: '1px solid #0a3320', background: 'transparent', color: '#4ade80',
+    fontFamily: 'monospace',
+  };
+
+  const sidebarContent = (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+      {/* ── Palette ── */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '4px 0 8px' }}>
+        <div style={{ padding: '8px 14px 4px', fontSize: '0.58rem', fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: textDim }}>
+          Components
+        </div>
+        {PALETTE.map(group => (
+          <div key={group.group}>
+            <div style={{ fontSize: '0.6rem', fontWeight: 700, color: textDim, textTransform: 'uppercase', letterSpacing: 1.5, padding: '8px 14px 3px', borderTop: `1px solid ${border}`, marginTop: 4 }}>
+              {group.group}
+            </div>
+            {group.items.map(item => (
+              <button key={item.kind}
+                onClick={() => {
+                  if (placing === item.kind && mode === 'place') { setMode('select'); setPlacing(null); setPlacingDef(null); }
+                  else { setMode('place'); setPlacing(item.kind); setPlacingDef(item); }
+                }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  width: '100%', padding: '5px 14px', marginBottom: 1,
+                  border: 'none', borderLeft: `3px solid ${placing === item.kind && mode === 'place' ? '#3b82f6' : 'transparent'}`,
+                  background: placing === item.kind && mode === 'place' ? (isDark ? 'rgba(59,130,246,0.08)' : 'rgba(59,130,246,0.06)') : 'transparent',
+                  color: placing === item.kind && mode === 'place' ? '#3b82f6' : (isDark ? '#d4d4d8' : '#3f3f46'),
+                  fontSize: '0.75rem', cursor: 'pointer', textAlign: 'left',
+                  transition: 'all 0.1s',
+                }}>
+                <span style={{
+                  width: 24, height: 20, borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: placing === item.kind && mode === 'place' ? 'rgba(59,130,246,0.15)' : (isDark ? '#27272a' : '#f4f4f5'),
+                  fontSize: '0.58rem', fontWeight: 800, flexShrink: 0,
+                  color: placing === item.kind && mode === 'place' ? '#3b82f6' : textDim,
+                  fontFamily: 'monospace', letterSpacing: 0,
+                }}>
+                  {item.key}
+                </span>
+                {item.label}
+              </button>
+            ))}
+          </div>
+        ))}
+      </div>
+
+      {/* ── Properties + Simulation ── */}
+      <div style={{ borderTop: `1px solid ${border}`, flexShrink: 0, overflowY: 'auto', maxHeight: '48%', padding: '10px 14px 12px' }}>
+        <div style={{ fontSize: '0.58rem', fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: textDim, marginBottom: 8 }}>
+          {selectedComp ? `${selectedComp.label} · ${selectedComp.kind}` : 'Properties'}
+        </div>
+
+        {selectedComp ? (
+          <>
+            {editingId === selectedComp.id ? (
+              <div style={{ marginBottom: 8 }}>
+                <input autoFocus value={editValue}
+                  onChange={e => setEditValue(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      const v = parseFloat(editValue);
+                      if (!isNaN(v)) setComponents(prev => prev.map(c => c.id === selectedComp.id ? { ...c, value: v } : c));
+                      setEditingId(null);
+                    }
+                    if (e.key === 'Escape') setEditingId(null);
+                  }}
+                  style={{
+                    width: '100%', padding: '5px 8px', borderRadius: 6, fontSize: '0.8rem',
+                    border: '1px solid #3b82f6', background: isDark ? '#18181b' : '#fff',
+                    color: isDark ? '#f4f4f5' : '#18181b', boxSizing: 'border-box',
+                  }}
+                />
+                <div style={{ fontSize: '0.62rem', color: textDim, marginTop: 2 }}>Enter to confirm · Esc to cancel</div>
+              </div>
+            ) : (
+              <button onClick={() => { setEditingId(selectedComp.id); setEditValue(String(selectedComp.value)); }}
+                style={{
+                  width: '100%', padding: '5px 8px', borderRadius: 6, fontSize: '0.78rem', fontWeight: 600,
+                  cursor: 'pointer', textAlign: 'left', marginBottom: 8, boxSizing: 'border-box',
+                  border: `1px solid ${border}`, background: isDark ? '#18181b' : '#fff',
+                  color: isDark ? '#f4f4f5' : '#18181b', display: 'flex', justifyContent: 'space-between',
+                }}>
+                <span>{formatVal(selectedComp.value, unitSuffix(selectedComp.kind))}</span>
+                <span style={{ color: textDim, fontWeight: 400, fontSize: '0.7rem' }}>edit</span>
+              </button>
+            )}
+            <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+              <button onClick={() => setComponents(prev => prev.map(c => c.id === selectedComp.id ? { ...c, rotation: (c.rotation + 90) % 360 } : c))}
+                style={{ flex: 1, padding: '4px 0', borderRadius: 5, fontSize: '0.7rem', cursor: 'pointer', border: `1px solid ${border}`, background: 'transparent', color: isDark ? '#d4d4d8' : '#3f3f46' }}>
+                ↻ Rotate (E)
+              </button>
+              <button onClick={() => { pushHistory(); setComponents(prev => prev.filter(c => c.id !== selectedComp.id)); setSelectedId(null); }}
+                style={{ flex: 1, padding: '4px 0', borderRadius: 5, fontSize: '0.7rem', cursor: 'pointer', border: '1px solid rgba(239,68,68,0.4)', background: 'transparent', color: '#ef4444' }}>
+                ✕ Delete
+              </button>
+            </div>
+            {selectedComp.kind === 'switch' && (
+              <button onClick={() => setComponents(prev => prev.map(c => c.id === selectedComp.id ? { ...c, closed: !c.closed } : c))}
+                style={{
+                  width: '100%', padding: '5px', borderRadius: 6, fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer', marginBottom: 8,
+                  border: `1px solid ${selectedComp.closed ? '#10b981' : '#ef4444'}`,
+                  background: selectedComp.closed ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
+                  color: selectedComp.closed ? '#10b981' : '#ef4444',
+                }}>
+                {selectedComp.closed ? '⬤ Closed' : '○ Open'}
+              </button>
+            )}
+            {simResults?.ok && (
+              <div>
+                {simResults.branchCurrents[selectedComp.id] !== undefined && (
+                  <div style={{ fontSize: '0.72rem', color: '#3b82f6', marginBottom: 2, fontFamily: 'monospace' }}>
+                    I = {formatVal(simResults.branchCurrents[selectedComp.id], 'A')}
+                  </div>
+                )}
+                {simResults.power[selectedComp.id] !== undefined && (
+                  <div style={{ fontSize: '0.72rem', color: '#f59e0b', fontFamily: 'monospace' }}>
+                    P = {formatVal(simResults.power[selectedComp.id], 'W')}
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        ) : (
+          <div style={{ fontSize: '0.73rem', color: textDim, lineHeight: 1.5 }}>
+            Click any component to inspect values, edit, rotate, or delete it.
+          </div>
+        )}
+
+        {simResults?.ok && (
+          <div style={{ marginTop: 12 }}>
+            <div style={{ fontSize: '0.58rem', fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: textDim, marginBottom: 6 }}>Node Voltages</div>
+            {Object.entries(simResults.nodeVoltages)
+              .sort(([a], [b]) => a.localeCompare(b))
+              .map(([nk, v]) => (
+                <div key={nk} style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  padding: '3px 0', borderBottom: `1px solid ${border}`,
+                }}>
+                  <span style={{ fontSize: '0.7rem', fontFamily: 'monospace', color: isDark ? '#d4d4d8' : '#3f3f46' }}>{nk}</span>
+                  <span style={{ fontSize: '0.7rem', fontFamily: 'monospace', color: voltageColor(v, Math.max(...Object.values(simResults.nodeVoltages).map(Math.abs), 0.001)) }}>
+                    {formatVal(v, 'V')}
+                  </span>
+                </div>
+              ))}
+            {analysis === 'transient' && (
+              <div style={{ marginTop: 10 }}>
+                <div style={{ fontSize: '0.58rem', fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: textDim, marginBottom: 5 }}>Probes</div>
+                {Object.keys(simResults.nodeVoltages).filter(nk => nk !== 'GND').map(nk => {
+                  const existing = probes.find(p => p.nodeKey === nk);
+                  return (
+                    <button key={nk} onClick={() => {
+                      if (existing) setProbes(prev => prev.filter(p => p.nodeKey !== nk));
+                      else { const color = PROBE_COLORS[probes.length % PROBE_COLORS.length]; setProbes(prev => [...prev, { nodeKey: nk, color, label: nk }]); }
+                    }}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 6,
+                        width: '100%', padding: '3px 6px', marginBottom: 2, borderRadius: 5, fontSize: '0.7rem',
+                        cursor: 'pointer', textAlign: 'left',
+                        border: `1px solid ${existing ? existing.color : border}`,
+                        background: existing ? `${existing.color}18` : 'transparent',
+                        color: existing ? existing.color : textMid,
+                      }}>
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: existing ? existing.color : border, display: 'inline-block', flexShrink: 0 }} />
+                      {nk}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {simResults && !simResults.ok && (
+          <div style={{ marginTop: 10, padding: '8px 10px', borderRadius: 6, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)' }}>
+            <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#ef4444', marginBottom: 2 }}>Error</div>
+            <div style={{ fontSize: '0.66rem', color: '#ef4444' }}>{simResults.error}</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const canvasContent = (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      {/* ── Toolbar ── */}
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px',
-        background: isDark ? '#1a1612' : '#ffffff',
-        borderBottom: `1px solid ${isDark ? '#2a2520' : '#e8e0d4'}`,
+        display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px',
+        background: isDark ? '#111111' : '#fafafa',
+        borderBottom: `1px solid ${border}`,
         flexShrink: 0, flexWrap: 'wrap',
       }}>
-        <span style={{ fontWeight: 700, fontSize: '0.9rem', color: isDark ? '#d4cec6' : '#1a1612', marginRight: 8 }}>
-          Circuit Builder
-        </span>
-
-        {/* Analysis tabs */}
         {(['dc', 'transient'] as AnalysisMode[]).map(a => (
-          <button key={a} onClick={() => setAnalysis(a)}
-            style={{
-              padding: '4px 12px', borderRadius: 6, fontSize: '0.75rem', fontWeight: 600,
-              cursor: 'pointer', border: `1px solid ${analysis === a ? '#d97706' : isDark ? '#3d3530' : '#e8e0d4'}`,
-              background: analysis === a ? '#d97706' : 'transparent',
-              color: analysis === a ? '#fff' : isDark ? '#9c9488' : '#5c544a',
-            }}>
+          <button key={a} onClick={() => setAnalysis(a)} style={pillBtn(analysis === a)}>
             {a === 'dc' ? 'DC' : 'Transient'}
           </button>
         ))}
-
-        <div style={{ width: 1, height: 20, background: isDark ? '#3d3530' : '#e8e0d4', margin: '0 4px' }} />
-
-        {/* Wire mode */}
+        <div style={{ width: 1, height: 18, background: border, margin: '0 2px' }} />
         <button onClick={() => { setMode(mode === 'wire' ? 'select' : 'wire'); setWireStart(null); }}
-          style={{
-            padding: '4px 12px', borderRadius: 6, fontSize: '0.75rem', fontWeight: 600,
-            cursor: 'pointer', border: `1px solid ${mode === 'wire' ? '#3b82f6' : isDark ? '#3d3530' : '#e8e0d4'}`,
-            background: mode === 'wire' ? '#3b82f620' : 'transparent',
-            color: mode === 'wire' ? '#3b82f6' : isDark ? '#9c9488' : '#5c544a',
-          }}>
+          style={pillBtn(mode === 'wire', '#3b82f6')}>
           W Wire
         </button>
-
         {analysis === 'transient' && (
-          <button onClick={runTransient}
-            style={{
-              padding: '4px 14px', borderRadius: 6, fontSize: '0.75rem', fontWeight: 700,
-              cursor: 'pointer', border: '1px solid #d97706',
-              background: '#d97706', color: '#fff',
-            }}>
+          <button onClick={runTransient} style={{
+            padding: '4px 16px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 700,
+            cursor: 'pointer', border: '1px solid #3b82f6', background: '#3b82f6', color: '#fff',
+            boxShadow: '0 0 12px rgba(59,130,246,0.35)', letterSpacing: 0.3,
+          }}>
             ▶ Run
           </button>
         )}
-
-        <button onClick={undo} disabled={history.length === 0}
-          style={{
-            padding: '4px 10px', borderRadius: 6, fontSize: '0.75rem', fontWeight: 600,
-            cursor: 'pointer', border: `1px solid ${isDark ? '#3d3530' : '#e8e0d4'}`,
-            background: 'transparent', color: isDark ? '#9c9488' : '#5c544a',
-            opacity: history.length === 0 ? 0.4 : 1,
-          }}>
-          ↩ Undo
-        </button>
-
-        <button onClick={() => { setComponents([]); setWires([]); setSimResults(null); setProbes([]); labelCounters.current = {}; }}
-          style={{
-            padding: '4px 10px', borderRadius: 6, fontSize: '0.75rem',
-            cursor: 'pointer', border: `1px solid ${isDark ? '#3d3530' : '#e8e0d4'}`,
-            background: 'transparent', color: isDark ? '#6b6560' : '#9c9488',
-          }}>
-          Clear
-        </button>
-
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
-          {analysis === 'transient' && (
-            <button
-              onClick={() => setShowOsc(v => !v)}
-              title="Toggle oscilloscope overlay"
-              style={{
-                padding: '4px 12px', borderRadius: 6, fontSize: '0.72rem', fontWeight: 600,
-                cursor: 'pointer',
-                border: `1px solid ${showOsc ? '#10b981' : isDark ? '#3d3530' : '#e8e0d4'}`,
-                background: showOsc ? '#10b98118' : 'transparent',
-                color: showOsc ? '#10b981' : isDark ? '#9c9488' : '#5c544a',
-              }}>
-              ⬤ Oscilloscope
-            </button>
-          )}
-          <span style={{ fontSize: '0.7rem', color: isDark ? '#6b6560' : '#9c9488' }}>
-            E=rotate · Del=delete · W=wire · Space+drag=pan · Ctrl+Scroll=zoom
-          </span>
+        <button onClick={undo} disabled={history.length === 0} style={{ ...ghostBtn, opacity: history.length === 0 ? 0.4 : 1 }}>↩ Undo</button>
+        <button onClick={() => { setComponents([]); setWires([]); setSimResults(null); setProbes([]); labelCounters.current = {}; }} style={ghostBtn}>Clear</button>
+        <div style={{ marginLeft: 'auto', fontSize: '0.66rem', color: textDim, letterSpacing: 0.2 }}>
+          E=rotate · Del=delete · W=wire · Scroll=zoom · Space+drag=pan
         </div>
       </div>
 
-      {/* ── Middle: palette | canvas | properties ── */}
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-
-        {/* Palette sidebar */}
-        <div style={{
-          width: 130, flexShrink: 0, overflowY: 'auto',
-          background: isDark ? '#130f0d' : '#f3efe8',
-          borderRight: `1px solid ${isDark ? '#2a2520' : '#e8e0d4'}`,
-          padding: '8px 6px',
-        }}>
-          {PALETTE.map(group => (
-            <div key={group.group}>
-              <div style={{ fontSize: '0.62rem', fontWeight: 700, color: isDark ? '#6b6560' : '#9c9488', textTransform: 'uppercase', letterSpacing: 1, padding: '6px 4px 3px' }}>
-                {group.group}
-              </div>
-              {group.items.map(item => (
-                <button key={item.kind}
-                  onClick={() => {
-                    if (placing === item.kind && mode === 'place') { setMode('select'); setPlacing(null); setPlacingDef(null); }
-                    else { setMode('place'); setPlacing(item.kind); setPlacingDef(item); }
-                  }}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 6,
-                    width: '100%', padding: '5px 6px', marginBottom: 2,
-                    borderRadius: 6, fontSize: '0.72rem', fontWeight: 500,
-                    cursor: 'pointer', textAlign: 'left',
-                    border: `1px solid ${placing === item.kind && mode === 'place' ? '#d97706' : 'transparent'}`,
-                    background: placing === item.kind && mode === 'place'
-                      ? (isDark ? '#2a1f0a' : '#fef3c7')
-                      : 'transparent',
-                    color: placing === item.kind && mode === 'place'
-                      ? '#d97706'
-                      : (isDark ? '#d4cec6' : '#1a1612'),
-                  }}>
-                  <span style={{
-                    width: 22, height: 22, borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: isDark ? '#1e1c18' : '#e8e0d4', fontSize: '0.62rem', fontWeight: 700, flexShrink: 0,
-                  }}>
-                    {item.key}
-                  </span>
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          ))}
-        </div>
-
-        {/* Canvas */}
-        <div ref={containerRef} style={{ flex: 1, position: 'relative', overflow: 'hidden', cursor: cursorStyle }}
+      {/* ── Canvas + Oscilloscope overlay ── */}
+      <div style={{ flex: 1, position: 'relative' }}>
+        {/* Circuit canvas */}
+        <div ref={containerRef}
+          style={{ position: 'absolute', inset: 0, cursor: cursorStyle }}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onWheel={handleWheel}
         >
           <canvas ref={canvasRef} style={{ display: 'block', position: 'absolute', inset: 0 }} />
+        </div>
 
-          {/* ── Oscilloscope floating overlay ── */}
-          {analysis === 'transient' && showOsc && (
+        {/* Oscilloscope hover button + popup */}
+        {analysis === 'transient' && (
+          <div
+            style={{ position: 'absolute', top: 12, right: 12, zIndex: 20, display: 'flex', flexDirection: 'column' }}
+            onMouseEnter={() => setShowOsc(true)}
+            onMouseLeave={() => setShowOsc(false)}
+          >
+            {/* Small pill */}
             <div style={{
-              position: 'absolute', bottom: 12, left: '50%',
-              transform: 'translateX(-50%)',
-              width: 'min(720px, 92%)', height: 220,
-              background: isDark ? 'rgba(10,9,8,0.92)' : 'rgba(243,239,232,0.94)',
-              backdropFilter: 'blur(10px)',
-              border: `1px solid ${isDark ? '#2a2520' : '#d8d0c4'}`,
-              borderRadius: 10,
-              boxShadow: isDark ? '0 8px 40px rgba(0,0,0,0.7)' : '0 8px 32px rgba(26,22,18,0.18)',
-              display: 'flex', flexDirection: 'column',
-              overflow: 'hidden',
-              zIndex: 30,
-              pointerEvents: 'auto',
+              display: 'flex', alignItems: 'center', gap: 7, padding: '5px 14px',
+              background: showOsc ? 'rgba(0,255,136,0.07)' : 'rgba(5,5,8,0.82)',
+              backdropFilter: 'blur(8px)',
+              border: `1px solid ${showOsc ? '#00ff88' : 'rgba(255,255,255,0.08)'}`,
+              borderRadius: showOsc ? '8px 8px 0 0' : 8,
+              borderBottom: showOsc ? '1px solid #050f0a' : undefined,
+              color: showOsc ? '#00ff88' : '#71717a',
+              fontSize: '0.68rem', fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase',
+              cursor: 'default', userSelect: 'none', fontFamily: 'monospace',
             }}>
-              {/* Osc header */}
+              <span style={{
+                width: 7, height: 7, borderRadius: '50%', flexShrink: 0, display: 'inline-block',
+                background: showOsc ? '#00ff88' : '#3f3f46',
+                boxShadow: showOsc ? '0 0 6px #00ff88' : 'none',
+                transition: 'all 0.2s',
+              }} />
+              Oscilloscope
+            </div>
+
+            {/* Expanded card */}
+            {showOsc && (
               <div style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                padding: '5px 10px', flexShrink: 0,
-                borderBottom: `1px solid ${isDark ? '#1e1c18' : '#e8e0d4'}`,
-                background: isDark ? '#130f0d' : '#ece8e0',
+                position: 'absolute', top: '100%', right: 0,
+                width: 'min(700px, calc(100vw - 320px))',
+                height: 330,
+                background: '#050f0a',
+                border: '1px solid #0a3320',
+                borderTop: 'none',
+                borderRadius: '0 0 10px 10px',
+                boxShadow: '0 20px 60px rgba(0,255,136,0.08), 0 6px 24px rgba(0,0,0,0.7)',
+                display: 'flex', flexDirection: 'column',
+                overflow: 'hidden',
               }}>
-                <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#10b981', textTransform: 'uppercase', letterSpacing: 1 }}>
-                  ⬤ Oscilloscope
-                </span>
-                <button onClick={addProbe} style={{ padding: '2px 8px', borderRadius: 4, fontSize: '0.65rem', cursor: 'pointer', border: `1px solid ${isDark ? '#3d3530' : '#e8e0d4'}`, background: 'transparent', color: isDark ? '#9c9488' : '#5c544a' }}>
-                  + Probe
-                </button>
-                <label style={{ fontSize: '0.65rem', color: isDark ? '#6b6560' : '#9c9488', display: 'flex', alignItems: 'center', gap: 4 }}>
-                  t_max:
-                  <input type="number" value={tMax * 1000} min={0.1} max={1000} step={0.1}
-                    onChange={e => setTMax(parseFloat(e.target.value) / 1000)}
-                    style={{ width: 55, padding: '1px 4px', borderRadius: 4, fontSize: '0.65rem', border: `1px solid ${isDark ? '#3d3530' : '#e8e0d4'}`, background: isDark ? '#1a1612' : '#fff', color: isDark ? '#d4cec6' : '#1a1612' }} />
-                  ms
-                </label>
-                <button onClick={() => setProbes([])} style={{ padding: '2px 8px', borderRadius: 4, fontSize: '0.65rem', cursor: 'pointer', border: `1px solid ${isDark ? '#3d3530' : '#e8e0d4'}`, background: 'transparent', color: isDark ? '#9c9488' : '#5c544a' }}>
-                  Clear
-                </button>
-                <button onClick={() => setShowOsc(false)} style={{ marginLeft: 'auto', padding: '2px 8px', borderRadius: 4, fontSize: '0.65rem', cursor: 'pointer', border: 'none', background: 'transparent', color: isDark ? '#6b6560' : '#9c9488' }}>
-                  ✕
-                </button>
-              </div>
-              {/* Osc canvas */}
-              <div style={{ flex: 1, position: 'relative' }}>
-                <canvas ref={oscRef} style={{ display: 'block', position: 'absolute', inset: 0 }} />
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Properties sidebar */}
-        <div style={{
-          width: 190, flexShrink: 0, overflowY: 'auto',
-          background: isDark ? '#130f0d' : '#f3efe8',
-          borderLeft: `1px solid ${isDark ? '#2a2520' : '#e8e0d4'}`,
-          padding: '10px 10px',
-        }}>
-          {selectedComp ? (
-            <>
-              <div style={{ fontWeight: 700, fontSize: '0.8rem', color: isDark ? '#d4cec6' : '#1a1612', marginBottom: 8 }}>
-                {selectedComp.label} — {selectedComp.kind}
-              </div>
-
-              {/* Value editor */}
-              {editingId === selectedComp.id ? (
-                <div style={{ marginBottom: 8 }}>
-                  <input
-                    autoFocus
-                    value={editValue}
-                    onChange={e => setEditValue(e.target.value)}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') {
-                        const v = parseFloat(editValue);
-                        if (!isNaN(v)) setComponents(prev => prev.map(c => c.id === selectedComp.id ? { ...c, value: v } : c));
-                        setEditingId(null);
-                      }
-                      if (e.key === 'Escape') setEditingId(null);
-                    }}
-                    style={{
-                      width: '100%', padding: '4px 6px', borderRadius: 5, fontSize: '0.8rem',
-                      border: `1px solid #d97706`, background: isDark ? '#1a1612' : '#fff',
-                      color: isDark ? '#d4cec6' : '#1a1612',
-                    }}
-                  />
-                  <div style={{ fontSize: '0.65rem', color: isDark ? '#6b6560' : '#9c9488', marginTop: 2 }}>Enter to confirm</div>
-                </div>
-              ) : (
-                <button onClick={() => { setEditingId(selectedComp.id); setEditValue(String(selectedComp.value)); }}
-                  style={{
-                    width: '100%', padding: '5px 8px', borderRadius: 6, fontSize: '0.78rem', fontWeight: 600,
-                    cursor: 'pointer', textAlign: 'left', marginBottom: 8,
-                    border: `1px solid ${isDark ? '#3d3530' : '#e8e0d4'}`,
-                    background: isDark ? '#1a1612' : '#fff',
-                    color: isDark ? '#d4cec6' : '#1a1612',
-                  }}>
-                  {formatVal(selectedComp.value, unitSuffix(selectedComp.kind))}
-                  <span style={{ float: 'right', color: isDark ? '#6b6560' : '#9c9488', fontWeight: 400 }}>edit</span>
-                </button>
-              )}
-
-              {/* Rotate / delete */}
-              <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
-                <button onClick={() => setComponents(prev => prev.map(c => c.id === selectedComp.id ? { ...c, rotation: (c.rotation + 90) % 360 } : c))}
-                  style={{ flex: 1, padding: '4px', borderRadius: 5, fontSize: '0.72rem', cursor: 'pointer', border: `1px solid ${isDark ? '#3d3530' : '#e8e0d4'}`, background: 'transparent', color: isDark ? '#d4cec6' : '#1a1612' }}>
-                  ↻ Rotate
-                </button>
-                <button onClick={() => {
-                  pushHistory();
-                  setComponents(prev => prev.filter(c => c.id !== selectedComp.id));
-                  setSelectedId(null);
-                }}
-                  style={{ flex: 1, padding: '4px', borderRadius: 5, fontSize: '0.72rem', cursor: 'pointer', border: '1px solid #ef444460', background: 'transparent', color: '#ef4444' }}>
-                  ✕ Del
-                </button>
-              </div>
-
-              {/* Switch toggle */}
-              {selectedComp.kind === 'switch' && (
-                <button onClick={() => setComponents(prev => prev.map(c => c.id === selectedComp.id ? { ...c, closed: !c.closed } : c))}
-                  style={{
-                    width: '100%', padding: '5px', borderRadius: 6, fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', marginBottom: 8,
-                    border: `1px solid ${selectedComp.closed ? '#10b981' : '#ef4444'}`,
-                    background: selectedComp.closed ? '#10b98120' : '#ef444420',
-                    color: selectedComp.closed ? '#10b981' : '#ef4444',
-                  }}>
-                  {selectedComp.closed ? '⬤ Closed' : '○ Open'}
-                </button>
-              )}
-
-              {/* Sim results for this component */}
-              {simResults?.ok && (
-                <div style={{ marginTop: 4 }}>
-                  <div style={{ fontSize: '0.65rem', fontWeight: 700, color: isDark ? '#6b6560' : '#9c9488', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Results</div>
-                  {simResults.branchCurrents[selectedComp.id] !== undefined && (
-                    <div style={{ fontSize: '0.75rem', color: '#3b82f6', marginBottom: 2 }}>
-                      I = {formatVal(simResults.branchCurrents[selectedComp.id], 'A')}
-                    </div>
-                  )}
-                  {simResults.power[selectedComp.id] !== undefined && (
-                    <div style={{ fontSize: '0.75rem', color: '#f59e0b', marginBottom: 2 }}>
-                      P = {formatVal(simResults.power[selectedComp.id], 'W')}
-                    </div>
-                  )}
-                </div>
-              )}
-            </>
-          ) : (
-            <div style={{ fontSize: '0.75rem', color: isDark ? '#6b6560' : '#9c9488', textAlign: 'center', marginTop: 24 }}>
-              Click a component to select it
-            </div>
-          )}
-
-          {/* Node voltage table */}
-          {simResults?.ok && (
-            <div style={{ marginTop: 16 }}>
-              <div style={{ fontSize: '0.65rem', fontWeight: 700, color: isDark ? '#6b6560' : '#9c9488', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>
-                Node Voltages
-              </div>
-              {Object.entries(simResults.nodeVoltages)
-                .sort(([a], [b]) => a.localeCompare(b))
-                .map(([nk, v]) => (
-                  <div key={nk} style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    padding: '3px 0', borderBottom: `1px solid ${isDark ? '#1e1c18' : '#e8e0d4'}`,
-                  }}>
-                    <span style={{ fontSize: '0.72rem', fontFamily: 'monospace', color: isDark ? '#d4cec6' : '#1a1612' }}>{nk}</span>
-                    <span style={{ fontSize: '0.72rem', fontFamily: 'monospace', color: voltageColor(v, Math.max(...Object.values(simResults.nodeVoltages).map(Math.abs), 0.001)) }}>
-                      {formatVal(v, 'V')}
-                    </span>
+                {/* Osc toolbar */}
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px',
+                  borderBottom: '1px solid #0a1f14', flexShrink: 0,
+                  background: '#030a06',
+                }}>
+                  <span style={{ color: '#00ff88', fontSize: '0.58rem', fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', fontFamily: 'monospace' }}>
+                    ⬤ OSCILLOSCOPE
+                  </span>
+                  <button onClick={addProbe} style={oscHeaderBtn}>+ Probe</button>
+                  <label style={{ fontSize: '0.6rem', color: '#4ade80', display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'monospace' }}>
+                    t_max:
+                    <input type="number" value={tMax * 1000} min={0.1} max={1000} step={0.1}
+                      onChange={e => setTMax(parseFloat(e.target.value) / 1000)}
+                      style={{
+                        width: 52, padding: '1px 5px', borderRadius: 4, fontSize: '0.6rem',
+                        border: '1px solid #0a3320', background: '#030a06', color: '#4ade80',
+                        fontFamily: 'monospace',
+                      }} />
+                    ms
+                  </label>
+                  <button onClick={() => setProbes([])} style={oscHeaderBtn}>Clear</button>
+                  <div style={{ marginLeft: 'auto', display: 'flex', gap: 4 }}>
+                    {probes.map(p => (
+                      <span key={p.nodeKey} style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 4, padding: '1px 7px',
+                        borderRadius: 10, border: `1px solid ${p.color}40`, background: `${p.color}15`,
+                        fontSize: '0.58rem', fontFamily: 'monospace', color: p.color,
+                      }}>
+                        <span style={{ width: 5, height: 5, borderRadius: '50%', background: p.color, display: 'inline-block' }} />
+                        {p.nodeKey}
+                      </span>
+                    ))}
                   </div>
-                ))}
-
-              {/* Probe buttons */}
-              {analysis === 'transient' && (
-                <div style={{ marginTop: 8 }}>
-                  <div style={{ fontSize: '0.65rem', fontWeight: 700, color: isDark ? '#6b6560' : '#9c9488', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Probes</div>
-                  {Object.keys(simResults.nodeVoltages).filter(nk => nk !== 'GND').map(nk => {
-                    const existing = probes.find(p => p.nodeKey === nk);
-                    return (
-                      <button key={nk} onClick={() => {
-                        if (existing) setProbes(prev => prev.filter(p => p.nodeKey !== nk));
-                        else {
-                          const color = PROBE_COLORS[probes.length % PROBE_COLORS.length];
-                          setProbes(prev => [...prev, { nodeKey: nk, color, label: nk }]);
-                        }
-                      }}
-                        style={{
-                          display: 'block', width: '100%', padding: '3px 6px', marginBottom: 2, borderRadius: 4, fontSize: '0.7rem',
-                          cursor: 'pointer', textAlign: 'left',
-                          border: `1px solid ${existing ? existing.color : isDark ? '#3d3530' : '#e8e0d4'}`,
-                          background: existing ? `${existing.color}20` : 'transparent',
-                          color: existing ? existing.color : isDark ? '#9c9488' : '#5c544a',
-                        }}>
-                        {existing ? '⬤' : '○'} {nk}
-                      </button>
-                    );
-                  })}
                 </div>
-              )}
-            </div>
-          )}
-
-          {simResults && !simResults.ok && (
-            <div style={{ marginTop: 12, padding: '8px', borderRadius: 6, background: '#ef444415', border: '1px solid #ef444440' }}>
-              <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#ef4444', marginBottom: 3 }}>Error</div>
-              <div style={{ fontSize: '0.68rem', color: '#ef4444' }}>{simResults.error}</div>
-            </div>
-          )}
-        </div>
+                {/* Osc canvas */}
+                <div style={{ flex: 1, position: 'relative' }}>
+                  <canvas ref={oscRef} style={{ display: 'block', position: 'absolute', inset: 0 }} />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
-
     </div>
+  );
+
+  return (
+    <ToolLayoutSplit defaultRatio={0.22}>
+      {[sidebarContent, canvasContent]}
+    </ToolLayoutSplit>
   );
 }
