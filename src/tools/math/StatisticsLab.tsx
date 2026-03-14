@@ -1135,7 +1135,7 @@ const divider: React.CSSProperties = {
 const textareaStyle: React.CSSProperties = {
     width: '100%', padding: '7px 10px', borderRadius: 'var(--radius-sm)',
     border: '1px solid var(--border-warm)', background: 'var(--bg-secondary)',
-    color: 'var(--text-primary)', fontSize: '0.8rem', fontFamily: 'monospace',
+    color: 'var(--text-primary)', fontSize: '0.88rem', fontFamily: 'monospace',
     resize: 'vertical', boxSizing: 'border-box',
 };
 

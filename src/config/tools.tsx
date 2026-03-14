@@ -40,7 +40,6 @@ export const toolLoaders: Record<string, () => Promise<{ default: ComponentType 
   'laplace-transform': () => import('../tools/math/LaplaceTransform'),
   'vector-field': () => import('../tools/math/VectorField'),
   'monte-carlo': () => import('../tools/math/MonteCarloSim'),
-  'statistics-calc': () => import('../tools/math/StatisticsCalc'),
   // Phase 2 — Physics
   'projectile-motion': () => import('../tools/physics/ProjectileMotion'),
   'electric-field': () => import('../tools/physics/ElectricField'),
@@ -65,7 +64,7 @@ export const toolLoaders: Record<string, () => Promise<{ default: ComponentType 
   'memory-allocator': () => import('../tools/cs/MemoryAllocator'),
   'turing-machine': () => import('../tools/cs/TuringMachine'),
   'statistics-lab': () => import('../tools/math/StatisticsLab'),
-  'lens-mirror': () => import('../tools/physics/LensMirror'),
+
 };
 
 // ── Math Previews (amber) ────────────────────────────────────────────
@@ -629,17 +628,6 @@ const PreviewMonteCarlo: React.FC = () => (
   </svg>
 );
 
-const PreviewStatistics: React.FC = () => (
-  <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
-    {[{ x: 12, h: 15 }, { x: 22, h: 28 }, { x: 32, h: 42 }, { x: 42, h: 50 }, { x: 52, h: 35 }, { x: 62, h: 20 }].map(({ x, h }, i) => (
-      <rect key={i} x={x} y={64 - h} width="8" height={h} fill="#d97706" opacity={0.5 + i * 0.08} rx="1" />
-    ))}
-    <line x1="10" y1="64" x2="72" y2="64" stroke="#9c9488" strokeWidth="0.8" />
-    <line x1="40" y1="10" x2="40" y2="64" stroke="#ef4444" strokeWidth="1.5" strokeDasharray="3 2" />
-    <text x="40" y="8" fill="#ef4444" fontSize="5" textAnchor="middle" fontWeight="bold">μ</text>
-    <path d="M10 56Q25 30 40 14Q55 30 70 56" stroke="#22c55e" strokeWidth="1.5" fill="none" opacity="0.6" />
-  </svg>
-);
 
 const PreviewLogicGate: React.FC = () => (
   <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
@@ -776,14 +764,6 @@ export const allTools: ToolMeta[] = [
     gradient: 'linear-gradient(145deg, #fef9ee 0%, #fef3c7 55%, #fde68a 100%)',
     Preview: PreviewMonteCarlo,
   },
-  {
-    slug: 'statistics-calc', name: 'Statistics Calculator', tag: 'Statistics',
-    description: 'Visualize data with histograms, compute mean, median, mode, std dev, quartiles, and fit a normal curve.',
-    category: 'math',
-    gradient: 'linear-gradient(135deg, #fffbeb 0%, #fef9c3 55%, #fde68a 100%)',
-    Preview: PreviewStatistics,
-  },
-
   // Physics
   {
     slug: 'circuit-builder', name: 'Circuit Builder', tag: 'Electromagnetism',
@@ -801,7 +781,7 @@ export const allTools: ToolMeta[] = [
   },
   {
     slug: 'ray-optics', name: 'Ray Optics', tag: 'Optics',
-    description: 'Trace light rays through lenses and mirrors to understand image formation.',
+    description: 'Interactive ray tracer + thin lens calculator. Drag lasers, mirrors, and lenses. Switch to Calculator for image distance, magnification, and real/virtual classification.',
     category: 'physics',
     gradient: 'linear-gradient(130deg, #ecfdf5 0%, #d1fae5 60%, #a7f3d0 100%)',
     Preview: PreviewRayOptics,
@@ -862,34 +842,6 @@ export const allTools: ToolMeta[] = [
     gradient: 'linear-gradient(130deg, #f0f5f1 0%, #c8deca 60%, #a3c4a8 100%)',
     Preview: PreviewThermoPV,
   },
-  {
-    slug: 'lens-mirror', name: 'Lens & Mirror', tag: 'Optics',
-    description: 'Trace rays through converging and diverging lenses, concave and convex mirrors. See image formation with the thin lens equation.',
-    category: 'physics',
-    gradient: 'linear-gradient(140deg, #f0f4ff 0%, #dbeafe 55%, #bfdbfe 100%)',
-    Preview: () => (
-      <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
-        {/* Lens */}
-        <path d="M40 18 Q50 40 40 62 Q30 40 40 18Z" stroke="#3b82f6" strokeWidth="1.5" fill="#3b82f618" />
-        {/* Optical axis */}
-        <line x1="8" y1="40" x2="72" y2="40" stroke="#9c9488" strokeWidth="0.8" strokeDasharray="3 2" />
-        {/* Object arrow */}
-        <line x1="16" y1="40" x2="16" y2="26" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" />
-        <polygon points="16,23 13,29 19,29" fill="#22c55e" />
-        {/* Focal points */}
-        <circle cx="30" cy="40" r="2" fill="#3b82f6" opacity="0.6" />
-        <circle cx="50" cy="40" r="2" fill="#3b82f6" opacity="0.6" />
-        {/* Rays */}
-        <line x1="16" y1="26" x2="40" y2="26" stroke="#ef4444" strokeWidth="1" opacity="0.7" />
-        <line x1="40" y1="26" x2="64" y2="56" stroke="#ef4444" strokeWidth="1" opacity="0.7" />
-        <line x1="16" y1="26" x2="64" y2="40" stroke="#f59e0b" strokeWidth="1" opacity="0.6" strokeDasharray="2 2" />
-        {/* Image arrow */}
-        <line x1="64" y1="40" x2="64" y2="56" stroke="#ef4444" strokeWidth="1.5" strokeLinecap="round" />
-        <polygon points="64,59 61,53 67,53" fill="#ef4444" />
-      </svg>
-    ),
-  },
-
   // CS
   {
     slug: 'pathfinding', name: 'Pathfinding', tag: 'Graph Algorithms',
