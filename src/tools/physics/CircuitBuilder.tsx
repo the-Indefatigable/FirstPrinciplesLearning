@@ -5,23 +5,31 @@ import { getPins, solveDC, solveTransient, detectNodes, formatVal } from './circ
 // ─── Constants ────────────────────────────────────────────────────────────────
 const GRID = 20; // px per grid unit
 
-// ─── Default circuit: RC Low-Pass Filter ─────────────────────────────────────
-// AC source (5V, 1kHz) → R1(1kΩ) → Node A → C1(10µF) → GND
-// Students can observe: input vs filtered output on the oscilloscope.
-// Pin layout (rot=0): acsource neg=gx-2, pos=gx+2; resistor pin0=gx-2, pin1=gx+2
-// Capacitor (rot=90): rotateOffset(-2,0,90)=[0,2] → pin0 at (gx,gy+2); pin1 at (gx,gy-2)
+// ─── Default circuit: Half-Wave Rectifier with Smoothing Cap ─────────────────
+// AC source (12V, 60Hz) → D1 (diode) → Node A (output)
+//   R1 (2.2kΩ load) and C1 (100µF smoothing) in parallel from Node A to GND.
+// Probes on V-in and V-out show the rectification + smoothing effect clearly.
 const DEFAULT_COMPS: SchComponent[] = [
-  { id: 'v1', kind: 'acsource', gx: 6,  gy: 9,  rotation: 0,  value: 5,     value2: 1000, label: 'V1',  selected: false },
-  { id: 'r1', kind: 'resistor', gx: 14, gy: 9,  rotation: 0,  value: 1000,  label: 'R1',  selected: false },
-  { id: 'c1', kind: 'capacitor', gx: 20, gy: 11, rotation: 90, value: 10e-6, label: 'C1',  selected: false },
-  { id: 'j1', kind: 'junction', gx: 20, gy: 9,  rotation: 0,  value: 0,     label: 'J',   selected: false },
-  { id: 'g1', kind: 'ground',   gx: 4,  gy: 13, rotation: 0,  value: 0,     label: 'GND', selected: false },
-  { id: 'g2', kind: 'ground',   gx: 20, gy: 13, rotation: 0,  value: 0,     label: 'GND', selected: false },
+  { id: 'v1', kind: 'acsource', gx: 5,  gy: 10, rotation: 0,  value: 12,    value2: 60,   label: 'V1',  selected: false },
+  { id: 'd1', kind: 'diode',    gx: 13, gy: 8,  rotation: 0,  value: 0,     label: 'D1',  selected: false },
+  { id: 'j1', kind: 'junction', gx: 18, gy: 8,  rotation: 0,  value: 0,     label: 'J',   selected: false },
+  { id: 'j2', kind: 'junction', gx: 23, gy: 8,  rotation: 0,  value: 0,     label: 'J',   selected: false },
+  { id: 'r1', kind: 'resistor', gx: 18, gy: 12, rotation: 90, value: 2200,  label: 'R1',  selected: false },
+  { id: 'c1', kind: 'capacitor',gx: 23, gy: 12, rotation: 90, value: 100e-6,label: 'C1',  selected: false },
+  { id: 'g1', kind: 'ground',   gx: 3,  gy: 14, rotation: 0,  value: 0,     label: 'GND', selected: false },
+  { id: 'g2', kind: 'ground',   gx: 18, gy: 16, rotation: 0,  value: 0,     label: 'GND', selected: false },
+  { id: 'g3', kind: 'ground',   gx: 23, gy: 16, rotation: 0,  value: 0,     label: 'GND', selected: false },
 ];
 const DEFAULT_WIRES: Wire[] = [
-  { id: 'w1', x1: 8,  y1: 9,  x2: 12, y2: 9  }, // V1+ (8,9) → R1 pin0 (12,9)
-  { id: 'w2', x1: 16, y1: 9,  x2: 20, y2: 9  }, // R1 pin1 (16,9) → Node A / C1 top (20,9)
-  { id: 'w3', x1: 4,  y1: 9,  x2: 4,  y2: 13 }, // V1− (4,9) → GND1 (4,13)
+  { id: 'w1', x1: 7,  y1: 10, x2: 7,  y2: 8  }, // V1+ up to diode row
+  { id: 'w2', x1: 7,  y1: 8,  x2: 11, y2: 8  }, // V1+ → D1 anode
+  { id: 'w3', x1: 15, y1: 8,  x2: 18, y2: 8  }, // D1 cathode → J1
+  { id: 'w4', x1: 18, y1: 8,  x2: 23, y2: 8  }, // J1 → J2
+  { id: 'w5', x1: 18, y1: 8,  x2: 18, y2: 10 }, // J1 → R1 top
+  { id: 'w6', x1: 23, y1: 8,  x2: 23, y2: 10 }, // J2 → C1 top
+  { id: 'w7', x1: 3,  y1: 10, x2: 3,  y2: 14 }, // V1− → GND1
+  { id: 'w8', x1: 18, y1: 14, x2: 18, y2: 16 }, // R1 bottom → GND2
+  { id: 'w9', x1: 23, y1: 14, x2: 23, y2: 16 }, // C1 bottom → GND3
 ];
 
 // ─── Component palette definition ────────────────────────────────────────────
@@ -478,16 +486,17 @@ export default function CircuitBuilder() {
   const [simResults, setSimResults] = useState<SimResults | null>(null);
   const [analysis, setAnalysis] = useState<AnalysisMode>('transient');
   const [probes, setProbes] = useState<Probe[]>([]);
-  const [tMax, setTMax] = useState(0.003); // 3 ms — 3 full cycles of the 1 kHz default
-  const [dt] = useState(1e-5);
+  const [showOsc, setShowOsc] = useState(true);
+  const [tMax, setTMax] = useState(0.05); // 50 ms — 3 full cycles of 60 Hz
+  const [dt] = useState(1e-4); // 0.1 ms step
   const [isDark, setIsDark] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
   const [history, setHistory] = useState<{ components: SchComponent[]; wires: Wire[] }[]>([]);
   const [spaceDown, setSpaceDown] = useState(false);
   const panRef = useRef<{ startX: number; startY: number; tx: number; ty: number } | null>(null);
-  // Pre-seed counters to match the default circuit labels (V1, R1, C1, J1, GND×2)
-  const labelCounters = useRef<Record<string, number>>({ V: 1, R: 1, C: 1, J: 1, GND: 2 });
+  // Pre-seed counters to match the default circuit labels
+  const labelCounters = useRef<Record<string, number>>({ V: 1, D: 1, R: 1, C: 1, J: 2, GND: 3 });
 
   // Track dark mode
   useEffect(() => {
@@ -498,23 +507,19 @@ export default function CircuitBuilder() {
     return () => obs.disconnect();
   }, []);
 
-  // On mount: auto-run transient on the default circuit and add probes so
-  // the oscilloscope shows real waveforms immediately.
+  // On mount: auto-run transient on the default circuit so the oscilloscope
+  // shows real waveforms immediately. We probe the AC input node and the
+  // rectified output node to demonstrate the half-wave rectification + smoothing.
   useEffect(() => {
-    const dc = solveDC(DEFAULT_COMPS, DEFAULT_WIRES);
-    if (!dc.ok) return;
-    const nodeKeys = Object.keys(dc.nodeVoltages)
-      .filter(nk => nk !== 'GND')
-      .slice(0, 4);
+    const r = solveTransient(DEFAULT_COMPS, DEFAULT_WIRES, 0.05, 1e-4, []);
+    if (!r.ok || !r.nodeVoltages) return;
+    const allNodes = Object.keys(r.nodeVoltages).filter(nk => nk !== 'GND');
+    // Pick up to 2 nodes: prefer nodes connected to V1 and the output node
+    const nodeKeys = allNodes.slice(0, 2);
     if (nodeKeys.length === 0) return;
-    const initProbes: Probe[] = nodeKeys.map((nk, i) => ({
-      nodeKey: nk,
-      color: PROBE_COLORS[i % PROBE_COLORS.length],
-      label: nk,
-    }));
-    setProbes(initProbes);
-    const r = solveTransient(DEFAULT_COMPS, DEFAULT_WIRES, 0.003, 1e-5, nodeKeys);
-    setSimResults(r);
+    const r2 = solveTransient(DEFAULT_COMPS, DEFAULT_WIRES, 0.05, 1e-4, nodeKeys);
+    setProbes(nodeKeys.map((nk, i) => ({ nodeKey: nk, color: PROBE_COLORS[i], label: nk })));
+    setSimResults(r2);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-run DC whenever circuit changes (DC mode only)
@@ -944,7 +949,7 @@ export default function CircuitBuilder() {
         setComponents(prev => prev.filter(c => c.id !== selectedId));
         setSelectedId(null);
       }
-      if ((e.key === 'r' || e.key === 'R') && selectedId && !(e.target as HTMLElement).matches('input')) {
+      if ((e.key === 'e' || e.key === 'E') && selectedId && !(e.target as HTMLElement).matches('input')) {
         setComponents(prev => prev.map(c =>
           c.id === selectedId ? { ...c, rotation: (c.rotation + 90) % 360 } : c
         ));
@@ -1060,8 +1065,24 @@ export default function CircuitBuilder() {
           Clear
         </button>
 
-        <div style={{ marginLeft: 'auto', fontSize: '0.7rem', color: isDark ? '#6b6560' : '#9c9488' }}>
-          R=rotate · Del=delete · W=wire · Space+drag=pan · Scroll=pan · Ctrl+Scroll=zoom
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
+          {analysis === 'transient' && (
+            <button
+              onClick={() => setShowOsc(v => !v)}
+              title="Toggle oscilloscope overlay"
+              style={{
+                padding: '4px 12px', borderRadius: 6, fontSize: '0.72rem', fontWeight: 600,
+                cursor: 'pointer',
+                border: `1px solid ${showOsc ? '#10b981' : isDark ? '#3d3530' : '#e8e0d4'}`,
+                background: showOsc ? '#10b98118' : 'transparent',
+                color: showOsc ? '#10b981' : isDark ? '#9c9488' : '#5c544a',
+              }}>
+              ⬤ Oscilloscope
+            </button>
+          )}
+          <span style={{ fontSize: '0.7rem', color: isDark ? '#6b6560' : '#9c9488' }}>
+            E=rotate · Del=delete · W=wire · Space+drag=pan · Ctrl+Scroll=zoom
+          </span>
         </div>
       </div>
 
@@ -1120,6 +1141,56 @@ export default function CircuitBuilder() {
           onWheel={handleWheel}
         >
           <canvas ref={canvasRef} style={{ display: 'block', position: 'absolute', inset: 0 }} />
+
+          {/* ── Oscilloscope floating overlay ── */}
+          {analysis === 'transient' && showOsc && (
+            <div style={{
+              position: 'absolute', bottom: 12, left: '50%',
+              transform: 'translateX(-50%)',
+              width: 'min(720px, 92%)', height: 220,
+              background: isDark ? 'rgba(10,9,8,0.92)' : 'rgba(243,239,232,0.94)',
+              backdropFilter: 'blur(10px)',
+              border: `1px solid ${isDark ? '#2a2520' : '#d8d0c4'}`,
+              borderRadius: 10,
+              boxShadow: isDark ? '0 8px 40px rgba(0,0,0,0.7)' : '0 8px 32px rgba(26,22,18,0.18)',
+              display: 'flex', flexDirection: 'column',
+              overflow: 'hidden',
+              zIndex: 30,
+              pointerEvents: 'auto',
+            }}>
+              {/* Osc header */}
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '5px 10px', flexShrink: 0,
+                borderBottom: `1px solid ${isDark ? '#1e1c18' : '#e8e0d4'}`,
+                background: isDark ? '#130f0d' : '#ece8e0',
+              }}>
+                <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#10b981', textTransform: 'uppercase', letterSpacing: 1 }}>
+                  ⬤ Oscilloscope
+                </span>
+                <button onClick={addProbe} style={{ padding: '2px 8px', borderRadius: 4, fontSize: '0.65rem', cursor: 'pointer', border: `1px solid ${isDark ? '#3d3530' : '#e8e0d4'}`, background: 'transparent', color: isDark ? '#9c9488' : '#5c544a' }}>
+                  + Probe
+                </button>
+                <label style={{ fontSize: '0.65rem', color: isDark ? '#6b6560' : '#9c9488', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  t_max:
+                  <input type="number" value={tMax * 1000} min={0.1} max={1000} step={0.1}
+                    onChange={e => setTMax(parseFloat(e.target.value) / 1000)}
+                    style={{ width: 55, padding: '1px 4px', borderRadius: 4, fontSize: '0.65rem', border: `1px solid ${isDark ? '#3d3530' : '#e8e0d4'}`, background: isDark ? '#1a1612' : '#fff', color: isDark ? '#d4cec6' : '#1a1612' }} />
+                  ms
+                </label>
+                <button onClick={() => setProbes([])} style={{ padding: '2px 8px', borderRadius: 4, fontSize: '0.65rem', cursor: 'pointer', border: `1px solid ${isDark ? '#3d3530' : '#e8e0d4'}`, background: 'transparent', color: isDark ? '#9c9488' : '#5c544a' }}>
+                  Clear
+                </button>
+                <button onClick={() => setShowOsc(false)} style={{ marginLeft: 'auto', padding: '2px 8px', borderRadius: 4, fontSize: '0.65rem', cursor: 'pointer', border: 'none', background: 'transparent', color: isDark ? '#6b6560' : '#9c9488' }}>
+                  ✕
+                </button>
+              </div>
+              {/* Osc canvas */}
+              <div style={{ flex: 1, position: 'relative' }}>
+                <canvas ref={oscRef} style={{ display: 'block', position: 'absolute', inset: 0 }} />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Properties sidebar */}
@@ -1283,40 +1354,6 @@ export default function CircuitBuilder() {
         </div>
       </div>
 
-      {/* ── Oscilloscope panel ── */}
-      {analysis === 'transient' && (
-        <div style={{
-          height: 180, flexShrink: 0,
-          borderTop: `1px solid ${isDark ? '#2a2520' : '#e8e0d4'}`,
-          background: isDark ? '#0a0908' : '#f3efe8',
-          display: 'flex', flexDirection: 'column',
-        }}>
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 8, padding: '4px 10px',
-            borderBottom: `1px solid ${isDark ? '#1e1c18' : '#e8e0d4'}`, flexShrink: 0,
-          }}>
-            <span style={{ fontSize: '0.68rem', fontWeight: 700, color: isDark ? '#6b6560' : '#9c9488', textTransform: 'uppercase', letterSpacing: 1 }}>
-              Oscilloscope
-            </span>
-            <button onClick={addProbe} style={{ padding: '2px 8px', borderRadius: 4, fontSize: '0.68rem', cursor: 'pointer', border: `1px solid ${isDark ? '#3d3530' : '#e8e0d4'}`, background: 'transparent', color: isDark ? '#9c9488' : '#5c544a' }}>
-              + Probe
-            </button>
-            <label style={{ fontSize: '0.68rem', color: isDark ? '#6b6560' : '#9c9488' }}>
-              t_max:
-              <input type="number" value={tMax * 1000} min={0.1} max={1000} step={0.1}
-                onChange={e => setTMax(parseFloat(e.target.value) / 1000)}
-                style={{ width: 55, marginLeft: 4, padding: '1px 4px', borderRadius: 4, fontSize: '0.68rem', border: `1px solid ${isDark ? '#3d3530' : '#e8e0d4'}`, background: isDark ? '#1a1612' : '#fff', color: isDark ? '#d4cec6' : '#1a1612' }} />
-              ms
-            </label>
-            <button onClick={() => setProbes([])} style={{ padding: '2px 8px', borderRadius: 4, fontSize: '0.68rem', cursor: 'pointer', border: `1px solid ${isDark ? '#3d3530' : '#e8e0d4'}`, background: 'transparent', color: isDark ? '#9c9488' : '#5c544a' }}>
-              Clear
-            </button>
-          </div>
-          <div style={{ flex: 1, position: 'relative' }}>
-            <canvas ref={oscRef} style={{ display: 'block', position: 'absolute', inset: 0 }} />
-          </div>
-        </div>
-      )}
     </div>
   );
 }
