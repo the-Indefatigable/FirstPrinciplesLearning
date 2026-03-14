@@ -1,10 +1,11 @@
 import { useEffect, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useTheme } from '../../hooks/useTheme';
+import { useResizableSplit } from '../../hooks/useResizableSplit';
 
 interface ToolLayoutSplitProps {
-    /** Fixed sidebar width in pixels (default: 360) */
-    sidebarWidth?: number;
+    /** Initial sidebar ratio (0–1, default: 0.27 ≈ 360px on 1340px viewport) */
+    defaultRatio?: number;
     /** Top offset in pixels to sit below the navbar (default: 115) */
     navbarHeight?: number;
     /** [sidebar content, canvas/visualizer content] */
@@ -17,16 +18,17 @@ interface ToolLayoutSplitProps {
  * Architecture:
  * - Portals to `document.body` for full-viewport control
  * - Locks body scroll on mount, restores on unmount
- * - Split flex layout: fixed-width sidebar + fluid canvas area
+ * - Drag-to-resize split: sidebar + fluid canvas area
  * - Theme-aware colors matching the Gold Standard palette
  */
 export default function ToolLayoutSplit({
-    sidebarWidth = 360,
+    defaultRatio = 0.27,
     navbarHeight = 115,
     children,
 }: ToolLayoutSplitProps) {
     const { resolved: theme } = useTheme();
     const isDark = theme === 'dark';
+    const { ratio, containerRef, handleProps } = useResizableSplit(defaultRatio, { min: 0.15, max: 0.55 });
 
     // Lock body overflow while tool is mounted
     useEffect(() => {
@@ -40,7 +42,7 @@ export default function ToolLayoutSplit({
     const borderC = isDark ? '#27272a' : '#e4e4e7';
 
     const ui = (
-        <div style={{
+        <div ref={containerRef} style={{
             position: 'fixed',
             top: navbarHeight,
             left: 0, right: 0, bottom: 0,
@@ -51,10 +53,9 @@ export default function ToolLayoutSplit({
         }}>
             {/* ══ LEFT: Sidebar ══ */}
             <div style={{
-                width: sidebarWidth,
+                width: `${ratio * 100}%`,
                 flexShrink: 0,
                 background: sidebarBg,
-                borderRight: `2px solid ${borderC}`,
                 boxShadow: isDark
                     ? '4px 0 20px rgba(0,0,0,0.6)'
                     : '4px 0 15px rgba(0,0,0,0.05)',
@@ -67,6 +68,13 @@ export default function ToolLayoutSplit({
             }}>
                 {children[0]}
             </div>
+
+            {/* ══ DRAG HANDLE ══ */}
+            <div
+                className="resize-handle"
+                {...handleProps}
+                style={{ borderLeft: `1px solid ${borderC}`, borderRight: `1px solid ${borderC}` }}
+            />
 
             {/* ══ RIGHT: Canvas / Visualizer ══ */}
             <div style={{

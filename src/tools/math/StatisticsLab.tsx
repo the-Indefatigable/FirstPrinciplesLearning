@@ -725,11 +725,11 @@ function HypothesisSidebar({ s }: { s: ReturnType<typeof useHypothesis> }) {
 
             <div style={divider} />
             <div style={sectionLabel}>{testType === 'two-sample' ? 'Sample 1' : 'Sample Data'}</div>
-            <textarea value={raw1} onChange={e => setRaw1(e.target.value)} rows={2} placeholder="Space or comma separated…" style={textareaStyle} />
+            <textarea value={raw1} onChange={e => setRaw1(e.target.value)} rows={4} placeholder="Space or comma separated…" style={textareaStyle} />
 
             {testType === 'two-sample' && (<>
                 <div style={sectionLabel}>Sample 2</div>
-                <textarea value={raw2} onChange={e => setRaw2(e.target.value)} rows={2} placeholder="Space or comma separated…" style={textareaStyle} />
+                <textarea value={raw2} onChange={e => setRaw2(e.target.value)} rows={4} placeholder="Space or comma separated…" style={textareaStyle} />
             </>)}
 
             {testType === 'one-sample' && (
@@ -946,9 +946,9 @@ function RegressionSidebar({ s }: { s: ReturnType<typeof useRegression> }) {
     return (
         <>
             <div style={sectionLabel}>X values</div>
-            <textarea value={rawX} onChange={e => setRawX(e.target.value)} rows={2} placeholder="X values…" style={textareaStyle} />
+            <textarea value={rawX} onChange={e => setRawX(e.target.value)} rows={4} placeholder="X values…" style={textareaStyle} />
             <div style={sectionLabel}>Y values</div>
-            <textarea value={rawY} onChange={e => setRawY(e.target.value)} rows={2} placeholder="Y values…" style={textareaStyle} />
+            <textarea value={rawY} onChange={e => setRawY(e.target.value)} rows={4} placeholder="Y values…" style={textareaStyle} />
 
             {model && rawX.split(/[\s,;]+/).filter(Boolean).length !== rawY.split(/[\s,;]+/).filter(Boolean).length && (
                 <div style={{ fontSize: '0.72rem', color: amber }}>⚠ Using first {model.n} pairs</div>
@@ -1133,10 +1133,11 @@ const divider: React.CSSProperties = {
 };
 
 const textareaStyle: React.CSSProperties = {
-    width: '100%', padding: '7px 10px', borderRadius: 'var(--radius-sm)',
+    width: '100%', padding: '8px 10px', borderRadius: 'var(--radius-sm)',
     border: '1px solid var(--border-warm)', background: 'var(--bg-secondary)',
     color: 'var(--text-primary)', fontSize: '0.88rem', fontFamily: 'monospace',
-    resize: 'vertical', boxSizing: 'border-box',
+    resize: 'vertical', boxSizing: 'border-box', minHeight: '80px',
+    lineHeight: 1.6,
 };
 
 const checkLabel: React.CSSProperties = {
@@ -1206,7 +1207,7 @@ export default function StatisticsLab() {
     );
 
     return (
-        <ToolLayoutSplit sidebarWidth={300}>
+        <ToolLayoutSplit defaultRatio={0.24}>
             {[sidebar, canvas]}
         </ToolLayoutSplit>
     );
