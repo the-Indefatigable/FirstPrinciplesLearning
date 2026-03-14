@@ -349,6 +349,7 @@ export default function CircuitBuilder() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const oscRef    = useRef<HTMLCanvasElement>(null);
   const canvasDivRef = useRef<HTMLDivElement>(null);
+  const oscContainerRef = useRef<HTMLDivElement>(null);
 
   const [components, setComponents]   = useState<SchComponent[]>(DEFAULT_COMPS);
   const [wires, setWires]             = useState<Wire[]>(DEFAULT_WIRES);
@@ -523,18 +524,20 @@ export default function CircuitBuilder() {
 
   // ── Oscilloscope draw ──
   useEffect(() => {
+    if (!showOsc) return; // don't measure while panel is translated off-screen
     const canvas = oscRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     const par = canvas.parentElement;
     if (!par) return;
-    const rect = par.getBoundingClientRect();
+    // Use offsetWidth/offsetHeight (layout size, unaffected by CSS transform)
+    const W = par.offsetWidth || 440;
+    const H = par.offsetHeight || 200;
     const dpr = window.devicePixelRatio || 1;
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
     ctx.scale(dpr, dpr);
-    const W = rect.width, H = rect.height;
 
     ctx.fillStyle = isDark ? '#0a0908' : '#f3efe8';
     ctx.fillRect(0, 0, W, H);
@@ -580,7 +583,7 @@ export default function CircuitBuilder() {
       ctx.fillStyle = probe.color; ctx.font = 'bold 11px Sora, sans-serif'; ctx.textAlign = 'left';
       ctx.fillText(`${probe.label} (${probe.nodeKey})`, pad.l + 8 + li * 110, pad.t + 14);
     }
-  }, [simResults, probes, isDark]);
+  }, [simResults, probes, isDark, showOsc]);
 
   // ── Input helpers ──
   const screenToGrid = useCallback((sx: number, sy: number) => ({
@@ -716,6 +719,17 @@ export default function CircuitBuilder() {
     window.addEventListener('keyup', onKeyUp);
     return () => { window.removeEventListener('keydown', onKeyDown); window.removeEventListener('keyup', onKeyUp); };
   }, [selectedId, pushHistory, undo]);
+
+  // Close oscilloscope on outside click
+  useEffect(() => {
+    if (!showOsc) return;
+    const handler = (e: MouseEvent) => {
+      if (oscContainerRef.current && !oscContainerRef.current.contains(e.target as Node))
+        setShowOsc(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showOsc]);
 
   const runTransient = useCallback(() => {
     const nodeKeys = probes.map(p => p.nodeKey);
@@ -984,94 +998,102 @@ export default function CircuitBuilder() {
         E = rotate · Del = delete · Space+drag = pan · scroll = zoom
       </div>
 
-      {/* ── Oscilloscope hover widget (bottom-right) ── */}
+      {/* ── Oscilloscope ── */}
       {analysis === 'transient' && (
-        <div
-          style={{ position: 'absolute', bottom: 20, right: 20, zIndex: 20, display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}
-          onMouseEnter={() => setShowOsc(true)}
-          onMouseLeave={() => setShowOsc(false)}
-        >
-          {/* Slide-up panel */}
+        // Transparent full-canvas wrapper (pointer-events:none so circuit still works)
+        <div ref={oscContainerRef} style={{ position: 'absolute', inset: 0, zIndex: 20, pointerEvents: 'none' }}>
+
+          {/* Full-width drawer that slides up from the bottom */}
           <div style={{
-            width: 440,
-            height: 260,
+            position: 'absolute', bottom: 0, left: 0, right: 0,
+            height: 320,
             background: isDark ? '#060a07' : '#f8fdf9',
-            border: `1px solid ${isDark ? '#0d3320' : '#bbf7d0'}`,
-            borderRadius: '12px 12px 0 0',
+            borderTop: `1px solid ${isDark ? '#0d3320' : '#bbf7d0'}`,
             boxShadow: isDark
-              ? '0 -12px 40px rgba(0,255,136,0.06), 0 0 20px rgba(0,0,0,0.7)'
-              : '0 -8px 30px rgba(0,0,0,0.08)',
-            display: 'flex', flexDirection: 'column', overflow: 'hidden',
-            transform: `translateY(${showOsc ? '0' : '280px'})`,
-            transition: 'transform 0.28s cubic-bezier(0.16, 1, 0.3, 1)',
-            pointerEvents: showOsc ? 'auto' : 'none',
+              ? '0 -16px 48px rgba(0,200,100,0.07), 0 0 0 1px rgba(0,200,100,0.05)'
+              : '0 -8px 32px rgba(0,0,0,0.07)',
+            display: 'flex', flexDirection: 'column',
+            transform: showOsc ? 'translateY(0)' : 'translateY(320px)',
+            transition: 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+            pointerEvents: 'auto',
           }}>
-            {/* Osc toolbar */}
+            {/* Toolbar */}
             <div style={{
-              display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px',
+              display: 'flex', alignItems: 'center', gap: 12, padding: '10px 20px',
               borderBottom: `1px solid ${isDark ? '#0d2010' : '#d1fae5'}`,
-              background: isDark ? '#030705' : '#f0fdf4', flexShrink: 0,
+              background: isDark ? '#030705' : '#f0fdf4',
+              flexShrink: 0, flexWrap: 'wrap',
             }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#10b981', fontSize: '0.72rem', fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase', fontFamily: 'monospace' }}>
-                <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#10b981', display: 'inline-block', boxShadow: '0 0 6px #10b981' }} />
+              <span style={{ display: 'flex', alignItems: 'center', gap: 7, color: '#10b981', fontSize: '0.72rem', fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase', fontFamily: 'monospace', flexShrink: 0 }}>
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 6px #10b981', display: 'inline-block' }} />
                 Oscilloscope
               </span>
               <button onClick={addProbe} style={{
-                padding: '3px 9px', borderRadius: 5, fontSize: '0.7rem', cursor: 'pointer',
-                border: '1px solid #10b981', background: 'transparent', color: '#10b981', fontWeight: 600,
+                padding: '4px 12px', borderRadius: 6, fontSize: '0.72rem', cursor: 'pointer',
+                border: '1px solid #10b981', background: 'transparent', color: '#10b981', fontWeight: 600, flexShrink: 0,
               }}>+ Probe</button>
-              <label style={{ fontSize: '0.7rem', color: isDark ? '#6ee7b7' : '#065f46', display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'monospace' }}>
-                t:
+              <label style={{ fontSize: '0.72rem', color: isDark ? '#6ee7b7' : '#065f46', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'monospace', flexShrink: 0 }}>
+                t_max:
                 <input type="number" value={tMax * 1000} min={0.1} max={1000} step={0.1}
                   onChange={e => setTMax(parseFloat(e.target.value) / 1000)}
                   style={{
-                    width: 52, padding: '2px 6px', borderRadius: 5, fontSize: '0.7rem',
+                    width: 60, padding: '3px 8px', borderRadius: 6, fontSize: '0.72rem',
                     border: `1px solid ${isDark ? '#0d3320' : '#bbf7d0'}`,
                     background: isDark ? '#030705' : '#fff', color: isDark ? '#6ee7b7' : '#065f46',
                     fontFamily: 'monospace', outline: 'none',
                   }} />
                 ms
               </label>
-              <div style={{ marginLeft: 'auto', display: 'flex', gap: 5 }}>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                 {probes.map(p => (
                   <span key={p.nodeKey} style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px',
-                    borderRadius: 12, border: `1px solid ${p.color}40`, background: `${p.color}12`,
-                    fontSize: '0.68rem', fontFamily: 'monospace', color: p.color, fontWeight: 700,
+                    display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px',
+                    borderRadius: 14, border: `1px solid ${p.color}40`, background: `${p.color}12`,
+                    fontSize: '0.72rem', fontFamily: 'monospace', color: p.color, fontWeight: 700,
                   }}>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: p.color, display: 'inline-block' }} />
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: p.color, display: 'inline-block' }} />
                     {p.nodeKey}
                   </span>
                 ))}
                 {probes.length > 0 && (
                   <button onClick={() => setProbes([])} style={{
-                    padding: '2px 6px', borderRadius: 5, fontSize: '0.68rem', cursor: 'pointer',
-                    border: '1px solid rgba(239,68,68,0.4)', background: 'transparent', color: '#ef4444',
-                  }}>✕</button>
+                    padding: '3px 8px', borderRadius: 6, fontSize: '0.7rem', cursor: 'pointer',
+                    border: '1px solid rgba(239,68,68,0.4)', background: 'transparent', color: '#ef4444', flexShrink: 0,
+                  }}>Clear</button>
                 )}
               </div>
+              {/* Close */}
+              <button onClick={() => setShowOsc(false)} style={{
+                marginLeft: 'auto', padding: '4px 10px', borderRadius: 6, fontSize: '0.72rem', cursor: 'pointer',
+                border: `1px solid ${isDark ? '#27272a' : '#e4e4e7'}`, background: 'transparent',
+                color: isDark ? '#71717a' : '#a1a1aa', flexShrink: 0,
+              }}>✕</button>
             </div>
-            {/* Osc canvas */}
-            <div style={{ flex: 1, position: 'relative' }}>
+            {/* Canvas area */}
+            <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
               <canvas ref={oscRef} style={{ display: 'block', position: 'absolute', inset: 0 }} />
             </div>
           </div>
 
-          {/* Trigger pill */}
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 8, padding: '8px 18px',
-            background: showOsc
-              ? (isDark ? 'rgba(16,185,129,0.12)' : 'rgba(16,185,129,0.08)')
-              : (isDark ? 'rgba(9,9,11,0.9)' : 'rgba(255,255,255,0.92)'),
-            backdropFilter: 'blur(12px)',
-            border: `1px solid ${showOsc ? '#10b981' : border}`,
-            borderRadius: showOsc ? '0 0 10px 10px' : 10,
-            color: showOsc ? '#10b981' : textMid,
-            fontSize: '0.75rem', fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase',
-            cursor: 'default', userSelect: 'none', fontFamily: 'monospace',
-            boxShadow: showOsc ? 'none' : '0 2px 12px rgba(0,0,0,0.12)',
-            transition: 'all 0.28s',
-          }}>
+          {/* Floating pill trigger — always visible at bottom-right */}
+          <div
+            onClick={() => setShowOsc(v => !v)}
+            style={{
+              position: 'absolute',
+              bottom: showOsc ? 328 : 20,
+              right: 20,
+              display: 'flex', alignItems: 'center', gap: 8, padding: '8px 18px',
+              background: isDark ? 'rgba(6,10,7,0.92)' : 'rgba(255,255,255,0.92)',
+              backdropFilter: 'blur(12px)',
+              border: `1px solid ${showOsc ? '#10b981' : border}`,
+              borderRadius: 10,
+              color: showOsc ? '#10b981' : textMid,
+              fontSize: '0.72rem', fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase',
+              cursor: 'pointer', userSelect: 'none', fontFamily: 'monospace',
+              boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
+              transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+              pointerEvents: 'auto',
+            }}>
             <span style={{
               width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
               background: showOsc ? '#10b981' : (isDark ? '#52525b' : '#d4d4d8'),
@@ -1079,8 +1101,9 @@ export default function CircuitBuilder() {
               transition: 'all 0.2s',
             }} />
             Oscilloscope
-            <span style={{ fontSize: '0.6rem', opacity: 0.6, marginLeft: 2 }}>{showOsc ? '▲' : '▲'}</span>
+            <span style={{ fontSize: '0.58rem', opacity: 0.5, marginLeft: 2 }}>{showOsc ? '▼' : '▲'}</span>
           </div>
+
         </div>
       )}
     </div>
