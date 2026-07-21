@@ -3,10 +3,48 @@ import './BookingWidget.css';
 import {
     fetchAvailability, fetchTakenSlots, generateSlots, createBooking,
     parseLocalDate, toDateStr, formatTime, bookableDateWindow,
-    WEEKDAY_LABELS, DEFAULT_AVAILABILITY, type AvailabilityConfig,
+    WEEKDAY_LABELS, DEFAULT_AVAILABILITY, type AvailabilityConfig, type BookingMeta,
 } from '../lib/booking';
 
 type Step = 'subject' | 'date' | 'time' | 'details' | 'done';
+
+/** Classify where a visitor came from, from referrer + UTM. */
+function classifySource(referrer: string, utm: string | null): string {
+    if (utm) return utm.toLowerCase();
+    if (!referrer) return 'direct';
+    try {
+        const host = new URL(referrer).hostname.replace(/^www\./, '');
+        if (host.includes(location.hostname.replace(/^www\./, ''))) return 'internal';
+        const map: Record<string, string> = {
+            'google.': 'google', 'bing.': 'bing', 'duckduckgo': 'duckduckgo',
+            'facebook': 'facebook', 'instagram': 'instagram', 't.co': 'twitter',
+            'twitter': 'twitter', 'linkedin': 'linkedin', 'youtube': 'youtube',
+            'reddit': 'reddit', 'tiktok': 'tiktok', 'whatsapp': 'whatsapp',
+        };
+        for (const key in map) if (host.includes(key)) return map[key];
+        return host;
+    } catch { return 'direct'; }
+}
+
+/** Best-effort analytics metadata for a booking (source + coarse geo). */
+async function collectMeta(): Promise<BookingMeta> {
+    const meta: BookingMeta = {};
+    try {
+        const utm = new URLSearchParams(window.location.search).get('utm_source');
+        const ref = document.referrer || '';
+        meta.referrer = ref || 'direct';
+        meta.source = classifySource(ref, utm);
+        meta.tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        meta.locale = navigator.language;
+        meta.device = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ? 'mobile' : 'desktop';
+        const geo: { country?: string; region?: string; city?: string } =
+            await fetch('/api/geo').then(r => (r.ok ? r.json() : {})).catch(() => ({}));
+        if (geo.country) meta.country = geo.country;
+        if (geo.region) meta.region = geo.region;
+        if (geo.city) meta.city = geo.city;
+    } catch { /* best effort — never block a booking on analytics */ }
+    return meta;
+}
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'];
@@ -101,9 +139,10 @@ export default function BookingWidget() {
         if (!emailValid(email)) { setError('Please enter a valid email.'); return; }
         setSubmitting(true);
         try {
+            const meta = await collectMeta();
             await createBooking({
                 name, email, subject, date, time,
-                durationMin: cfg.slotMinutes, notes,
+                durationMin: cfg.slotMinutes, notes, ...meta,
             });
             // Fire off confirmation emails (non-blocking — booking is already saved).
             void fetch('/api/send-booking', {

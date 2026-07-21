@@ -1,0 +1,89 @@
+/* ── Booking Analytics dashboard ────────────────────────────────── */
+.ba { display: flex; flex-direction: column; gap: 18px; }
+
+/* KPI stat cards */
+.ba-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+}
+.ba-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 18px 20px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+}
+.ba-stat--accent {
+    background: linear-gradient(135deg, var(--amber), var(--amber-light));
+    border-color: transparent;
+}
+.ba-stat-value { font-size: 1.9rem; font-weight: 800; color: var(--text-primary); line-height: 1.1; font-family: var(--font-serif); }
+.ba-stat--accent .ba-stat-value { color: #fff; }
+.ba-stat-label { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-dim); }
+.ba-stat--accent .ba-stat-label { color: rgba(255,255,255,0.9); }
+.ba-stat-sub { font-size: 0.72rem; color: var(--text-light); margin-top: 2px; }
+.ba-stat--accent .ba-stat-sub { color: rgba(255,255,255,0.8); }
+
+/* Panels */
+.ba-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: 18px 20px 20px;
+}
+.ba-panel--wide { grid-column: 1 / -1; }
+.ba-panel-title {
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: var(--text-dim);
+    margin: 0 0 16px;
+}
+.ba-panel-title span { color: var(--text-light); font-weight: 500; text-transform: none; letter-spacing: 0; }
+
+.ba-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+}
+
+/* Bar list */
+.ba-bars { display: flex; flex-direction: column; gap: 10px; }
+.ba-bar-row { display: grid; grid-template-columns: 130px 1fr 32px; align-items: center; gap: 10px; }
+.ba-bar-label { font-size: 0.84rem; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ba-bar-track { background: var(--bg-secondary); border-radius: 6px; height: 20px; overflow: hidden; }
+.ba-bar-fill { height: 100%; border-radius: 6px; min-width: 4px; transition: width 0.4s ease; }
+.ba-bar-count { font-size: 0.84rem; font-weight: 700; color: var(--text-primary); text-align: right; }
+
+/* Column chart (activity over time) */
+.ba-cols { display: flex; align-items: flex-end; gap: 8px; height: 160px; padding-top: 10px; }
+.ba-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; height: 100%; }
+.ba-col-bar-wrap { flex: 1; width: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; }
+.ba-col-value { font-size: 0.72rem; font-weight: 700; color: var(--text-dim); }
+.ba-col-bar {
+    width: 60%;
+    max-width: 42px;
+    min-height: 2px;
+    background: linear-gradient(180deg, var(--amber-light), var(--amber));
+    border-radius: 6px 6px 0 0;
+    transition: height 0.4s ease;
+}
+.ba-col-label { font-size: 0.7rem; color: var(--text-light); }
+
+/* Sub-lists (cities) */
+.ba-sublist { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border-light); }
+.ba-sublist-title { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-light); display: block; margin-bottom: 8px; }
+.ba-sublist-row { display: flex; justify-content: space-between; font-size: 0.84rem; color: var(--text-secondary); padding: 3px 0; }
+.ba-sublist-row b { color: var(--text-primary); }
+
+.ba-empty { color: var(--text-dim); font-size: 0.85rem; padding: 8px 0; margin: 0; }
+
+@media (max-width: 720px) {
+    .ba-grid { grid-template-columns: 1fr; }
+    .ba-bar-row { grid-template-columns: 100px 1fr 28px; }
+    .ba-cols { height: 130px; }
+}

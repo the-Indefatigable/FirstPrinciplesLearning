@@ -13,6 +13,7 @@ import {
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import SEOHead from '../components/SEOHead';
+import BookingAnalytics from '../components/BookingAnalytics';
 
 interface Review { id: string; name: string; grade: string; stars: number; text: string; }
 
@@ -139,10 +140,10 @@ export default function Admin() {
     return <AdminDashboard />;
 }
 
-type Tab = 'booking' | 'settings' | 'reviews' | 'blog';
+type Tab = 'overview' | 'booking' | 'settings' | 'reviews' | 'blog';
 
 function AdminDashboard() {
-    const [activeTab, setActiveTab] = useState<Tab>('booking');
+    const [activeTab, setActiveTab] = useState<Tab>('overview');
     const [toast, setToast] = useState('');
     const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
 
@@ -328,7 +329,7 @@ function AdminDashboard() {
                         <span>Admin</span>
                     </div>
                     <nav className="admin-sidebar-nav">
-                        {([['booking', '📅', 'Bookings'], ['blog', '✍', 'Blog'], ['reviews', '⭐', 'Reviews'], ['settings', '⚙', 'Settings']] as [Tab, string, string][]).map(([key, icon, label]) => (
+                        {([['overview', '📊', 'Overview'], ['booking', '📅', 'Bookings'], ['blog', '✍', 'Blog'], ['reviews', '⭐', 'Reviews'], ['settings', '⚙', 'Settings']] as [Tab, string, string][]).map(([key, icon, label]) => (
                             <button key={key} className={`admin-sidebar-btn ${activeTab === key ? 'active' : ''}`}
                                 onClick={() => setActiveTab(key)}>
                                 <span className="admin-sidebar-icon">{icon}</span>{label}
@@ -341,6 +342,22 @@ function AdminDashboard() {
                 {/* ── Main area ── */}
                 <div className="admin-main">
                     {toast && <div className="admin-toast">{toast}</div>}
+
+                    {/* ═══════════ OVERVIEW TAB ═══════════ */}
+                    {activeTab === 'overview' && (
+                        <section className="admin-content">
+                            <div className="admin-page-header">
+                                <div>
+                                    <h1>Overview</h1>
+                                    <p className="admin-subtitle">Booking metrics at a glance</p>
+                                </div>
+                                <button className="admin-btn-ghost" onClick={loadBooking}>↻ Refresh</button>
+                            </div>
+                            {loadingB ? <div className="admin-loading">Loading metrics…</div> : (
+                                <BookingAnalytics bookings={bookings} />
+                            )}
+                        </section>
+                    )}
 
                     {/* ═══════════ BOOKING TAB ═══════════ */}
                     {activeTab === 'booking' && (

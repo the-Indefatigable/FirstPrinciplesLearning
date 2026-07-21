@@ -35,7 +35,19 @@ export interface AvailabilityConfig {
     days: DayAvail[];
 }
 
-export interface Booking {
+/** Optional analytics metadata captured at booking time. */
+export interface BookingMeta {
+    source?: string;     // 'google' | 'direct' | 'instagram' | utm_source | referrer host
+    referrer?: string;   // raw document.referrer or 'direct'
+    country?: string;    // ISO country code from Vercel edge geo
+    region?: string;
+    city?: string;
+    tz?: string;         // visitor's browser timezone
+    locale?: string;     // navigator.language
+    device?: string;     // 'mobile' | 'desktop'
+}
+
+export interface Booking extends BookingMeta {
     id?: string;
     name: string;
     email: string;
@@ -205,7 +217,8 @@ export async function createBooking(
         throw new Error('SLOT_TAKEN');
     }
     await reserveSlot(b.date, b.time);
-    await addDoc(collection(db, 'bookings'), {
+
+    const doc: Record<string, unknown> = {
         name: b.name.trim(),
         email: b.email.trim(),
         subject: b.subject,
@@ -215,7 +228,14 @@ export async function createBooking(
         notes: b.notes.trim(),
         status: 'pending' as BookingStatus,
         createdAt: serverTimestamp(),
-    });
+    };
+    // Attach analytics metadata (skip empty values — Firestore rejects undefined).
+    const metaKeys: (keyof BookingMeta)[] = ['source', 'referrer', 'country', 'region', 'city', 'tz', 'locale', 'device'];
+    for (const k of metaKeys) {
+        const v = b[k];
+        if (v) doc[k] = v;
+    }
+    await addDoc(collection(db, 'bookings'), doc);
 }
 
 export async function fetchAllBookings(): Promise<Booking[]> {
