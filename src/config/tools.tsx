@@ -64,6 +64,7 @@ export const toolLoaders: Record<string, () => Promise<{ default: ComponentType 
   'memory-allocator': () => import('../tools/cs/MemoryAllocator'),
   'turing-machine': () => import('../tools/cs/TuringMachine'),
   'statistics-lab': () => import('../tools/math/StatisticsLab'),
+  'blackbody-cavity': () => import('../tools/physics/BlackbodyCavity'),
 
 };
 
@@ -1100,6 +1101,21 @@ export const allTools: ToolMeta[] = [
         <polygon points="38,44 35,50 41,50" fill="#d97706" />
         <text x="38" y="58" textAnchor="middle" fontSize="6" fill="#d97706" fontFamily="monospace">q1</text>
         <text x="40" y="22" textAnchor="middle" fontSize="6" fill="#9c9488" fontFamily="monospace">Tape</text>
+      </svg>
+    ),
+  },
+  {
+    slug: 'blackbody-cavity', name: 'Blackbody Cavity', tag: 'Quantum / Thermal',
+    description: "See what Planck saw: cavity standing-wave modes, the UV catastrophe, and how quantizing energy in lumps of hf tames the f² growth and produces the real blackbody spectrum.",
+    category: 'physics',
+    gradient: 'linear-gradient(145deg, #1e1b4b 0%, #4c1d95 55%, #f59e0b 100%)',
+    Preview: () => (
+      <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+        <rect x="10" y="14" width="60" height="36" rx="2" fill="none" stroke="#f59e0b" strokeWidth="1.5" />
+        <path d="M10 32 Q20 20 30 32 T50 32 T70 32" stroke="#ef4444" strokeWidth="1.2" fill="none" opacity="0.75" />
+        <path d="M10 40 Q17 28 24 40 T38 40 T52 40 T66 40 T70 40" stroke="#3b82f6" strokeWidth="1.2" fill="none" opacity="0.75" />
+        <path d="M8 70 Q20 68 28 56 Q36 42 44 52 Q54 64 72 70" stroke="#22c55e" strokeWidth="2" fill="none" />
+        <text x="40" y="78" textAnchor="middle" fontSize="6" fill="#22c55e" fontFamily="monospace">u(f,T)</text>
       </svg>
     ),
   },
