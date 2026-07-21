@@ -24,7 +24,7 @@ export default function HowItWorks() {
         <section className="section how-section" id="how-it-works">
             <div className="how-header">
                 <div className="section-eyebrow">
-                    <span className="eyebrow-num">03</span>
+                    <span className="eyebrow-num">04</span>
                     <span className="eyebrow-line" />
                     <span>How It Works</span>
                 </div>

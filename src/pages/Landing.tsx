@@ -3,6 +3,7 @@ import SEOHead from '../components/SEOHead';
 import Hero from '../components/Hero';
 import Philosophy from '../components/Philosophy';
 import Subjects from '../components/Subjects';
+import ToolShowcase from '../components/ToolShowcase';
 import HowItWorks from '../components/HowItWorks';
 import Pricing from '../components/Pricing';
 import FinalCTA from '../components/FinalCTA';
@@ -22,6 +23,7 @@ export default function Landing() {
             <Hero />
             <Philosophy />
             <Subjects />
+            <ToolShowcase />
             <HowItWorks />
             <Suspense fallback={<div style={{ height: 200 }} />}>
                 <Testimonials />

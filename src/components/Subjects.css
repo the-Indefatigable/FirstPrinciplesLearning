@@ -102,6 +102,17 @@
     gap: 8px;
 }
 
+.subject-tools-link {
+    display: inline-block;
+    margin-top: 18px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--amber);
+    text-decoration: none;
+    transition: transform 0.15s ease;
+}
+.subject-tools-link:hover { transform: translateX(3px); }
+
 .subject-topic {
     padding: 5px 14px;
     border-radius: 100px;

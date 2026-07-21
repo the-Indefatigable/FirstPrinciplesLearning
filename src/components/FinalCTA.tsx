@@ -1,22 +1,23 @@
 import './FinalCTA.css';
-import { useSettings } from '../hooks/SettingsProvider';
-import CalendlyEmbed from './CalendlyEmbed';
+import { lazy, Suspense } from 'react';
+
+// Lazy-load the booking widget so Firestore stays out of the initial JS bundle.
+const BookingWidget = lazy(() => import('./BookingWidget'));
 
 export default function FinalCTA() {
-    const { bookingLink } = useSettings();
-
     return (
         <section className="final-cta" id="booking">
-            <div className="final-cta-card">
-                <h2>Ready to <em>excel?</em></h2>
-                <p>
-                    Join students who stopped struggling and started understanding.
-                    Book a free consultation — no commitment, no pressure.
-                </p>
-                <a className="btn-cta-light" href={bookingLink}>
-                    Book Your Free Session →
-                </a>
-                <CalendlyEmbed url={bookingLink} />
+            <div className="final-cta-inner">
+                <div className="final-cta-head">
+                    <h2>Ready to <em>excel?</em></h2>
+                    <p>
+                        Book your free consultation below — pick a subject, choose a time
+                        that works, and we'll take it from there. No commitment, no pressure.
+                    </p>
+                </div>
+                <Suspense fallback={<div className="final-cta-loading">Loading booking…</div>}>
+                    <BookingWidget />
+                </Suspense>
             </div>
         </section>
     );

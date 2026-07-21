@@ -5,6 +5,11 @@ import { db, auth } from '../lib/firebase';
 import type { SiteSettings } from '../lib/siteSettings';
 import { fetchSettings, saveSettings } from '../lib/siteSettings';
 import { fetchAllPosts, savePost, deletePost as deleteBlogPost, slugify, readingTime, type BlogPost } from '../lib/blog';
+import {
+    fetchAvailability, saveAvailability, fetchAllBookings, updateBookingStatus,
+    deleteBooking, formatTime, parseLocalDate, WEEKDAY_LABELS,
+    type AvailabilityConfig, type Booking, type BookingStatus,
+} from '../lib/booking';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import SEOHead from '../components/SEOHead';
@@ -134,10 +139,10 @@ export default function Admin() {
     return <AdminDashboard />;
 }
 
-type Tab = 'settings' | 'reviews' | 'blog';
+type Tab = 'booking' | 'settings' | 'reviews' | 'blog';
 
 function AdminDashboard() {
-    const [activeTab, setActiveTab] = useState<Tab>('blog');
+    const [activeTab, setActiveTab] = useState<Tab>('booking');
     const [toast, setToast] = useState('');
     const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
 
@@ -171,6 +176,58 @@ function AdminDashboard() {
         try { await saveSettings(settings); showToast('Settings saved ✓'); }
         catch (err) { showToast('Save failed'); console.error(err); }
         setSaving(false);
+    };
+
+    /* ── Booking (availability + bookings) ── */
+    const [avail, setAvail] = useState<AvailabilityConfig | null>(null);
+    const [loadingA, setLoadingA] = useState(true);
+    const [savingA, setSavingA] = useState(false);
+    const [bookings, setBookings] = useState<Booking[]>([]);
+    const [loadingB, setLoadingB] = useState(true);
+    const [subjectsText, setSubjectsText] = useState('');
+
+    const loadBooking = async () => {
+        setLoadingA(true); setLoadingB(true);
+        try {
+            const [a, b] = await Promise.all([fetchAvailability(), fetchAllBookings()]);
+            setAvail(a);
+            setSubjectsText(a.subjects.join(', '));
+            setBookings(b);
+        } catch (err) { console.error('booking load failed', err); }
+        setLoadingA(false); setLoadingB(false);
+    };
+
+    const handleSaveAvail = async () => {
+        if (!avail) return;
+        setSavingA(true);
+        try {
+            const subjects = subjectsText.split(',').map(s => s.trim()).filter(Boolean);
+            const next = { ...avail, subjects: subjects.length ? subjects : avail.subjects };
+            await saveAvailability(next);
+            setAvail(next);
+            showToast('Availability saved ✓');
+        } catch (err) { showToast('Save failed'); console.error(err); }
+        setSavingA(false);
+    };
+
+    const setDay = (i: number, patch: Partial<AvailabilityConfig['days'][number]>) => {
+        setAvail(a => {
+            if (!a) return a;
+            const days = a.days.map((d, idx) => idx === i ? { ...d, ...patch } : d);
+            return { ...a, days };
+        });
+    };
+
+    const changeStatus = async (b: Booking, status: BookingStatus) => {
+        if (!b.id) return;
+        await updateBookingStatus(b.id, status);
+        setBookings(prev => prev.map(x => x.id === b.id ? { ...x, status } : x));
+    };
+
+    const removeBooking = async (b: Booking) => {
+        if (!confirm(`Delete booking for ${b.name}? This frees the slot.`)) return;
+        await deleteBooking(b);
+        setBookings(prev => prev.filter(x => x.id !== b.id));
     };
 
     /* ── Blog ── */
@@ -248,7 +305,7 @@ function AdminDashboard() {
 
     const logout = () => { auth.signOut().then(() => window.location.reload()); };
 
-    useEffect(() => { fetchReviews(); loadSettings(); loadPosts(); }, []);
+    useEffect(() => { fetchReviews(); loadSettings(); loadPosts(); loadBooking(); }, []);
 
     const renderStars = (n: number) => '★'.repeat(n) + '☆'.repeat(5 - n);
 
@@ -271,7 +328,7 @@ function AdminDashboard() {
                         <span>Admin</span>
                     </div>
                     <nav className="admin-sidebar-nav">
-                        {([['blog', '✍', 'Blog'], ['reviews', '⭐', 'Reviews'], ['settings', '⚙', 'Settings']] as [Tab, string, string][]).map(([key, icon, label]) => (
+                        {([['booking', '📅', 'Bookings'], ['blog', '✍', 'Blog'], ['reviews', '⭐', 'Reviews'], ['settings', '⚙', 'Settings']] as [Tab, string, string][]).map(([key, icon, label]) => (
                             <button key={key} className={`admin-sidebar-btn ${activeTab === key ? 'active' : ''}`}
                                 onClick={() => setActiveTab(key)}>
                                 <span className="admin-sidebar-icon">{icon}</span>{label}
@@ -284,6 +341,129 @@ function AdminDashboard() {
                 {/* ── Main area ── */}
                 <div className="admin-main">
                     {toast && <div className="admin-toast">{toast}</div>}
+
+                    {/* ═══════════ BOOKING TAB ═══════════ */}
+                    {activeTab === 'booking' && (
+                        <section className="admin-content">
+                            <div className="admin-page-header">
+                                <div>
+                                    <h1>Bookings</h1>
+                                    <p className="admin-subtitle">
+                                        {bookings.filter(b => b.status !== 'cancelled').length} active ·
+                                        {' '}{bookings.filter(b => b.status === 'pending').length} awaiting confirmation
+                                    </p>
+                                </div>
+                                <button className="admin-btn-ghost" onClick={loadBooking}>↻ Refresh</button>
+                            </div>
+
+                            {/* Bookings list */}
+                            {loadingB ? <div className="admin-loading">Loading…</div> : bookings.length === 0 ? (
+                                <div className="admin-empty">
+                                    <span className="admin-empty-icon">📅</span>
+                                    <p>No bookings yet. They'll appear here the moment a student books.</p>
+                                </div>
+                            ) : (
+                                <div className="admin-post-list" style={{ marginBottom: 36 }}>
+                                    {bookings.map(b => {
+                                        const isPast = b.date < new Date().toISOString().slice(0, 10);
+                                        return (
+                                            <div className={`admin-post-row bk-row ${isPast ? 'bk-past' : ''}`} key={b.id}>
+                                                <div className="bk-when">
+                                                    <span className="bk-date">{parseLocalDate(b.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+                                                    <span className="bk-time">{formatTime(b.time)}</span>
+                                                </div>
+                                                <div className="admin-post-info">
+                                                    <div className="admin-post-title-row">
+                                                        <strong>{b.name}</strong>
+                                                        <span className="admin-tag-pill">{b.subject}</span>
+                                                        <span className={`bk-status bk-${b.status}`}>{b.status}</span>
+                                                    </div>
+                                                    <div className="admin-post-meta">
+                                                        <a href={`mailto:${b.email}`} className="bk-email">{b.email}</a>
+                                                        <span>·</span>
+                                                        <span>{b.durationMin} min</span>
+                                                    </div>
+                                                    {b.notes && <p className="bk-notes">"{b.notes}"</p>}
+                                                </div>
+                                                <div className="admin-post-actions">
+                                                    <select className="bk-status-select" value={b.status}
+                                                        onChange={e => changeStatus(b, e.target.value as BookingStatus)}>
+                                                        <option value="pending">Pending</option>
+                                                        <option value="confirmed">Confirmed</option>
+                                                        <option value="done">Done</option>
+                                                        <option value="cancelled">Cancelled</option>
+                                                    </select>
+                                                    <button className="admin-btn-danger" onClick={() => removeBooking(b)}>Delete</button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+
+                            {/* Availability editor */}
+                            <div className="admin-page-header"><h1 style={{ fontSize: '1.3rem' }}>Availability</h1></div>
+                            <div className="admin-card">
+                                {loadingA || !avail ? <div className="admin-loading">Loading…</div> : (
+                                    <div className="admin-form-stack">
+                                        <div className="admin-meta-row">
+                                            <div className="admin-field compact">
+                                                <label>Session length (min)</label>
+                                                <input type="number" min={15} step={15} value={avail.slotMinutes}
+                                                    onChange={e => setAvail(a => a ? { ...a, slotMinutes: Number(e.target.value) || 60 } : a)} />
+                                            </div>
+                                            <div className="admin-field compact">
+                                                <label>Min notice (hrs)</label>
+                                                <input type="number" min={0} value={avail.leadTimeHours}
+                                                    onChange={e => setAvail(a => a ? { ...a, leadTimeHours: Number(e.target.value) || 0 } : a)} />
+                                            </div>
+                                            <div className="admin-field compact">
+                                                <label>Bookable ahead (days)</label>
+                                                <input type="number" min={1} value={avail.horizonDays}
+                                                    onChange={e => setAvail(a => a ? { ...a, horizonDays: Number(e.target.value) || 30 } : a)} />
+                                            </div>
+                                            <div className="admin-field compact">
+                                                <label>Timezone label</label>
+                                                <input value={avail.timezone}
+                                                    onChange={e => setAvail(a => a ? { ...a, timezone: e.target.value } : a)} />
+                                            </div>
+                                        </div>
+
+                                        <div className="admin-field">
+                                            <label>Subjects (comma-separated)</label>
+                                            <input value={subjectsText} onChange={e => setSubjectsText(e.target.value)}
+                                                placeholder="Mathematics, Physics, Computer Science" />
+                                        </div>
+
+                                        <div className="admin-field">
+                                            <label>Weekly hours</label>
+                                            <div className="bk-week">
+                                                {avail.days.map((d, i) => (
+                                                    <div key={i} className={`bk-day ${d.enabled ? 'on' : ''}`}>
+                                                        <label className="bk-day-toggle">
+                                                            <input type="checkbox" checked={d.enabled}
+                                                                onChange={e => setDay(i, { enabled: e.target.checked })} />
+                                                            <span>{WEEKDAY_LABELS[i]}</span>
+                                                        </label>
+                                                        <input type="time" value={d.start} disabled={!d.enabled}
+                                                            onChange={e => setDay(i, { start: e.target.value })} />
+                                                        <span className="bk-day-dash">–</span>
+                                                        <input type="time" value={d.end} disabled={!d.enabled}
+                                                            onChange={e => setDay(i, { end: e.target.value })} />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <button className="admin-btn-primary" onClick={handleSaveAvail} disabled={savingA}
+                                            style={{ alignSelf: 'flex-start' }}>
+                                            {savingA ? 'Saving…' : '💾 Save Availability'}
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        </section>
+                    )}
 
                     {/* ═══════════ BLOG TAB ═══════════ */}
                     {activeTab === 'blog' && (
@@ -421,13 +601,6 @@ function AdminDashboard() {
                             <div className="admin-card">
                                 {loadingS ? <div className="admin-loading">Loading…</div> : (
                                     <div className="admin-form-stack">
-                                        <div className="admin-field">
-                                            <label>Booking Link</label>
-                                            <input value={settings.bookingLink}
-                                                onChange={e => setSettings(s => ({ ...s, bookingLink: e.target.value }))}
-                                                placeholder="https://calendly.com/... or mailto:you@email.com" />
-                                            <span className="admin-hint">Destination for all "Book" buttons.</span>
-                                        </div>
                                         <div className="admin-field">
                                             <label>Hero Badge Text</label>
                                             <input value={settings.heroBadge}
@@ -805,6 +978,59 @@ const adminCSS = `
     flex: 1; padding: 20px; overflow-y: auto;
     background: var(--bg-primary);
 }
+
+/* ── Booking tab ── */
+.bk-row { align-items: flex-start; }
+.bk-past { opacity: 0.55; }
+.bk-when {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; flex-shrink: 0;
+    width: 62px; padding: 8px 4px;
+    background: var(--amber-glow); border-radius: var(--radius-sm);
+    color: var(--amber);
+}
+.bk-date { font-weight: 700; font-size: 0.82rem; }
+.bk-time { font-size: 0.7rem; color: var(--text-secondary); margin-top: 2px; }
+.bk-email { color: var(--text-secondary); text-decoration: none; }
+.bk-email:hover { color: var(--amber); text-decoration: underline; }
+.bk-notes {
+    margin: 6px 0 0; font-size: 0.82rem; font-style: italic;
+    color: var(--text-secondary); line-height: 1.5;
+}
+.bk-status {
+    padding: 2px 9px; border-radius: 20px; font-size: 0.66rem;
+    font-weight: 700; text-transform: capitalize; letter-spacing: 0.3px;
+}
+.bk-pending { background: rgba(217,119,6,0.15); color: var(--amber); }
+.bk-confirmed { background: rgba(107,143,113,0.18); color: var(--sage); }
+.bk-done { background: var(--bg-secondary); color: var(--text-dim); }
+.bk-cancelled { background: rgba(239,68,68,0.12); color: #dc2626; }
+.bk-status-select {
+    padding: 7px 10px; border: 1px solid var(--border-warm);
+    background: var(--bg-primary); color: var(--text-primary);
+    border-radius: var(--radius-sm); font-family: inherit;
+    font-size: 0.8rem; cursor: pointer;
+}
+.bk-week { display: flex; flex-direction: column; gap: 8px; }
+.bk-day {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 12px; border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm); background: var(--bg-primary);
+}
+.bk-day.on { border-color: var(--border-accent); }
+.bk-day-toggle {
+    display: flex; align-items: center; gap: 8px;
+    width: 90px; flex-shrink: 0; cursor: pointer;
+    font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);
+}
+.bk-day.on .bk-day-toggle { color: var(--text-primary); }
+.bk-day input[type="time"] {
+    padding: 6px 10px; border: 1px solid var(--border-warm);
+    background: var(--bg-secondary); color: var(--text-primary);
+    border-radius: var(--radius-sm); font-family: inherit; font-size: 0.82rem;
+}
+.bk-day input[type="time"]:disabled { opacity: 0.4; }
+.bk-day-dash { color: var(--text-dim); }
 
 /* ── Responsive ── */
 @media (max-width: 900px) {

@@ -1,0 +1,49 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Config: site settings + booking availability ──
+    // Public read (the site needs these); only a signed-in admin can change them.
+    match /config/{doc} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // ── Blog posts ──
+    // Public read (published state is filtered client-side); admin writes.
+    match /posts/{id} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // ── Reviews / testimonials ──
+    // Public read + public submit; only admin can edit or delete.
+    match /reviews/{id} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if request.auth != null;
+    }
+
+    // ── Newsletter signups ──
+    // Public submit; only admin can read or manage.
+    match /newsletter/{id} {
+      allow create: if true;
+      allow read, update, delete: if request.auth != null;
+    }
+
+    // ── Booking slot ledger (contains NO personal data) ──
+    // Public read + reserve so the widget can show open times and lock them.
+    match /slots/{date} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // ── Bookings (name / email / notes) ──
+    // Anyone can create a booking; only the admin can read or manage them.
+    // Never queried on the public path, so student contact info is never exposed.
+    match /bookings/{id} {
+      allow create: if true;
+      allow read, update, delete: if request.auth != null;
+    }
+  }
+}

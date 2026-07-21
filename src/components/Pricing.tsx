@@ -1,14 +1,11 @@
 import './Pricing.css';
-import { useSettings } from '../hooks/SettingsProvider';
 
 export default function Pricing() {
-    const { bookingLink } = useSettings();
-
     return (
         <section className="section pricing-section" id="pricing">
             <div className="pricing-header">
                 <div className="section-eyebrow">
-                    <span className="eyebrow-num">05</span>
+                    <span className="eyebrow-num">06</span>
                     <span className="eyebrow-line" />
                     <span>Pricing</span>
                 </div>
@@ -39,7 +36,7 @@ export default function Pricing() {
                             </li>
                         ))}
                     </ul>
-                    <a className="btn-secondary" href={bookingLink}>Book Free Call</a>
+                    <a className="btn-secondary" href="#booking">Book Free Call</a>
                 </div>
 
                 {/* Regular Sessions */}
@@ -67,7 +64,7 @@ export default function Pricing() {
                             </li>
                         ))}
                     </ul>
-                    <a className="btn-primary" href={bookingLink}>Start Learning →</a>
+                    <a className="btn-primary" href="#booking">Start Learning →</a>
                 </div>
             </div>
         </section>

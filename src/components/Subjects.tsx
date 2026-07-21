@@ -1,4 +1,6 @@
 import './Subjects.css';
+import { Link } from 'react-router-dom';
+import { allTools } from '../config/tools';
 
 const subjects = [
     {
@@ -8,6 +10,7 @@ const subjects = [
         description: 'From algebra to calculus, I make abstract math feel intuitive. Build rock-solid foundations that prepare you for any exam.',
         topics: ['Algebra', 'Calculus', 'Linear Algebra', 'Statistics', 'Discrete Math'],
         className: 'subject-card--math',
+        path: '/math',
     },
     {
         id: 'physics',
@@ -16,6 +19,7 @@ const subjects = [
         description: 'Classical mechanics to electromagnetism. Learn to see the world through equations and understand why things move the way they do.',
         topics: ['Mechanics', 'Electromagnetism', 'Waves & Optics', 'Thermodynamics', 'Circuits'],
         className: 'subject-card--physics',
+        path: '/physics',
     },
     {
         id: 'cs',
@@ -24,10 +28,13 @@ const subjects = [
         description: 'Algorithms, data structures, and programming fundamentals. Write code that works, and understand why it works.',
         topics: ['Python', 'Java', 'Data Structures', 'Algorithms', 'OOP'],
         className: 'subject-card--cs',
+        path: '/cs',
     },
 ];
 
 export default function Subjects() {
+    const toolCount = (id: string) => allTools.filter(t => t.category === id).length;
+
     return (
         <section className="section" id="subjects">
             <div className="subjects-header">
@@ -51,6 +58,9 @@ export default function Subjects() {
                                 <span className="subject-topic" key={t}>{t}</span>
                             ))}
                         </div>
+                        <Link to={s.path} className="subject-tools-link">
+                            {toolCount(s.id)} interactive tools →
+                        </Link>
                     </div>
                 ))}
             </div>

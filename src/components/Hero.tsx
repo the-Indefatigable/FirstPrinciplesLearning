@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useSettings } from '../hooks/SettingsProvider';
 
 export default function Hero() {
-    const { bookingLink, heroBadge, heroCtaText } = useSettings();
+    const { heroBadge, heroCtaText } = useSettings();
 
     return (
         <section className="hero" id="top">
@@ -31,7 +31,7 @@ export default function Hero() {
                 </p>
 
                 <div className="hero-cta-group">
-                    <a className="btn-primary" href={bookingLink}>
+                    <a className="btn-primary" href="#booking">
                         {heroCtaText}
                     </a>
                     <a className="btn-secondary" href="#approach">

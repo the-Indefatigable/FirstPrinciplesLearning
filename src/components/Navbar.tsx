@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import ThemeToggle from './ThemeToggle';
-import { useSettings } from '../hooks/SettingsProvider';
 import { allTools, type ToolMeta } from '../config/tools';
 import './Navbar.css';
 
@@ -16,7 +15,6 @@ export default function Navbar({ onOpenPalette }: { onOpenPalette: () => void })
   const [menuOpen, setMenuOpen] = useState(false);
   const [megaOpen, setMegaOpen] = useState(false);
   const location = useLocation();
-  const { bookingLink } = useSettings();
   const megaRef = useRef<HTMLDivElement>(null);
   const megaTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
@@ -191,7 +189,7 @@ export default function Navbar({ onOpenPalette }: { onOpenPalette: () => void })
               <ThemeToggle />
             </div>
 
-            <a className="navbar-cta desktop-only" href={bookingLink}>Book a Session</a>
+            <a className="navbar-cta desktop-only" href="/#booking">Book a Session</a>
 
             <button
               className={`hamburger ${menuOpen ? 'open' : ''}`}
@@ -224,7 +222,7 @@ export default function Navbar({ onOpenPalette }: { onOpenPalette: () => void })
           <Link to="/blog" onClick={closeMenu} className="mobile-menu-link">Blog</Link>
           <Link to="/reviews" onClick={closeMenu} className="mobile-menu-link">Reviews</Link>
         </div>
-        <a className="mobile-menu-cta" href={bookingLink} onClick={closeMenu}>Book a Session</a>
+        <a className="mobile-menu-cta" href="/#booking" onClick={closeMenu}>Book a Session</a>
         <div className="mobile-menu-footer">
           <ThemeToggle />
         </div>

@@ -124,7 +124,7 @@ export default function Testimonials() {
         <section className="section" id="testimonials">
             <div className="testimonials-header">
                 <div className="section-eyebrow">
-                    <span className="eyebrow-num">04</span>
+                    <span className="eyebrow-num">05</span>
                     <span className="eyebrow-line" />
                     <span>What Students Say</span>
                 </div>
