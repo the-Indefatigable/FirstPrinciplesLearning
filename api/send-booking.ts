@@ -44,6 +44,12 @@ const BRAND = {
     sage: '#6b8f71',
 };
 
+// Hosted images (served from public/ on the production domain).
+const IMG = {
+    logo: 'https://www.firstprincipleslearningg.com/favicon-192.png',
+    banner: 'https://www.firstprincipleslearningg.com/og-image.png',
+};
+
 const esc = (s: unknown) =>
     String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
@@ -99,8 +105,8 @@ function shell(preheader: string, inner: string) {
             <!-- Header -->
             <tr><td style="padding:26px 32px 20px;border-bottom:1px solid ${BRAND.border};">
                 <table role="presentation" cellpadding="0" cellspacing="0"><tr>
-                    <td style="width:38px;height:38px;background:linear-gradient(135deg,${BRAND.amber},${BRAND.amberDark});border-radius:10px;text-align:center;vertical-align:middle;color:#fff;font-family:Georgia,serif;font-weight:700;font-size:17px;font-style:italic;">fp</td>
-                    <td style="padding-left:12px;font-family:Georgia,'Times New Roman',serif;font-size:19px;color:${BRAND.ink};font-weight:400;">FirstPrinciple<span style="color:${BRAND.amber};"> Tutoring</span></td>
+                    <td style="vertical-align:middle;"><img src="${IMG.logo}" width="40" height="40" alt="FirstPrinciple" style="display:block;border-radius:10px;"></td>
+                    <td style="padding-left:12px;font-family:Georgia,'Times New Roman',serif;font-size:19px;color:${BRAND.ink};font-weight:400;vertical-align:middle;">FirstPrinciple<span style="color:${BRAND.amber};"> Tutoring</span></td>
                 </tr></table>
             </td></tr>
             <!-- Body -->
@@ -141,6 +147,7 @@ function studentHtml(firstName: string, subject: string, whenText: string, durat
     return shell(
         `You're booked, ${firstName}! Here are your session details.`,
         `
+        <a href="${BRAND.site}" style="text-decoration:none;"><img src="${IMG.banner}" alt="FirstPrinciple Learning — Interactive Math, Physics & CS" width="536" style="display:block;width:100%;max-width:536px;height:auto;border-radius:14px;margin:0 0 24px;"></a>
         <h1 style="margin:0 0 6px;font-family:Georgia,'Times New Roman',serif;font-weight:400;font-size:27px;line-height:1.2;color:${BRAND.ink};">
             You're all set, ${firstName}. <span style="color:${BRAND.amber};">🎉</span>
         </h1>
