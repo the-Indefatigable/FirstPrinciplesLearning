@@ -1,23 +1,23 @@
 import './FinalCTA.css';
-import { lazy, Suspense } from 'react';
 
-// Lazy-load the booking widget so Firestore stays out of the initial JS bundle.
-const BookingWidget = lazy(() => import('./BookingWidget'));
-
+/**
+ * Closing CTA. The booking widget itself now lives in the Hero (above the fold),
+ * so this section just sends people back up to it — one `#booking` target only.
+ */
 export default function FinalCTA() {
     return (
-        <section className="final-cta" id="booking">
+        <section className="final-cta">
             <div className="final-cta-inner">
                 <div className="final-cta-head">
                     <h2>Ready to <em>excel?</em></h2>
                     <p>
-                        Book your free consultation below — pick a subject, choose a time
+                        Your free consultation is one click away — pick a subject, choose a time
                         that works, and we'll take it from there. No commitment, no pressure.
                     </p>
                 </div>
-                <Suspense fallback={<div className="final-cta-loading">Loading booking…</div>}>
-                    <BookingWidget />
-                </Suspense>
+                <a className="btn-primary final-cta-btn" href="#booking">
+                    Book my free consultation →
+                </a>
             </div>
         </section>
     );

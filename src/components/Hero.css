@@ -6,7 +6,7 @@
     align-items: center;
     justify-content: center;
     text-align: center;
-    padding: 140px 24px 100px;
+    padding: 118px 24px 72px;
     overflow: hidden;
     background: var(--bg-primary);
 }
@@ -57,11 +57,22 @@
     border-radius: 58% 42% 75% 25% / 76% 46% 54% 24%;
 }
 
-/* Content */
-.hero-content {
+/* Layout — pitch on the left, live booking panel on the right */
+.hero-grid {
     position: relative;
     z-index: 1;
+    width: 100%;
+    max-width: 1240px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 40px;
+    align-items: center;
+}
+
+/* Content */
+.hero-content {
     max-width: 720px;
+    margin: 0 auto;
 }
 
 .hero-badge {
@@ -121,6 +132,55 @@
     animation: fadeInUp 0.6s ease 0.3s both;
 }
 
+/* ── Booking panel (above the fold) ── */
+.hero-booking {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    animation: fadeInUp 0.6s ease 0.35s both;
+    scroll-margin-top: 90px;
+}
+
+.hero-booking-head {
+    text-align: left;
+    margin-bottom: 16px;
+}
+
+.hero-booking-head h2 {
+    font-family: var(--font-serif);
+    font-size: clamp(1.4rem, 2.6vw, 1.75rem);
+    font-weight: 400;
+    line-height: 1.2;
+    color: var(--text-primary);
+    margin: 0 0 6px;
+}
+
+.hero-booking-head h2 em {
+    font-style: italic;
+    color: var(--amber);
+}
+
+.hero-booking-head p {
+    font-size: 0.92rem;
+    color: var(--text-dim);
+    margin: 0;
+}
+
+/* The widget centres itself at 620px; here it should fill its column. */
+.hero-booking .bw-shell {
+    max-width: 100%;
+    margin: 0;
+}
+
+.hero-booking-loading {
+    padding: 60px 24px;
+    color: var(--text-dim);
+    background: var(--bg-card);
+    border: 1px solid var(--border-warm);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+}
+
 /* Trust row */
 .hero-trust {
     display: flex;
@@ -128,7 +188,7 @@
     justify-content: center;
     gap: 32px;
     flex-wrap: wrap;
-    margin-top: 80px;
+    margin-top: 8px;
     animation: fadeInUp 0.6s ease 0.5s both;
 }
 
@@ -153,27 +213,100 @@
     font-size: 0.95rem;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-    .hero {
-        padding: 120px 20px 80px;
+/* ── Desktop: side-by-side, booking visible without scrolling ── */
+@media (min-width: 1024px) {
+    .hero-grid {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 500px);
+        column-gap: 56px;
+        row-gap: 36px;
+        align-items: start;
+    }
+
+    .hero-content {
+        text-align: left;
+        margin: 0;
+        padding-top: 18px;
+    }
+
+    .hero-title {
+        font-size: clamp(2.8rem, 4.4vw, 4rem);
+        letter-spacing: -1.2px;
+        margin-bottom: 22px;
+    }
+
+    .hero-subtitle {
+        margin: 0 0 36px;
     }
 
     .hero-cta-group {
-        flex-direction: column;
-        width: 100%;
-        max-width: 360px;
-        margin: 0 auto;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+
+    /* The booking panel sits right there — a "book now" button would be noise. */
+    .hero-cta-group .btn-primary {
+        display: none;
+    }
+
+    .hero-trust {
+        grid-column: 1;
+        justify-content: flex-start;
+        gap: 20px;
+        margin-top: 0;
+    }
+}
+
+/* ── Tablet / mobile: stacked, hero copy kept short so the panel sits high ── */
+@media (max-width: 1023px) {
+    .hero {
+        min-height: auto;
+        padding: 104px 20px 64px;
+    }
+
+    .hero-grid {
+        gap: 28px;
+    }
+
+    .hero-badge {
+        margin-bottom: 20px;
+    }
+
+    .hero-title {
+        font-size: clamp(2.3rem, 8vw, 3.4rem);
+        margin-bottom: 16px;
+    }
+
+    .hero-subtitle {
+        margin: 0 auto 24px;
+    }
+
+    /* Compact text links instead of three stacked full-width buttons —
+       keeps ~140px of vertical space so the booking panel is in view. */
+    .hero-cta-group {
+        gap: 20px;
+        flex-wrap: wrap;
     }
 
     .hero-cta-group .btn-primary,
     .hero-cta-group .btn-secondary {
-        width: 100%;
+        padding: 0;
+        background: transparent;
+        border: none;
+        box-shadow: none;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--amber);
+        text-decoration: underline;
+        text-underline-offset: 4px;
+    }
+
+    .hero-booking-head {
+        text-align: center;
     }
 
     .hero-trust {
         gap: 16px;
-        margin-top: 56px;
+        margin-top: 12px;
     }
 
     .hero-blobs .blob-1 {

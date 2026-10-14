@@ -39,14 +39,8 @@
     margin: 0 auto;
 }
 
-.final-cta-loading {
-    max-width: 620px;
-    margin: 0 auto;
-    padding: 60px 24px;
-    color: var(--text-dim);
-    background: var(--bg-card);
-    border: 1px solid var(--border-warm);
-    border-radius: var(--radius-lg);
+.final-cta-btn {
+    display: inline-block;
 }
 
 @media (max-width: 768px) {
